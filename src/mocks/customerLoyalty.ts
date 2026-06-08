@@ -1,0 +1,51 @@
+import type { CustomerLoyalty } from '../types/loyalty'
+
+export const mockCustomerLoyalty: CustomerLoyalty[] = [
+  {
+    customer_id: 'user-cus-001',
+    current_tier: 'GOLD',
+    total_points: 1280,
+    available_points: 920,
+    redeemed_points: 300,
+    expired_points: 60,
+    total_spent: 2850000,
+    total_visits: 18,
+    expiring_points: [{ points: 120, expires_at: '2026-09-30T23:59:59' }],
+  },
+  {
+    customer_id: 'user-cus-002',
+    current_tier: 'SILVER',
+    total_points: 540,
+    available_points: 480,
+    redeemed_points: 50,
+    expired_points: 10,
+    total_spent: 980000,
+    total_visits: 9,
+    expiring_points: [{ points: 80, expires_at: '2026-08-15T23:59:59' }],
+  },
+  {
+    customer_id: 'user-cus-003',
+    current_tier: 'BRONZE',
+    total_points: 180,
+    available_points: 180,
+    redeemed_points: 0,
+    expired_points: 0,
+    total_spent: 320000,
+    total_visits: 4,
+    expiring_points: [],
+  },
+  {
+    customer_id: 'user-cus-004',
+    current_tier: 'PLATINUM',
+    total_points: 4200,
+    available_points: 3650,
+    redeemed_points: 500,
+    expired_points: 50,
+    total_spent: 12500000,
+    total_visits: 42,
+    expiring_points: [
+      { points: 200, expires_at: '2026-12-31T23:59:59' },
+      { points: 150, expires_at: '2026-10-20T23:59:59' },
+    ],
+  },
+]

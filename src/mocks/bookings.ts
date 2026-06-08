@@ -4,8 +4,8 @@ import { MOCK_GARAGE_ID } from './garage'
 export const mockBookings: Booking[] = [
   {
     id: 'booking-001',
-    customer_id: 'user-cus-001',
-    vehicle_id: 'vehicle-001',
+    customer_id: 'user-cus-002',
+    vehicle_id: 'vehicle-003',
     is_walk_in: false,
     guest_name: null,
     guest_phone: null,
@@ -28,8 +28,8 @@ export const mockBookings: Booking[] = [
   },
   {
     id: 'booking-002',
-    customer_id: 'user-cus-001',
-    vehicle_id: 'vehicle-002',
+    customer_id: 'user-cus-003',
+    vehicle_id: 'vehicle-004',
     is_walk_in: false,
     guest_name: null,
     guest_phone: null,
@@ -52,11 +52,11 @@ export const mockBookings: Booking[] = [
   },
   {
     id: 'booking-003',
-    customer_id: null,
-    vehicle_id: null,
-    is_walk_in: true,
-    guest_name: 'Hoàng Văn Em',
-    guest_phone: '0912345678',
+    customer_id: 'user-cus-004',
+    vehicle_id: 'vehicle-005',
+    is_walk_in: false,
+    guest_name: null,
+    guest_phone: null,
     guest_email: null,
     garage_id: MOCK_GARAGE_ID,
     wash_bay_id: null,
@@ -72,7 +72,7 @@ export const mockBookings: Booking[] = [
     payment_method: 'CASH',
     payment_status: 'UNPAID',
     status: 'CHECKED_IN',
-    note: 'Walk-in',
+    note: null,
   },
   {
     id: 'booking-004',

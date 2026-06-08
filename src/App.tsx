@@ -12,6 +12,8 @@ import { CheckInPage } from './pages/bookings/CheckInPage'
 import { WalkInCreatePage } from './pages/bookings/WalkInCreatePage'
 import { DashboardPage } from './pages/dashboard/DashboardPage'
 import { WashHistoryPage } from './pages/history/WashHistoryPage'
+import { CustomerDetailPage } from './pages/customers/CustomerDetailPage'
+import { CustomerListPage } from './pages/customers/CustomerListPage'
 import { InspectionPage } from './pages/service/InspectionPage'
 import { ServiceExecutionPage } from './pages/service/ServiceExecutionPage'
 
@@ -35,6 +37,8 @@ function App() {
             <Route path="/service/execution" element={<ServiceExecutionPage />} />
             <Route path="/service/inspection" element={<InspectionPage />} />
             <Route path="/history/wash" element={<WashHistoryPage />} />
+            <Route path="/customers" element={<CustomerListPage />} />
+            <Route path="/customers/:id" element={<CustomerDetailPage />} />
           </Route>
         </Route>
 
