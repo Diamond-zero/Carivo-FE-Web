@@ -1,11 +1,6 @@
 import type { Booking } from '../types/booking'
-import { mockBookings } from '../mocks/bookings'
 import { mockServiceSteps } from '../mocks/serviceSteps'
 import { mockUsers } from '../mocks/users'
-
-export function getBookingById(id: string) {
-  return mockBookings.find((booking) => booking.id === id)
-}
 
 export function getServiceStepsByBookingId(bookingId: string) {
   return mockServiceSteps

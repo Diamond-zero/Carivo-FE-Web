@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { StaffLayout } from './components/layout/StaffLayout'
 import { AuthProvider } from './contexts/AuthContext'
+import { BookingProvider } from './contexts/BookingContext'
 import { LoginPage } from './pages/auth/LoginPage'
 import { RegisterPage } from './pages/auth/RegisterPage'
 import { BookingDetailPage } from './pages/bookings/BookingDetailPage'
@@ -16,7 +17,8 @@ import { ServiceExecutionPage } from './pages/service/ServiceExecutionPage'
 function App() {
   return (
     <AuthProvider>
-      <Routes>
+      <BookingProvider>
+        <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -35,7 +37,8 @@ function App() {
         </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+        </Routes>
+      </BookingProvider>
     </AuthProvider>
   )
 }
