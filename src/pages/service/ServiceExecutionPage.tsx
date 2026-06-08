@@ -3,11 +3,13 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   CheckCircle2,
+  Info,
   Loader2,
   MapPin,
   Play,
 } from 'lucide-react'
 import { AssignWashBayModal } from '../../components/wash-bay/AssignWashBayModal'
+import { BookingExecutionDrawer } from '../../components/service/BookingExecutionDrawer'
 import { BookingStatusBadge } from '../../components/booking/BookingStatusBadge'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { ServiceStepList } from '../../components/service/ServiceStepList'
@@ -57,6 +59,7 @@ export function ServiceExecutionPage() {
   const [isStarting, setIsStarting] = useState(false)
   const [isCompletingService, setIsCompletingService] = useState(false)
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
+  const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false)
 
   const executableBookings = useMemo(
     () =>
@@ -92,6 +95,10 @@ export function ServiceExecutionPage() {
       setSearchParams({ bookingId: executableBookings[0].id }, { replace: true })
     }
   }, [executableBookings, searchParams, setSearchParams])
+
+  useEffect(() => {
+    setIsDetailDrawerOpen(false)
+  }, [selectedBookingId])
 
   const handleSelectBooking = (bookingId: string) => {
     setSearchParams({ bookingId })
@@ -169,6 +176,11 @@ export function ServiceExecutionPage() {
     return result
   }
 
+  const handleRequestAssignFromDrawer = () => {
+    setIsDetailDrawerOpen(false)
+    setIsAssignModalOpen(true)
+  }
+
   return (
     <div>
       <div className="mb-4">
@@ -228,6 +240,15 @@ export function ServiceExecutionPage() {
                   <div className="mt-3">
                     <BookingStatusBadge status={booking.status} />
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-3 w-full"
+                    onClick={() => setIsDetailDrawerOpen(true)}
+                  >
+                    <Info className="h-4 w-4" />
+                    Chi tiết booking
+                  </Button>
                 </div>
               ) : null}
             </CardContent>
@@ -300,11 +321,14 @@ export function ServiceExecutionPage() {
                       Hoàn thành lần lượt từng bước theo thứ tự
                     </CardDescription>
                   </div>
-                  <Link to={`/bookings/${booking.id}`}>
-                    <Button variant="ghost" size="sm">
-                      Chi tiết
-                    </Button>
-                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsDetailDrawerOpen(true)}
+                  >
+                    <Info className="h-4 w-4" />
+                    Chi tiết
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   <ServiceStepList
@@ -365,6 +389,19 @@ export function ServiceExecutionPage() {
           booking={booking}
           availableBays={availableWashBays}
           onAssign={handleAssignWashBay}
+        />
+      ) : null}
+
+      {booking ? (
+        <BookingExecutionDrawer
+          open={isDetailDrawerOpen}
+          onClose={() => setIsDetailDrawerOpen(false)}
+          booking={booking}
+          washBay={assignedWashBay}
+          needsWashBayAssignment={needsWashBayAssignment}
+          onRequestAssignWashBay={
+            needsWashBayAssignment ? handleRequestAssignFromDrawer : undefined
+          }
         />
       ) : null}
     </div>
