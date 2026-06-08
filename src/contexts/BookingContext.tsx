@@ -7,10 +7,16 @@ import {
   type ReactNode,
 } from 'react'
 import { mockBookings } from '../mocks/bookings'
+import { mockInspections } from '../mocks/inspections'
 import { mockServiceSteps } from '../mocks/serviceSteps'
 import type { Booking, WalkInBookingForm } from '../types/booking'
+import type { VehicleInspection } from '../types/inspection'
 import type { BookingServiceStep } from '../types/serviceStep'
 import { getBookingPhone, normalizeSearchText } from '../utils/booking'
+import {
+  buildInspection,
+  type CreateInspectionInput,
+} from '../utils/inspection'
 import {
   areAllStepsDone,
   canCompleteStep,
@@ -20,6 +26,7 @@ import { buildWalkInBooking } from '../utils/walkIn'
 
 interface BookingContextValue {
   bookings: Booking[]
+  inspections: VehicleInspection[]
   getBookingById: (id: string) => Booking | undefined
   searchCheckInCandidates: (query: string) => Booking[]
   checkInBooking: (id: string) => { success: boolean; message: string }
@@ -34,6 +41,11 @@ interface BookingContextValue {
     staffProfileId: string,
   ) => { success: boolean; message: string }
   completeService: (bookingId: string) => { success: boolean; message: string }
+  getInspectionsByBookingId: (bookingId: string) => VehicleInspection[]
+  createInspection: (
+    data: CreateInspectionInput,
+    staffProfileId: string,
+  ) => { success: boolean; message: string; inspectionId?: string }
 }
 
 const BookingContext = createContext<BookingContextValue | null>(null)
@@ -44,6 +56,9 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   )
   const [serviceSteps, setServiceSteps] = useState<BookingServiceStep[]>(() =>
     mockServiceSteps.map((step) => ({ ...step })),
+  )
+  const [inspections, setInspections] = useState<VehicleInspection[]>(() =>
+    mockInspections.map((inspection) => ({ ...inspection })),
   )
 
   const getBookingById = useCallback(
@@ -57,6 +72,18 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         .filter((step) => step.booking_id === bookingId)
         .sort((a, b) => a.order - b.order),
     [serviceSteps],
+  )
+
+  const getInspectionsByBookingId = useCallback(
+    (bookingId: string) =>
+      inspections
+        .filter((inspection) => inspection.booking_id === bookingId)
+        .sort(
+          (a, b) =>
+            new Date(b.inspected_at).getTime() -
+            new Date(a.inspected_at).getTime(),
+        ),
+    [inspections],
   )
 
   const searchCheckInCandidates = useCallback(
@@ -249,9 +276,42 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     [bookings, serviceSteps],
   )
 
+  const createInspection = useCallback(
+    (data: CreateInspectionInput, staffProfileId: string) => {
+      const booking = bookings.find((item) => item.id === data.booking_id)
+
+      if (!booking) {
+        return { success: false, message: 'Không tìm thấy booking.' }
+      }
+
+      if (!['CHECKED_IN', 'IN_PROGRESS'].includes(booking.status)) {
+        return {
+          success: false,
+          message:
+            'Chỉ booking CHECKED_IN hoặc IN_PROGRESS mới tạo được biên bản.',
+        }
+      }
+
+      if (data.images.length === 0) {
+        return { success: false, message: 'Cần ít nhất 1 ảnh kiểm tra.' }
+      }
+
+      const newInspection = buildInspection(data, staffProfileId)
+      setInspections((current) => [newInspection, ...current])
+
+      return {
+        success: true,
+        message: `Đã lưu biên bản ${newInspection.type === 'BEFORE_WASH' ? 'trước rửa' : 'sau rửa'}.`,
+        inspectionId: newInspection.id,
+      }
+    },
+    [bookings],
+  )
+
   const value = useMemo(
     () => ({
       bookings,
+      inspections,
       getBookingById,
       searchCheckInCandidates,
       checkInBooking,
@@ -260,9 +320,12 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       startService,
       completeServiceStep,
       completeService,
+      getInspectionsByBookingId,
+      createInspection,
     }),
     [
       bookings,
+      inspections,
       getBookingById,
       searchCheckInCandidates,
       checkInBooking,
@@ -271,6 +334,8 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       startService,
       completeServiceStep,
       completeService,
+      getInspectionsByBookingId,
+      createInspection,
     ],
   )
 
