@@ -15,7 +15,7 @@ const POINT_TYPE_LABELS: Record<LoyaltyPointRecord['type'], string> = {
 
 const POINT_TYPE_COLORS: Record<LoyaltyPointRecord['type'], string> = {
   EARNED: 'bg-emerald-50 text-emerald-600',
-  REDEEMED: 'bg-blue-50 text-blue-600',
+  REDEEMED: 'bg-brand-50 text-brand-700',
   EXPIRED: 'bg-slate-100 text-slate-500',
 }
 

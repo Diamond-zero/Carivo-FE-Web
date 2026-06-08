@@ -14,7 +14,7 @@ export function CustomerSearchPanel({
   onReset,
 }: CustomerSearchPanelProps) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="carivo-panel p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="flex-1">
           <label

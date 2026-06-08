@@ -33,7 +33,7 @@ export function BookingTable({
         cell: (info) => (
           <Link
             to={`/bookings/${info.getValue()}`}
-            className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
+            className="carivo-link"
           >
             {info.getValue().replace('booking-', '#')}
           </Link>

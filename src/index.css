@@ -1,7 +1,81 @@
 @import 'tailwindcss';
 
+@theme {
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50: #effefb;
+  --color-brand-100: #c7fff4;
+  --color-brand-200: #90ffea;
+  --color-brand-300: #51f3dc;
+  --color-brand-400: #1dd9c4;
+  --color-brand-500: #06b6a4;
+  --color-brand-600: #089985;
+  --color-brand-700: #0b7a6c;
+  --color-brand-800: #0e6158;
+  --color-brand-900: #10504a;
+  --color-brand-950: #022f2b;
+
+  --color-navy-950: #070d18;
+  --color-navy-900: #0c1527;
+  --color-navy-800: #131f35;
+  --color-navy-700: #1c2d4a;
+  --color-navy-600: #2a4066;
+
+  --shadow-carivo-sm: 0 1px 2px rgba(7, 13, 24, 0.06), 0 1px 3px rgba(7, 13, 24, 0.04);
+  --shadow-carivo-md: 0 4px 6px -1px rgba(7, 13, 24, 0.06),
+    0 10px 24px -4px rgba(7, 13, 24, 0.08);
+  --shadow-carivo-lg: 0 12px 32px -8px rgba(7, 13, 24, 0.14);
+}
+
 @layer base {
   body {
-    @apply m-0 min-h-screen bg-gray-50 text-slate-900 antialiased;
+    @apply m-0 min-h-screen bg-[#eef2f7] font-sans text-slate-900 antialiased;
+    background-image:
+      radial-gradient(circle at 0% 0%, rgba(6, 182, 164, 0.07), transparent 42%),
+      radial-gradient(circle at 100% 0%, rgba(15, 23, 42, 0.04), transparent 38%);
+  }
+
+  ::selection {
+    @apply bg-brand-200 text-brand-950;
+  }
+}
+
+@layer components {
+  .carivo-panel {
+    @apply rounded-2xl border border-white/70 bg-white/90 shadow-[var(--shadow-carivo-sm)] ring-1 ring-slate-900/[0.04] backdrop-blur-sm;
+  }
+
+  .carivo-link {
+    @apply font-medium text-brand-700 transition-colors hover:text-brand-800 hover:underline;
+  }
+
+  .carivo-page-title {
+    @apply text-xl font-bold tracking-tight text-slate-900 md:text-2xl;
+  }
+
+  .carivo-sidebar-nav-active {
+    @apply bg-brand-500/15 text-white;
+  }
+
+  .sidebar-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(6, 182, 164, 0.35) transparent;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    background: rgba(6, 182, 164, 0.28);
+    border-radius: 9999px;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(6, 182, 164, 0.45);
   }
 }

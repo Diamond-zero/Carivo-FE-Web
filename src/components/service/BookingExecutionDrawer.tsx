@@ -149,7 +149,7 @@ export function BookingExecutionDrawer({
             </div>
             <div className="flex justify-between gap-4 border-t border-slate-100 pt-2">
               <dt className="font-medium text-slate-900">Thành tiền</dt>
-              <dd className="font-semibold text-blue-600">
+              <dd className="font-semibold text-brand-700">
                 {formatPrice(booking.final_price)}
               </dd>
             </div>
@@ -167,7 +167,7 @@ export function BookingExecutionDrawer({
             ) : null}
           </div>
           {washBay ? (
-            <div className="rounded-lg bg-blue-50 px-3 py-2.5 text-sm">
+            <div className="rounded-lg bg-brand-50 px-3 py-2.5 text-sm">
               <p className="font-medium text-slate-900">{washBay.name}</p>
               <p className="text-slate-600">
                 {washBay.bay_code} · {VEHICLE_TYPE_LABELS[washBay.vehicle_type]}

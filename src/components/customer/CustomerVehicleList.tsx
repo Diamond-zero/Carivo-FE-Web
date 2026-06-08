@@ -23,7 +23,7 @@ export function CustomerVehicleList({ vehicles }: CustomerVehicleListProps) {
     <ul className="divide-y divide-slate-100">
       {vehicles.map((vehicle) => (
         <li key={vehicle.id} className="flex gap-4 px-1 py-4 first:pt-0 last:pb-0">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
             <Car className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">

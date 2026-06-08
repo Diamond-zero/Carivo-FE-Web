@@ -53,8 +53,8 @@ function CheckInResultCard({
       onClick={onSelect}
       className={`w-full rounded-xl border p-4 text-left transition-colors ${
         selected
-          ? 'border-blue-400 bg-blue-50 ring-2 ring-blue-500/20'
-          : 'border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50'
+          ? 'border-brand-400 bg-brand-50 ring-2 ring-brand-500/20'
+          : 'border-slate-200 bg-white hover:border-brand-200 hover:bg-slate-50'
       }`}
     >
       <div className="flex items-start justify-between gap-3">

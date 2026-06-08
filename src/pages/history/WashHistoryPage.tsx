@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from '../../components/ui/Card'
 import { DashboardPageSkeleton } from '../../components/ui/Skeleton'
+import { StatCard } from '../../components/ui/StatCard'
 import { useAuth } from '../../contexts/AuthContext'
 import { useBookings } from '../../contexts/BookingContext'
 import { useInitialPageSkeleton } from '../../hooks/useInitialPageSkeleton'
@@ -58,47 +59,24 @@ export function WashHistoryPage() {
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardContent className="flex items-center gap-4 py-5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-              <History className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm text-slate-500">Lượt rửa</p>
-              <p className="text-2xl font-semibold text-slate-900">
-                {stats.totalRecords}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="flex items-center gap-4 py-5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-              <CircleDollarSign className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm text-slate-500">Doanh thu (đã lọc)</p>
-              <p className="text-lg font-semibold text-slate-900">
-                {formatPrice(stats.totalRevenue)}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="flex items-center gap-4 py-5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm text-slate-500">Điểm loyalty cộng</p>
-              <p className="text-2xl font-semibold text-slate-900">
-                {stats.totalPoints}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Lượt rửa"
+          value={stats.totalRecords}
+          icon={History}
+          accent="brand"
+        />
+        <StatCard
+          label="Doanh thu (đã lọc)"
+          value={formatPrice(stats.totalRevenue)}
+          icon={CircleDollarSign}
+          accent="emerald"
+        />
+        <StatCard
+          label="Điểm loyalty cộng"
+          value={stats.totalPoints}
+          icon={Sparkles}
+          accent="violet"
+        />
       </div>
 
       <div className="mb-6">

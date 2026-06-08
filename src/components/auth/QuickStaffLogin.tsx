@@ -13,10 +13,10 @@ export function QuickStaffLogin({
   selectedPhone,
 }: QuickStaffLoginProps) {
   return (
-    <div className="mt-6 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4">
+    <div className="mt-6 rounded-xl border border-dashed border-brand-200/80 bg-brand-50/40 p-4">
       <div className="mb-3 flex items-center gap-2">
-        <Zap className="h-4 w-4 text-amber-500" />
-        <p className="text-sm font-medium text-slate-700">Đăng nhập nhanh Staff</p>
+        <Zap className="h-4 w-4 text-brand-600" />
+        <p className="text-sm font-semibold text-slate-800">Đăng nhập nhanh Staff</p>
       </div>
       <p className="mb-3 text-xs text-slate-500">
         Bấm vào tài khoản để điền số điện thoại và mật khẩu vào form phía trên.
@@ -32,15 +32,15 @@ export function QuickStaffLogin({
               type="button"
               onClick={() => onSelect(user.phone, user.password)}
               className={cn(
-                'rounded-xl border bg-white px-3 py-3 text-left transition-colors hover:border-blue-300 hover:bg-blue-50/50',
+                'rounded-xl border bg-white px-3 py-3 text-left shadow-[var(--shadow-carivo-sm)] transition-all hover:border-brand-300 hover:bg-brand-50/30',
                 isSelected
-                  ? 'border-blue-400 ring-2 ring-blue-500/20'
-                  : 'border-slate-200',
+                  ? 'border-brand-400 ring-2 ring-brand-500/20'
+                  : 'border-slate-200/90',
               )}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-slate-900">
+                  <p className="truncate text-sm font-semibold text-slate-900">
                     {user.full_name}
                   </p>
                   <p className="mt-0.5 text-xs text-slate-500">
@@ -49,7 +49,7 @@ export function QuickStaffLogin({
                 </div>
                 <span
                   className={cn(
-                    'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium',
+                    'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset',
                     STAFF_TYPE_COLORS[staffProfile.staff_type],
                   )}
                 >

@@ -38,10 +38,10 @@ function ToastContainer({
         <div
           key={toast.id}
           className={cn(
-            'pointer-events-auto flex items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-lg',
+            'pointer-events-auto flex items-start gap-3 rounded-xl border px-4 py-3.5 text-sm shadow-[var(--shadow-carivo-md)] backdrop-blur-sm',
             toast.type === 'success'
-              ? 'border-green-200 bg-green-50 text-green-800'
-              : 'border-red-200 bg-red-50 text-red-800',
+              ? 'border-emerald-200/80 bg-emerald-50/95 text-emerald-900'
+              : 'border-red-200/80 bg-red-50/95 text-red-900',
           )}
           role="status"
         >

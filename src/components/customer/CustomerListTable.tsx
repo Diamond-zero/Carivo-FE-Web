@@ -27,7 +27,7 @@ export function CustomerListTable({
           <div>
             <Link
               to={`/customers/${row.original.user.id}`}
-              className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
+              className="carivo-link"
             >
               {row.original.user.full_name}
             </Link>
@@ -63,7 +63,7 @@ export function CustomerListTable({
         cell: ({ row }) => (
           <Link
             to={`/customers/${row.original.user.id}`}
-            className="text-sm font-medium text-blue-600 hover:text-blue-700"
+            className="carivo-link text-sm"
           >
             Xem chi tiết
           </Link>

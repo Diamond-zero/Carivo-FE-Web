@@ -19,6 +19,7 @@ import {
 } from '../../components/ui/Card'
 import { DataTable } from '../../components/ui/DataTable'
 import { DashboardPageSkeleton } from '../../components/ui/Skeleton'
+import { StatCard } from '../../components/ui/StatCard'
 import { Button } from '../../components/ui/Button'
 import { WashBayStatusGrid } from '../../components/wash-bay/WashBayStatusGrid'
 import { useAuth } from '../../contexts/AuthContext'
@@ -49,25 +50,25 @@ export function DashboardPage() {
       label: 'Booking hôm nay',
       value: stats.todayBookings,
       icon: CalendarClock,
-      color: 'text-blue-600 bg-blue-50',
+      accent: 'brand' as const,
     },
     {
       label: 'Đang chờ check-in',
       value: stats.waitingCheckIn,
       icon: ClipboardList,
-      color: 'text-indigo-600 bg-indigo-50',
+      accent: 'indigo' as const,
     },
     {
       label: 'Đang thực hiện',
       value: stats.inProgress,
       icon: Wrench,
-      color: 'text-amber-600 bg-amber-50',
+      accent: 'amber' as const,
     },
     {
       label: 'Hoàn thành chờ thanh toán',
       value: stats.completedUnpaid,
       icon: CircleDollarSign,
-      color: 'text-emerald-600 bg-emerald-50',
+      accent: 'emerald' as const,
     },
   ]
 
@@ -118,21 +119,13 @@ export function DashboardPage() {
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {statCards.map((stat) => (
-          <Card key={stat.label}>
-            <CardContent className="flex items-start justify-between p-5">
-              <div>
-                <p className="text-sm text-slate-500">{stat.label}</p>
-                <p className="mt-2 text-3xl font-semibold text-slate-900">
-                  {stat.value}
-                </p>
-              </div>
-              <div
-                className={`flex h-10 w-10 items-center justify-center rounded-xl ${stat.color}`}
-              >
-                <stat.icon className="h-5 w-5" />
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard
+            key={stat.label}
+            label={stat.label}
+            value={stat.value}
+            icon={stat.icon}
+            accent={stat.accent}
+          />
         ))}
       </div>
 

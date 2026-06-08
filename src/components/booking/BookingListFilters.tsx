@@ -40,7 +40,7 @@ export function BookingListFilters({
     filters.phone !== DEFAULT_BOOKING_FILTERS.phone
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="carivo-panel p-4">
       <div className="mb-4 flex items-center gap-2 text-sm font-medium text-slate-700">
         <Search className="h-4 w-4" />
         Bộ lọc booking

@@ -61,7 +61,7 @@ export function SettingsPage() {
           </CardHeader>
           <CardContent>
             <div className="mb-5 flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-xl font-semibold text-blue-700">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-100 text-xl font-bold text-brand-800">
                 {user.full_name.charAt(0)}
               </div>
               <div>
