@@ -1,4 +1,4 @@
-import { CircleDollarSign, History, Sparkles } from 'lucide-react'
+import { CircleDollarSign, History, SearchX, Sparkles } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { WashHistoryFiltersPanel } from '../../components/history/WashHistoryFilters'
 import { WashHistoryTable } from '../../components/history/WashHistoryTable'
@@ -9,8 +9,10 @@ import {
   CardHeader,
   CardTitle,
 } from '../../components/ui/Card'
+import { DashboardPageSkeleton } from '../../components/ui/Skeleton'
 import { useAuth } from '../../contexts/AuthContext'
 import { useBookings } from '../../contexts/BookingContext'
+import { useInitialPageSkeleton } from '../../hooks/useInitialPageSkeleton'
 import { formatPrice } from '../../utils/format'
 import {
   DEFAULT_WASH_HISTORY_FILTERS,
@@ -25,6 +27,7 @@ export function WashHistoryPage() {
   const [filters, setFilters] = useState<WashHistoryFilters>(
     DEFAULT_WASH_HISTORY_FILTERS,
   )
+  const isLoading = useInitialPageSkeleton(280)
 
   const garageId = session?.staffProfile.garage_id
 
@@ -45,12 +48,16 @@ export function WashHistoryPage() {
 
   return (
     <div>
+      {isLoading ? (
+        <DashboardPageSkeleton />
+      ) : (
+        <>
       <PageHeader
         title="Lịch sử rửa"
         description="Xem lịch sử rửa xe read-only của garage đang làm việc."
       />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardContent className="flex items-center gap-4 py-5">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
@@ -110,9 +117,22 @@ export function WashHistoryPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0 pb-2">
-          <WashHistoryTable histories={filteredHistories} />
+          <WashHistoryTable
+            histories={filteredHistories}
+            emptyState={{
+              icon: hasActiveFilters ? SearchX : History,
+              title: hasActiveFilters
+                ? 'Không có bản ghi phù hợp'
+                : 'Chưa có lịch sử rửa',
+              description: hasActiveFilters
+                ? 'Thử đổi ngày, biển số hoặc từ khóa tìm kiếm.'
+                : 'Lịch sử sẽ xuất hiện sau khi hoàn thành và thu tiền booking.',
+            }}
+          />
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   )
 }

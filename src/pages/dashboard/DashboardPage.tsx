@@ -3,9 +3,11 @@ import {
   CalendarClock,
   CircleDollarSign,
   ClipboardList,
+  Inbox,
   Wrench,
 } from 'lucide-react'
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { BookingStatusBadge } from '../../components/booking/BookingStatusBadge'
 import { PageHeader } from '../../components/layout/PageHeader'
 import {
@@ -16,9 +18,12 @@ import {
   CardTitle,
 } from '../../components/ui/Card'
 import { DataTable } from '../../components/ui/DataTable'
+import { DashboardPageSkeleton } from '../../components/ui/Skeleton'
+import { Button } from '../../components/ui/Button'
 import { WashBayStatusGrid } from '../../components/wash-bay/WashBayStatusGrid'
 import { useAuth } from '../../contexts/AuthContext'
 import { useBookings } from '../../contexts/BookingContext'
+import { useInitialPageSkeleton } from '../../hooks/useInitialPageSkeleton'
 import type { Booking } from '../../types/booking'
 import { getBookingCustomerName } from '../../utils/booking'
 import {
@@ -32,6 +37,7 @@ const columnHelper = createColumnHelper<Booking>()
 export function DashboardPage() {
   const { session } = useAuth()
   const { bookings, washBays } = useBookings()
+  const isLoading = useInitialPageSkeleton()
   const stats = useMemo(() => getDashboardStats(bookings), [bookings])
   const upcomingBookings = useMemo(
     () => getUpcomingBookings(bookings, 5),
@@ -101,6 +107,10 @@ export function DashboardPage() {
 
   return (
     <div>
+      {isLoading ? (
+        <DashboardPageSkeleton />
+      ) : (
+        <>
       <PageHeader
         title="Dashboard"
         description={`Tổng quan garage ${session?.garage.name ?? ''} — ${MOCK_TODAY.split('-').reverse().join('/')}`}
@@ -149,10 +159,23 @@ export function DashboardPage() {
           <DataTable
             columns={columns}
             data={upcomingBookings}
-            emptyMessage="Không có booking sắp tới hôm nay"
+            emptyState={{
+              icon: Inbox,
+              title: 'Không có booking sắp tới',
+              description: 'Hôm nay chưa có lịch hẹn cần xử lý thêm tại garage.',
+              action: (
+                <Link to="/bookings">
+                  <Button variant="secondary" size="sm">
+                    Xem tất cả booking
+                  </Button>
+                </Link>
+              ),
+            }}
           />
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   )
 }

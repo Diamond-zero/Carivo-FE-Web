@@ -1,6 +1,8 @@
+import { ClipboardList } from 'lucide-react'
 import type { VehicleInspection } from '../../types/inspection'
 import { INSPECTION_TYPE_LABELS } from '../../constants/inspection'
 import { formatDateTime } from '../../utils/format'
+import { EmptyState } from '../ui/EmptyState'
 
 interface InspectionHistoryListProps {
   inspections: VehicleInspection[]
@@ -11,9 +13,12 @@ export function InspectionHistoryList({
 }: InspectionHistoryListProps) {
   if (inspections.length === 0) {
     return (
-      <p className="text-sm text-slate-500">
-        Chưa có biên bản kiểm tra cho booking này.
-      </p>
+      <EmptyState
+        icon={ClipboardList}
+        title="Chưa có biên bản"
+        description="Chưa có biên bản kiểm tra nào cho booking này."
+        compact
+      />
     )
   }
 

@@ -5,18 +5,20 @@ import { Link } from 'react-router-dom'
 import { getServicePackageName } from '../../mocks/servicePackages'
 import type { WashHistory } from '../../types/washHistory'
 import { formatDateTime, formatPrice } from '../../utils/format'
-import { DataTable } from '../ui/DataTable'
+import { DataTable, type DataTableEmptyState } from '../ui/DataTable'
 
 const columnHelper = createColumnHelper<WashHistory>()
 
 interface WashHistoryTableProps {
   histories: WashHistory[]
-  emptyMessage?: string
+  emptyState?: DataTableEmptyState
+  loading?: boolean
 }
 
 export function WashHistoryTable({
   histories,
-  emptyMessage = 'Chưa có lịch sử rửa phù hợp',
+  emptyState,
+  loading = false,
 }: WashHistoryTableProps) {
   const columns = useMemo(
     () => [
@@ -102,6 +104,12 @@ export function WashHistoryTable({
   )
 
   return (
-    <DataTable columns={columns} data={histories} emptyMessage={emptyMessage} />
+    <DataTable
+      columns={columns}
+      data={histories}
+      emptyState={emptyState}
+      loading={loading}
+      skeletonRows={4}
+    />
   )
 }

@@ -7,6 +7,7 @@ import {
   Loader2,
   MapPin,
   Play,
+  Wrench,
 } from 'lucide-react'
 import { AssignWashBayModal } from '../../components/wash-bay/AssignWashBayModal'
 import { CompleteServiceModal } from '../../components/booking/CompleteServiceModal'
@@ -16,6 +17,7 @@ import { BookingStatusBadge } from '../../components/booking/BookingStatusBadge'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { ServiceStepList } from '../../components/service/ServiceStepList'
 import { Button } from '../../components/ui/Button'
+import { EmptyState } from '../../components/ui/EmptyState'
 import {
   Card,
   CardContent,
@@ -218,12 +220,21 @@ export function ServiceExecutionPage() {
 
       {executableBookings.length === 0 ? (
         <Card>
-          <CardContent className="py-12 text-center text-sm text-slate-500">
-            Không có booking CHECKED_IN hoặc IN_PROGRESS để thực hiện.
+          <CardContent>
+            <EmptyState
+              icon={Wrench}
+              title="Không có booking đang xử lý"
+              description="Chỉ booking CHECKED_IN hoặc IN_PROGRESS mới hiển thị tại đây."
+              action={
+                <Link to="/bookings">
+                  <Button variant="secondary">Xem danh sách booking</Button>
+                </Link>
+              }
+            />
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6 xl:grid-cols-[320px_1fr]">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">
           <Card>
             <CardHeader>
               <CardTitle>Chọn booking</CardTitle>

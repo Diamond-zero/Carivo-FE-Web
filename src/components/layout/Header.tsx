@@ -52,7 +52,7 @@ export function Header({ onMenuClick }: HeaderProps) {
 
           <span
             className={cn(
-              'hidden rounded-full px-2.5 py-1 text-xs font-medium md:inline-flex',
+              'hidden rounded-full px-2.5 py-1 text-xs font-medium sm:inline-flex',
               STAFF_TYPE_COLORS[staffProfile.staff_type],
             )}
           >

@@ -10,9 +10,9 @@ export function StaffLayout() {
     <div className="min-h-screen bg-gray-50">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div className="lg:pl-64">
+      <div className="min-w-0 lg:pl-64">
         <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="p-4 sm:p-6">
+        <main className="mx-auto w-full max-w-[1600px] p-4 md:p-5 lg:p-6">
           <Outlet />
         </main>
       </div>
