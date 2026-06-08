@@ -1,5 +1,5 @@
 import { LogOut, Menu, MapPin } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { STAFF_TYPE_COLORS, STAFF_TYPE_LABELS } from '../../constants/staffType'
 import { useAuth } from '../../contexts/AuthContext'
 import { cn } from '../../lib/utils'
@@ -46,8 +46,13 @@ export function Header({ onMenuClick }: HeaderProps) {
 
         <div className="flex items-center gap-3">
           <div className="hidden text-right sm:block">
-            <p className="text-sm font-medium text-slate-900">{user.full_name}</p>
-            <p className="text-xs text-slate-500">{staffProfile.staff_code}</p>
+            <Link
+              to="/settings"
+              className="block rounded-lg transition-colors hover:bg-slate-50"
+            >
+              <p className="text-sm font-medium text-slate-900">{user.full_name}</p>
+              <p className="text-xs text-slate-500">{staffProfile.staff_code}</p>
+            </Link>
           </div>
 
           <span

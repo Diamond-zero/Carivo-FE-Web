@@ -4,6 +4,7 @@ import {
   ClipboardList,
   History,
   LayoutDashboard,
+  Settings,
   Users,
   Wrench,
 } from 'lucide-react'
@@ -52,5 +53,10 @@ export const staffNavItems: StaffNavItem[] = [
     label: 'Thông tin khách hàng',
     path: '/customers',
     icon: Users,
+  },
+  {
+    label: 'Cài đặt',
+    path: '/settings',
+    icon: Settings,
   },
 ]
