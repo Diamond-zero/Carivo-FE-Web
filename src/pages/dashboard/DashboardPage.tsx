@@ -21,8 +21,8 @@ import { useAuth } from '../../contexts/AuthContext'
 import { mockBookings } from '../../mocks/bookings'
 import { mockWashBays } from '../../mocks/washBays'
 import type { Booking } from '../../types/booking'
+import { getBookingCustomerName } from '../../utils/booking'
 import {
-  getBookingCustomerName,
   getDashboardStats,
   getUpcomingBookings,
 } from '../../utils/dashboard'
