@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { MarkPaidModal } from '../../components/booking/MarkPaidModal'
+import { GuardedActionButton } from '../../components/booking/GuardedActionButton'
 import { BookingServiceStepSummary } from '../../components/booking/BookingServiceStepSummary'
 import { BookingStatusBadge } from '../../components/booking/BookingStatusBadge'
 import { BookingTimeline } from '../../components/booking/BookingTimeline'
@@ -24,20 +25,22 @@ import {
   CardTitle,
 } from '../../components/ui/Card'
 import { VEHICLE_TYPE_LABELS } from '../../constants/washBayStatus'
+import { useAuth } from '../../contexts/AuthContext'
 import { useBookings } from '../../contexts/BookingContext'
 import { useToast } from '../../contexts/ToastContext'
 import { getServicePackageName } from '../../mocks/servicePackages'
 import {
-  getBookingAction,
   getBookingCustomerName,
   getBookingPhone,
+  getBookingListAction,
 } from '../../utils/booking'
-import { canAssignWashBay } from '../../utils/washBay'
+import { getAssignWashBayGuard } from '../../utils/bookingActionGuards'
 import { formatDateTime, formatPrice, formatTime } from '../../utils/format'
 
 export function BookingDetailPage() {
   const { id } = useParams()
   const location = useLocation()
+  const { session } = useAuth()
   const { showToast } = useToast()
   const {
     getBookingById,
@@ -80,12 +83,14 @@ export function BookingDetailPage() {
     )
   }
 
-  const action = getBookingAction(booking)
+  const staffGarageId = session?.staffProfile.garage_id
+  const listAction = getBookingListAction(booking, staffGarageId)
   const serviceSteps = id ? getServiceStepsByBookingId(id) : []
   const washBay = booking.wash_bay_id
     ? getWashBayById(booking.wash_bay_id)
     : null
-  const needsWashBayAssignment = canAssignWashBay(booking)
+  const assignWashBayGuard = getAssignWashBayGuard(booking, staffGarageId)
+  const needsWashBayAssignment = assignWashBayGuard.allowed
   const availableWashBays = id ? getAvailableWashBaysForBooking(id) : []
   const VehicleIcon = booking.vehicle_type === 'CAR' ? Car : Bike
 
@@ -127,15 +132,23 @@ export function BookingDetailPage() {
         title={`Booking ${booking.id.replace('booking-', '#')}`}
         description={`${getServicePackageName(booking.service_package_id)} — ${booking.booking_date.split('-').reverse().join('/')}`}
         action={
-          action ? (
-            action.label === 'Thanh toán' ? (
-              <Button onClick={() => setIsMarkPaidModalOpen(true)}>
-                {action.label}
-              </Button>
-            ) : (
-              <Link to={action.to}>
-                <Button>{action.label}</Button>
+          listAction ? (
+            listAction.type === 'mark_paid' ? (
+              <GuardedActionButton
+                guard={listAction.guard}
+                showHint={false}
+                onClick={() => setIsMarkPaidModalOpen(true)}
+              >
+                {listAction.label}
+              </GuardedActionButton>
+            ) : listAction.guard.allowed && listAction.to ? (
+              <Link to={listAction.to}>
+                <Button>{listAction.label}</Button>
               </Link>
+            ) : (
+              <Button disabled title={listAction.guard.reason}>
+                {listAction.label}
+              </Button>
             )
           ) : undefined
         }
@@ -269,7 +282,7 @@ export function BookingDetailPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <CardTitle>Buồng rửa</CardTitle>
-              {needsWashBayAssignment ? (
+              {assignWashBayGuard.allowed ? (
                 <Button size="sm" onClick={() => setIsAssignModalOpen(true)}>
                   <MapPin className="h-4 w-4" />
                   Gán buồng

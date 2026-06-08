@@ -383,6 +383,13 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      if (bookingRequiresWashBay(booking) && !booking.wash_bay_id) {
+        return {
+          success: false,
+          message: 'Cần gán buồng rửa trước khi hoàn thành dịch vụ.',
+        }
+      }
+
       setBookings((current) =>
         current.map((item) =>
           item.id === bookingId ? { ...item, status: 'COMPLETED' } : item,

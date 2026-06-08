@@ -12,6 +12,7 @@ import { z } from 'zod'
 import { BookingStatusBadge } from '../../components/booking/BookingStatusBadge'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
+import { GuardedActionButton } from '../../components/booking/GuardedActionButton'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card'
 import { Input } from '../../components/ui/Input'
 import { Label } from '../../components/ui/Label'
@@ -22,6 +23,8 @@ import {
   getBookingCustomerName,
   getBookingPhone,
 } from '../../utils/booking'
+import { getCheckInGuard } from '../../utils/bookingActionGuards'
+import { useAuth } from '../../contexts/AuthContext'
 import { formatPrice, formatTime } from '../../utils/format'
 
 const searchSchema = z.object({
@@ -73,6 +76,7 @@ function CheckInResultCard({
 
 export function CheckInPage() {
   const [searchParams] = useSearchParams()
+  const { session } = useAuth()
   const { searchCheckInCandidates, checkInBooking, getBookingById } =
     useBookings()
 
@@ -158,6 +162,10 @@ export function CheckInPage() {
     setHasSearched(false)
     setValue('query', '')
   }
+
+  const checkInGuard = selectedBooking
+    ? getCheckInGuard(selectedBooking, session?.staffProfile.garage_id)
+    : { allowed: false, reason: 'Vui lòng chọn booking cần check-in.' }
 
   return (
     <div>
@@ -252,7 +260,8 @@ export function CheckInPage() {
                   </div>
                 </dl>
 
-                <Button
+                <GuardedActionButton
+                  guard={checkInGuard}
                   fullWidth
                   className="mt-4"
                   disabled={isCheckingIn}
@@ -266,7 +275,7 @@ export function CheckInPage() {
                   ) : (
                     'Xác nhận Check-in'
                   )}
-                </Button>
+                </GuardedActionButton>
               </div>
             ) : null}
 

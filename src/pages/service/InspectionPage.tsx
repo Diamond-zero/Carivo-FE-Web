@@ -15,6 +15,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext'
 import { useBookings } from '../../contexts/BookingContext'
 import type { InspectionFormValues } from '../../lib/validations/inspection'
+import { getCreateInspectionGuard } from '../../utils/bookingActionGuards'
 
 export function InspectionPage() {
   const { session } = useAuth()
@@ -30,10 +31,14 @@ export function InspectionPage() {
 
   const inspectableBookings = useMemo(
     () =>
-      bookings.filter((booking) =>
-        ['CHECKED_IN', 'IN_PROGRESS'].includes(booking.status),
+      bookings.filter(
+        (booking) =>
+          getCreateInspectionGuard(
+            booking,
+            session?.staffProfile.garage_id,
+          ).allowed,
       ),
-    [bookings],
+    [bookings, session?.staffProfile.garage_id],
   )
 
   const defaultBookingId =

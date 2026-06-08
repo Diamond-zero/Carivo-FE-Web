@@ -1,4 +1,5 @@
 import type { Booking } from '../types/booking'
+import { getMarkPaidGuard } from './bookingActionGuards'
 import type { WashHistory } from '../types/washHistory'
 import { getBookingCustomerName } from './booking'
 
@@ -24,6 +25,9 @@ export function buildWashHistory(booking: Booking): WashHistory {
   }
 }
 
-export function canMarkBookingPaid(booking: Booking): boolean {
-  return booking.status === 'COMPLETED' && booking.payment_status === 'UNPAID'
+export function canMarkBookingPaid(
+  booking: Booking,
+  staffGarageId?: string,
+): boolean {
+  return getMarkPaidGuard(booking, staffGarageId).allowed
 }

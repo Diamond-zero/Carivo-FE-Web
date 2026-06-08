@@ -3,9 +3,11 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { getServicePackageName } from '../../mocks/servicePackages'
 import type { Booking } from '../../types/booking'
-import { getBookingAction, getBookingCustomerName } from '../../utils/booking'
+import { getBookingCustomerName } from '../../utils/booking'
+import { getBookingListAction } from '../../utils/bookingActionGuards'
 import { formatTime } from '../../utils/format'
 import { Button } from '../ui/Button'
+import { GuardedActionButton } from './GuardedActionButton'
 import { DataTable } from '../ui/DataTable'
 import { BookingStatusBadge } from './BookingStatusBadge'
 
@@ -14,12 +16,14 @@ const columnHelper = createColumnHelper<Booking>()
 interface BookingTableProps {
   bookings: Booking[]
   emptyMessage?: string
+  staffGarageId?: string
   onMarkPaid?: (booking: Booking) => void
 }
 
 export function BookingTable({
   bookings,
   emptyMessage = 'Không tìm thấy booking phù hợp',
+  staffGarageId,
   onMarkPaid,
 }: BookingTableProps) {
   const columns = useMemo(
@@ -82,18 +86,33 @@ export function BookingTable({
         id: 'actions',
         header: 'Thao tác',
         cell: ({ row }) => {
-          const action = getBookingAction(row.original)
+          const action = getBookingListAction(row.original, staffGarageId)
 
           if (!action) {
             return <span className="text-xs text-slate-400">—</span>
           }
 
-          if (action.label === 'Thanh toán' && onMarkPaid) {
+          if (action.type === 'mark_paid') {
+            return (
+              <GuardedActionButton
+                guard={action.guard}
+                variant="secondary"
+                size="sm"
+                showHint={false}
+                onClick={() => onMarkPaid?.(row.original)}
+              >
+                {action.label}
+              </GuardedActionButton>
+            )
+          }
+
+          if (!action.guard.allowed || !action.to) {
             return (
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => onMarkPaid(row.original)}
+                disabled
+                title={action.guard.reason}
               >
                 {action.label}
               </Button>
@@ -110,7 +129,7 @@ export function BookingTable({
         },
       }),
     ],
-    [onMarkPaid],
+    [staffGarageId, onMarkPaid],
   )
 
   return (

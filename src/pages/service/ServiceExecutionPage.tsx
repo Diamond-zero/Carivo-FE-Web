@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { AssignWashBayModal } from '../../components/wash-bay/AssignWashBayModal'
 import { CompleteServiceModal } from '../../components/booking/CompleteServiceModal'
+import { GuardedActionButton } from '../../components/booking/GuardedActionButton'
 import { BookingExecutionDrawer } from '../../components/service/BookingExecutionDrawer'
 import { BookingStatusBadge } from '../../components/booking/BookingStatusBadge'
 import { PageHeader } from '../../components/layout/PageHeader'
@@ -30,10 +31,13 @@ import { getServicePackageName } from '../../mocks/servicePackages'
 import {
   getBookingCustomerName,
 } from '../../utils/booking'
-import { areAllStepsDone } from '../../utils/serviceSteps'
+import {
+  getAssignWashBayGuard,
+  getCompleteServiceGuard,
+  getStartServiceGuard,
+} from '../../utils/bookingActionGuards'
 import {
   bookingRequiresWashBay,
-  canAssignWashBay,
 } from '../../utils/washBay'
 import { formatTime } from '../../utils/format'
 
@@ -83,11 +87,22 @@ export function ServiceExecutionPage() {
     ? getServiceStepsByBookingId(selectedBookingId)
     : []
 
-  const allStepsDone = areAllStepsDone(steps)
+  const staffGarageId = session?.staffProfile.garage_id
+
+  const assignWashBayGuard = booking
+    ? getAssignWashBayGuard(booking, staffGarageId)
+    : { allowed: false as const }
+  const startServiceGuard = booking
+    ? getStartServiceGuard(booking, staffGarageId)
+    : { allowed: false as const }
+  const completeServiceGuard = booking
+    ? getCompleteServiceGuard(booking, steps, staffGarageId)
+    : { allowed: false as const }
+
+  const needsWashBayAssignment = assignWashBayGuard.allowed
   const assignedWashBay = booking?.wash_bay_id
     ? getWashBayById(booking.wash_bay_id)
     : undefined
-  const needsWashBayAssignment = booking ? canAssignWashBay(booking) : false
   const availableWashBays = selectedBookingId
     ? getAvailableWashBaysForBooking(selectedBookingId)
     : []
@@ -269,7 +284,12 @@ export function ServiceExecutionPage() {
                       Bấm bắt đầu để tạo các bước dịch vụ và chuyển sang IN_PROGRESS.
                     </p>
                   </div>
-                  <Button onClick={handleStartService} disabled={isStarting}>
+                  <GuardedActionButton
+                    guard={startServiceGuard}
+                    showHint={false}
+                    disabled={isStarting}
+                    onClick={handleStartService}
+                  >
                     {isStarting ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -281,7 +301,7 @@ export function ServiceExecutionPage() {
                         Bắt đầu dịch vụ
                       </>
                     )}
-                  </Button>
+                  </GuardedActionButton>
                 </CardContent>
               </Card>
             ) : null}
@@ -299,10 +319,14 @@ export function ServiceExecutionPage() {
                           Chọn buồng rửa {booking.vehicle_type === 'CAR' ? 'ô tô' : 'xe máy'} đang trống để bắt đầu quy trình rửa.
                         </p>
                       </div>
-                      <Button onClick={() => setIsAssignModalOpen(true)}>
+                      <GuardedActionButton
+                        guard={assignWashBayGuard}
+                        showHint={false}
+                        onClick={() => setIsAssignModalOpen(true)}
+                      >
                         <MapPin className="h-4 w-4" />
                         Gán buồng rửa
-                      </Button>
+                      </GuardedActionButton>
                     </CardContent>
                   </Card>
                 ) : assignedWashBay ? (
@@ -341,20 +365,16 @@ export function ServiceExecutionPage() {
                   />
 
                   <div className="mt-6 border-t border-slate-100 pt-6">
-                    <Button
+                    <GuardedActionButton
+                      guard={completeServiceGuard}
                       fullWidth
                       variant="secondary"
-                      disabled={!allStepsDone}
+                      hintClassName="text-center"
                       onClick={() => setIsCompleteModalOpen(true)}
                     >
                       <CheckCircle2 className="h-4 w-4" />
                       Hoàn thành dịch vụ
-                    </Button>
-                    {!allStepsDone ? (
-                      <p className="mt-2 text-center text-xs text-slate-500">
-                        Hoàn thành tất cả bước để kích hoạt nút này
-                      </p>
-                    ) : null}
+                    </GuardedActionButton>
                   </div>
                 </CardContent>
               </Card>

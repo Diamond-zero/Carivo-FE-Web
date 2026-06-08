@@ -7,6 +7,7 @@ import { MarkPaidModal } from '../../components/booking/MarkPaidModal'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card'
+import { useAuth } from '../../contexts/AuthContext'
 import { useBookings } from '../../contexts/BookingContext'
 import { useToast } from '../../contexts/ToastContext'
 import type { Booking } from '../../types/booking'
@@ -17,6 +18,7 @@ import {
 } from '../../utils/bookingFilters'
 
 export function BookingListPage() {
+  const { session } = useAuth()
   const { bookings, markBookingPaid } = useBookings()
   const { showToast } = useToast()
   const [filters, setFilters] = useState<BookingFilters>(DEFAULT_BOOKING_FILTERS)
@@ -77,6 +79,7 @@ export function BookingListPage() {
         <CardContent className="p-0 pb-2">
           <BookingTable
             bookings={filteredBookings}
+            staffGarageId={session?.staffProfile.garage_id}
             onMarkPaid={setMarkPaidBooking}
           />
         </CardContent>

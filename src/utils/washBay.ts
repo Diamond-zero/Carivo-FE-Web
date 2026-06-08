@@ -5,7 +5,14 @@ export function bookingRequiresWashBay(_booking: Booking): boolean {
   return true
 }
 
-export function canAssignWashBay(booking: Booking): boolean {
+export function canAssignWashBay(
+  booking: Booking,
+  staffGarageId?: string,
+): boolean {
+  if (staffGarageId && booking.garage_id !== staffGarageId) {
+    return false
+  }
+
   return (
     booking.status === 'IN_PROGRESS' &&
     !booking.wash_bay_id &&
