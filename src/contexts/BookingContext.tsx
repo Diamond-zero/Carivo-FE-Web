@@ -9,9 +9,11 @@ import {
 import { mockBookings } from '../mocks/bookings'
 import { mockInspections } from '../mocks/inspections'
 import { mockServiceSteps } from '../mocks/serviceSteps'
+import { mockWashBays } from '../mocks/washBays'
 import type { Booking, WalkInBookingForm } from '../types/booking'
 import type { VehicleInspection } from '../types/inspection'
 import type { BookingServiceStep } from '../types/serviceStep'
+import type { WashBay } from '../types/washBay'
 import { getBookingPhone, normalizeSearchText } from '../utils/booking'
 import {
   buildInspection,
@@ -23,11 +25,22 @@ import {
   createDefaultStepsForBooking,
 } from '../utils/serviceSteps'
 import { buildWalkInBooking } from '../utils/walkIn'
+import {
+  bookingRequiresWashBay,
+  getSelectableWashBays,
+} from '../utils/washBay'
 
 interface BookingContextValue {
   bookings: Booking[]
   inspections: VehicleInspection[]
+  washBays: WashBay[]
   getBookingById: (id: string) => Booking | undefined
+  getWashBayById: (id: string) => WashBay | undefined
+  getAvailableWashBaysForBooking: (bookingId: string) => WashBay[]
+  assignWashBay: (
+    bookingId: string,
+    washBayId: string,
+  ) => { success: boolean; message: string }
   searchCheckInCandidates: (query: string) => Booking[]
   checkInBooking: (id: string) => { success: boolean; message: string }
   createWalkInBooking: (
@@ -60,6 +73,9 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   const [inspections, setInspections] = useState<VehicleInspection[]>(() =>
     mockInspections.map((inspection) => ({ ...inspection })),
   )
+  const [washBays, setWashBays] = useState<WashBay[]>(() =>
+    mockWashBays.map((bay) => ({ ...bay })),
+  )
 
   const getBookingById = useCallback(
     (id: string) => bookings.find((booking) => booking.id === id),
@@ -84,6 +100,92 @@ export function BookingProvider({ children }: { children: ReactNode }) {
             new Date(a.inspected_at).getTime(),
         ),
     [inspections],
+  )
+
+  const getWashBayById = useCallback(
+    (id: string) => washBays.find((bay) => bay.id === id),
+    [washBays],
+  )
+
+  const getAvailableWashBaysForBooking = useCallback(
+    (bookingId: string) => {
+      const booking = bookings.find((item) => item.id === bookingId)
+      if (!booking) return []
+      return getSelectableWashBays(washBays, booking)
+    },
+    [bookings, washBays],
+  )
+
+  const assignWashBay = useCallback(
+    (bookingId: string, washBayId: string) => {
+      const booking = bookings.find((item) => item.id === bookingId)
+      const bay = washBays.find((item) => item.id === washBayId)
+
+      if (!booking) {
+        return { success: false, message: 'Không tìm thấy booking.' }
+      }
+
+      if (!bay) {
+        return { success: false, message: 'Không tìm thấy buồng rửa.' }
+      }
+
+      if (booking.status !== 'IN_PROGRESS') {
+        return {
+          success: false,
+          message: 'Chỉ booking IN_PROGRESS mới được gán buồng rửa.',
+        }
+      }
+
+      if (booking.wash_bay_id) {
+        return {
+          success: false,
+          message: 'Booking đã được gán buồng rửa.',
+        }
+      }
+
+      if (!bookingRequiresWashBay(booking)) {
+        return {
+          success: false,
+          message: 'Gói dịch vụ này không yêu cầu buồng rửa.',
+        }
+      }
+
+      if (
+        bay.garage_id !== booking.garage_id ||
+        bay.vehicle_type !== booking.vehicle_type ||
+        !bay.is_active ||
+        bay.status !== 'AVAILABLE'
+      ) {
+        return {
+          success: false,
+          message: 'Buồng rửa không khả dụng hoặc không phù hợp loại xe.',
+        }
+      }
+
+      setBookings((current) =>
+        current.map((item) =>
+          item.id === bookingId ? { ...item, wash_bay_id: washBayId } : item,
+        ),
+      )
+
+      setWashBays((current) =>
+        current.map((item) =>
+          item.id === washBayId
+            ? {
+                ...item,
+                status: 'OCCUPIED',
+                current_booking_id: bookingId,
+              }
+            : item,
+        ),
+      )
+
+      return {
+        success: true,
+        message: `Đã gán ${bay.name} cho booking ${bookingId.replace('booking-', '#')}.`,
+      }
+    },
+    [bookings, washBays],
   )
 
   const searchCheckInCandidates = useCallback(
@@ -312,7 +414,11 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     () => ({
       bookings,
       inspections,
+      washBays,
       getBookingById,
+      getWashBayById,
+      getAvailableWashBaysForBooking,
+      assignWashBay,
       searchCheckInCandidates,
       checkInBooking,
       createWalkInBooking,
@@ -326,7 +432,11 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     [
       bookings,
       inspections,
+      washBays,
       getBookingById,
+      getWashBayById,
+      getAvailableWashBaysForBooking,
+      assignWashBay,
       searchCheckInCandidates,
       checkInBooking,
       createWalkInBooking,

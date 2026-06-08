@@ -4,8 +4,10 @@ import {
   ArrowLeft,
   CheckCircle2,
   Loader2,
+  MapPin,
   Play,
 } from 'lucide-react'
+import { AssignWashBayModal } from '../../components/wash-bay/AssignWashBayModal'
 import { BookingStatusBadge } from '../../components/booking/BookingStatusBadge'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { ServiceStepList } from '../../components/service/ServiceStepList'
@@ -25,6 +27,10 @@ import {
   getBookingCustomerName,
 } from '../../utils/booking'
 import { areAllStepsDone } from '../../utils/serviceSteps'
+import {
+  bookingRequiresWashBay,
+  canAssignWashBay,
+} from '../../utils/washBay'
 import { formatTime } from '../../utils/format'
 
 export function ServiceExecutionPage() {
@@ -34,6 +40,9 @@ export function ServiceExecutionPage() {
   const {
     bookings,
     getBookingById,
+    getWashBayById,
+    getAvailableWashBaysForBooking,
+    assignWashBay,
     getServiceStepsByBookingId,
     startService,
     completeServiceStep,
@@ -47,6 +56,7 @@ export function ServiceExecutionPage() {
   const [completingStepId, setCompletingStepId] = useState<string | null>(null)
   const [isStarting, setIsStarting] = useState(false)
   const [isCompletingService, setIsCompletingService] = useState(false)
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
 
   const executableBookings = useMemo(
     () =>
@@ -68,6 +78,13 @@ export function ServiceExecutionPage() {
     : []
 
   const allStepsDone = areAllStepsDone(steps)
+  const assignedWashBay = booking?.wash_bay_id
+    ? getWashBayById(booking.wash_bay_id)
+    : undefined
+  const needsWashBayAssignment = booking ? canAssignWashBay(booking) : false
+  const availableWashBays = selectedBookingId
+    ? getAvailableWashBaysForBooking(selectedBookingId)
+    : []
 
   useEffect(() => {
     const paramId = searchParams.get('bookingId')
@@ -94,6 +111,15 @@ export function ServiceExecutionPage() {
       type: result.success ? 'success' : 'error',
       message: result.message,
     })
+
+    if (
+      result.success &&
+      booking &&
+      !booking.wash_bay_id &&
+      bookingRequiresWashBay(booking)
+    ) {
+      setIsAssignModalOpen(true)
+    }
   }
 
   const handleCompleteStep = async (stepId: string) => {
@@ -128,6 +154,19 @@ export function ServiceExecutionPage() {
     if (result.success) {
       navigate(`/bookings/${selectedBookingId}`)
     }
+  }
+
+  const handleAssignWashBay = async (washBayId: string) => {
+    if (!selectedBookingId) {
+      return { success: false, message: 'Không xác định được booking.' }
+    }
+
+    const result = assignWashBay(selectedBookingId, washBayId)
+    setFeedback({
+      type: result.success ? 'success' : 'error',
+      message: result.message,
+    })
+    return result
   }
 
   return (
@@ -224,6 +263,35 @@ export function ServiceExecutionPage() {
             ) : null}
 
             {booking?.status === 'IN_PROGRESS' ? (
+              <>
+                {needsWashBayAssignment ? (
+                  <Card className="border-amber-200 bg-amber-50/50">
+                    <CardContent className="flex flex-col gap-4 py-6 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="font-medium text-slate-900">
+                          Cần gán buồng rửa trước khi tiếp tục
+                        </p>
+                        <p className="mt-1 text-sm text-slate-600">
+                          Chọn buồng rửa {booking.vehicle_type === 'CAR' ? 'ô tô' : 'xe máy'} đang trống để bắt đầu quy trình rửa.
+                        </p>
+                      </div>
+                      <Button onClick={() => setIsAssignModalOpen(true)}>
+                        <MapPin className="h-4 w-4" />
+                        Gán buồng rửa
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : assignedWashBay ? (
+                  <Card className="border-blue-200 bg-blue-50/40">
+                    <CardContent className="py-4">
+                      <p className="text-sm text-slate-600">Buồng rửa đang sử dụng</p>
+                      <p className="mt-1 font-medium text-slate-900">
+                        {assignedWashBay.name} · {assignedWashBay.bay_code}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : null}
+
               <Card>
                 <CardHeader className="flex flex-row items-start justify-between gap-4">
                   <div>
@@ -272,6 +340,7 @@ export function ServiceExecutionPage() {
                   </div>
                 </CardContent>
               </Card>
+              </>
             ) : null}
 
             {feedback ? (
@@ -288,6 +357,16 @@ export function ServiceExecutionPage() {
           </div>
         </div>
       )}
+
+      {booking && needsWashBayAssignment ? (
+        <AssignWashBayModal
+          open={isAssignModalOpen}
+          onClose={() => setIsAssignModalOpen(false)}
+          booking={booking}
+          availableBays={availableWashBays}
+          onAssign={handleAssignWashBay}
+        />
+      ) : null}
     </div>
   )
 }

@@ -19,7 +19,6 @@ import { DataTable } from '../../components/ui/DataTable'
 import { WashBayStatusGrid } from '../../components/wash-bay/WashBayStatusGrid'
 import { useAuth } from '../../contexts/AuthContext'
 import { useBookings } from '../../contexts/BookingContext'
-import { mockWashBays } from '../../mocks/washBays'
 import type { Booking } from '../../types/booking'
 import { getBookingCustomerName } from '../../utils/booking'
 import {
@@ -32,7 +31,7 @@ const columnHelper = createColumnHelper<Booking>()
 
 export function DashboardPage() {
   const { session } = useAuth()
-  const { bookings } = useBookings()
+  const { bookings, washBays } = useBookings()
   const stats = useMemo(() => getDashboardStats(bookings), [bookings])
   const upcomingBookings = useMemo(
     () => getUpcomingBookings(bookings, 5),
@@ -131,11 +130,11 @@ export function DashboardPage() {
         <CardHeader>
           <CardTitle>Trạng thái buồng rửa</CardTitle>
           <CardDescription>
-            Theo dõi realtime {mockWashBays.length} buồng rửa tại garage
+            Theo dõi realtime {washBays.length} buồng rửa tại garage
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <WashBayStatusGrid washBays={mockWashBays} bookings={bookings} />
+          <WashBayStatusGrid washBays={washBays} bookings={bookings} />
         </CardContent>
       </Card>
 
