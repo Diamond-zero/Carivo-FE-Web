@@ -6,7 +6,7 @@ import { BookingTable } from '../../components/booking/BookingTable'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card'
-import { mockBookings } from '../../mocks/bookings'
+import { useBookings } from '../../contexts/BookingContext'
 import {
   DEFAULT_BOOKING_FILTERS,
   filterBookings,
@@ -14,11 +14,12 @@ import {
 } from '../../utils/bookingFilters'
 
 export function BookingListPage() {
+  const { bookings } = useBookings()
   const [filters, setFilters] = useState<BookingFilters>(DEFAULT_BOOKING_FILTERS)
 
   const filteredBookings = useMemo(
-    () => filterBookings(mockBookings, filters),
-    [filters],
+    () => filterBookings(bookings, filters),
+    [bookings, filters],
   )
 
   return (

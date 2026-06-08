@@ -20,11 +20,11 @@ import {
   CardTitle,
 } from '../../components/ui/Card'
 import { VEHICLE_TYPE_LABELS } from '../../constants/washBayStatus'
+import { useBookings } from '../../contexts/BookingContext'
 import { getServicePackageName } from '../../mocks/servicePackages'
 import { mockWashBays } from '../../mocks/washBays'
 import {
   getBookingAction,
-  getBookingById,
   getBookingCustomerName,
   getBookingPhone,
   getServiceStepsByBookingId,
@@ -33,6 +33,7 @@ import { formatDateTime, formatPrice, formatTime } from '../../utils/format'
 
 export function BookingDetailPage() {
   const { id } = useParams()
+  const { getBookingById } = useBookings()
   const booking = id ? getBookingById(id) : undefined
 
   if (!booking) {
