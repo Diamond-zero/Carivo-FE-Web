@@ -13,3 +13,16 @@ export const WASH_BAY_STATUS_COLORS: Record<WashBayStatus, string> = {
   MAINTENANCE: 'bg-yellow-100 text-yellow-800 border-yellow-200',
   INACTIVE: 'bg-gray-100 text-gray-600 border-gray-200',
 }
+
+/** Card background theo Staff.md dashboard spec */
+export const WASH_BAY_CARD_BG: Record<WashBayStatus, string> = {
+  AVAILABLE: 'bg-green-100',
+  OCCUPIED: 'bg-blue-100',
+  MAINTENANCE: 'bg-yellow-100',
+  INACTIVE: 'bg-gray-100',
+}
+
+export const VEHICLE_TYPE_LABELS = {
+  MOTORBIKE: 'Xe máy',
+  CAR: 'Ô tô',
+} as const

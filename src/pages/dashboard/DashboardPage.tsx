@@ -1,30 +1,69 @@
 import { createColumnHelper } from '@tanstack/react-table'
+import {
+  CalendarClock,
+  CircleDollarSign,
+  ClipboardList,
+  Wrench,
+} from 'lucide-react'
 import { useMemo } from 'react'
 import { BookingStatusBadge } from '../../components/booking/BookingStatusBadge'
 import { PageHeader } from '../../components/layout/PageHeader'
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '../../components/ui/Card'
 import { DataTable } from '../../components/ui/DataTable'
+import { WashBayStatusGrid } from '../../components/wash-bay/WashBayStatusGrid'
+import { useAuth } from '../../contexts/AuthContext'
 import { mockBookings } from '../../mocks/bookings'
+import { mockWashBays } from '../../mocks/washBays'
 import type { Booking } from '../../types/booking'
+import {
+  getBookingCustomerName,
+  getDashboardStats,
+  getUpcomingBookings,
+} from '../../utils/dashboard'
+import { formatPrice, formatTime, MOCK_TODAY } from '../../utils/format'
 
 const columnHelper = createColumnHelper<Booking>()
 
-function formatTime(value: string) {
-  return new Date(value).toLocaleTimeString('vi-VN', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-function formatPrice(value: number) {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-  }).format(value)
-}
-
 export function DashboardPage() {
-  const recentBookings = useMemo(() => mockBookings.slice(0, 5), [])
+  const { session } = useAuth()
+  const stats = useMemo(() => getDashboardStats(mockBookings), [])
+  const upcomingBookings = useMemo(
+    () => getUpcomingBookings(mockBookings, 5),
+    [],
+  )
+
+  const statCards = [
+    {
+      label: 'Booking hôm nay',
+      value: stats.todayBookings,
+      icon: CalendarClock,
+      color: 'text-blue-600 bg-blue-50',
+    },
+    {
+      label: 'Đang chờ check-in',
+      value: stats.waitingCheckIn,
+      icon: ClipboardList,
+      color: 'text-indigo-600 bg-indigo-50',
+    },
+    {
+      label: 'Đang thực hiện',
+      value: stats.inProgress,
+      icon: Wrench,
+      color: 'text-amber-600 bg-amber-50',
+    },
+    {
+      label: 'Hoàn thành chờ thanh toán',
+      value: stats.completedUnpaid,
+      icon: CircleDollarSign,
+      color: 'text-emerald-600 bg-emerald-50',
+    },
+  ]
 
   const columns = useMemo(
     () => [
@@ -35,6 +74,11 @@ export function DashboardPage() {
             {info.getValue().replace('booking-', '#')}
           </span>
         ),
+      }),
+      columnHelper.display({
+        id: 'customer',
+        header: 'Khách',
+        cell: ({ row }) => getBookingCustomerName(row.original),
       }),
       columnHelper.accessor('license_plate', {
         header: 'Biển số',
@@ -55,39 +99,58 @@ export function DashboardPage() {
     [],
   )
 
-  const stats = [
-    { label: 'Booking hôm nay', value: '8' },
-    { label: 'Chờ check-in', value: '2' },
-    { label: 'Đang thực hiện', value: '1' },
-    { label: 'Chờ thanh toán', value: '1' },
-  ]
-
   return (
     <div>
       <PageHeader
         title="Dashboard"
-        description="Tổng quan hoạt động garage hôm nay — dữ liệu mock."
+        description={`Tổng quan garage ${session?.garage.name ?? ''} — ${MOCK_TODAY.split('-').reverse().join('/')}`}
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => (
+        {statCards.map((stat) => (
           <Card key={stat.label}>
-            <CardContent className="p-5">
-              <p className="text-sm text-slate-500">{stat.label}</p>
-              <p className="mt-2 text-3xl font-semibold text-slate-900">
-                {stat.value}
-              </p>
+            <CardContent className="flex items-start justify-between p-5">
+              <div>
+                <p className="text-sm text-slate-500">{stat.label}</p>
+                <p className="mt-2 text-3xl font-semibold text-slate-900">
+                  {stat.value}
+                </p>
+              </div>
+              <div
+                className={`flex h-10 w-10 items-center justify-center rounded-xl ${stat.color}`}
+              >
+                <stat.icon className="h-5 w-5" />
+              </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Trạng thái buồng rửa</CardTitle>
+          <CardDescription>
+            Theo dõi realtime {mockWashBays.length} buồng rửa tại garage
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <WashBayStatusGrid washBays={mockWashBays} bookings={mockBookings} />
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Booking sắp tới</CardTitle>
+          <CardDescription>
+            {upcomingBookings.length} booking gần nhất cần xử lý hôm nay
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-0 pb-2">
-          <DataTable columns={columns} data={recentBookings} />
+          <DataTable
+            columns={columns}
+            data={upcomingBookings}
+            emptyMessage="Không có booking sắp tới hôm nay"
+          />
         </CardContent>
       </Card>
     </div>
