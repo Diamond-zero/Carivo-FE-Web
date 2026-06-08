@@ -1,0 +1,45 @@
+import type { WashBay } from '../types/washBay'
+import { MOCK_GARAGE_ID } from './garage'
+
+export const mockWashBays: WashBay[] = [
+  {
+    id: 'bay-001',
+    garage_id: MOCK_GARAGE_ID,
+    name: 'Buồng rửa xe máy A',
+    bay_code: 'MB-A1',
+    vehicle_type: 'MOTORBIKE',
+    status: 'AVAILABLE',
+    current_booking_id: null,
+    is_active: true,
+  },
+  {
+    id: 'bay-002',
+    garage_id: MOCK_GARAGE_ID,
+    name: 'Buồng rửa xe máy B',
+    bay_code: 'MB-B1',
+    vehicle_type: 'MOTORBIKE',
+    status: 'OCCUPIED',
+    current_booking_id: 'booking-005',
+    is_active: true,
+  },
+  {
+    id: 'bay-003',
+    garage_id: MOCK_GARAGE_ID,
+    name: 'Buồng rửa ô tô A',
+    bay_code: 'CAR-A1',
+    vehicle_type: 'CAR',
+    status: 'MAINTENANCE',
+    current_booking_id: null,
+    is_active: true,
+  },
+  {
+    id: 'bay-004',
+    garage_id: MOCK_GARAGE_ID,
+    name: 'Buồng rửa ô tô B',
+    bay_code: 'CAR-B1',
+    vehicle_type: 'CAR',
+    status: 'INACTIVE',
+    current_booking_id: null,
+    is_active: false,
+  },
+]

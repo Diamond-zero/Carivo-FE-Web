@@ -4,19 +4,26 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
 import { AuthLayout } from '../../components/auth/AuthLayout'
+import { QuickStaffLogin } from '../../components/auth/QuickStaffLogin'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Label } from '../../components/ui/Label'
+import { useAuth } from '../../contexts/AuthContext'
+import { MockLoginError } from '../../lib/auth/mockStaffLogin'
 import { loginSchema, type LoginFormValues } from '../../lib/validations/auth'
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [selectedQuickPhone, setSelectedQuickPhone] = useState<string>()
 
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -26,13 +33,30 @@ export function LoginPage() {
     },
   })
 
-  const onSubmit = async (_data: LoginFormValues) => {
+  const currentPhone = watch('phone')
+
+  const handleQuickSelect = (phone: string, password: string) => {
+    setSubmitError(null)
+    setSelectedQuickPhone(phone)
+    setValue('phone', phone, { shouldValidate: true, shouldDirty: true })
+    setValue('password', password, {
+      shouldValidate: true,
+      shouldDirty: true,
+    })
+  }
+
+  const onSubmit = async (data: LoginFormValues) => {
     setSubmitError(null)
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 800))
+      await login(data.phone, data.password)
       navigate('/dashboard')
-    } catch {
+    } catch (error) {
+      if (error instanceof MockLoginError) {
+        setSubmitError(error.message)
+        return
+      }
+
       setSubmitError('Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.')
     }
   }
@@ -40,7 +64,7 @@ export function LoginPage() {
   return (
     <AuthLayout
       title="Đăng nhập Staff"
-      subtitle="Nhập thông tin tài khoản nhân viên để truy cập hệ thống vận hành garage."
+      subtitle="Chỉ tài khoản có role Staff mới được truy cập cổng vận hành garage."
       footer={
         <p className="text-slate-600">
           Chưa có tài khoản?{' '}
@@ -61,7 +85,7 @@ export function LoginPage() {
           <Input
             id="phone"
             type="tel"
-            placeholder="0901234567"
+            placeholder="0901000001"
             autoComplete="tel"
             error={errors.phone?.message}
             {...register('phone')}
@@ -76,7 +100,7 @@ export function LoginPage() {
             <Input
               id="password"
               type={showPassword ? 'text' : 'password'}
-              placeholder="••••••••"
+              placeholder="Staff@123"
               autoComplete="current-password"
               error={errors.password?.message}
               className="pr-11"
@@ -114,6 +138,11 @@ export function LoginPage() {
           )}
         </Button>
       </form>
+
+      <QuickStaffLogin
+        onSelect={handleQuickSelect}
+        selectedPhone={selectedQuickPhone ?? currentPhone}
+      />
     </AuthLayout>
   )
 }
