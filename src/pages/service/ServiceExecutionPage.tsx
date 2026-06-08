@@ -9,6 +9,7 @@ import {
   Play,
 } from 'lucide-react'
 import { AssignWashBayModal } from '../../components/wash-bay/AssignWashBayModal'
+import { CompleteServiceModal } from '../../components/booking/CompleteServiceModal'
 import { BookingExecutionDrawer } from '../../components/service/BookingExecutionDrawer'
 import { BookingStatusBadge } from '../../components/booking/BookingStatusBadge'
 import { PageHeader } from '../../components/layout/PageHeader'
@@ -24,6 +25,7 @@ import {
 import { Select } from '../../components/ui/Select'
 import { useAuth } from '../../contexts/AuthContext'
 import { useBookings } from '../../contexts/BookingContext'
+import { useToast } from '../../contexts/ToastContext'
 import { getServicePackageName } from '../../mocks/servicePackages'
 import {
   getBookingCustomerName,
@@ -39,6 +41,7 @@ export function ServiceExecutionPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { session } = useAuth()
+  const { showToast } = useToast()
   const {
     bookings,
     getBookingById,
@@ -57,9 +60,9 @@ export function ServiceExecutionPage() {
   } | null>(null)
   const [completingStepId, setCompletingStepId] = useState<string | null>(null)
   const [isStarting, setIsStarting] = useState(false)
-  const [isCompletingService, setIsCompletingService] = useState(false)
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false)
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false)
 
   const executableBookings = useMemo(
     () =>
@@ -144,23 +147,23 @@ export function ServiceExecutionPage() {
     })
   }
 
-  const handleCompleteService = async () => {
-    if (!selectedBookingId) return
-
-    setIsCompletingService(true)
-    setFeedback(null)
-    await new Promise((resolve) => setTimeout(resolve, 500))
+  const handleConfirmCompleteService = async () => {
+    if (!selectedBookingId) {
+      return { success: false, message: 'Không xác định được booking.' }
+    }
 
     const result = completeService(selectedBookingId)
-    setIsCompletingService(false)
-    setFeedback({
-      type: result.success ? 'success' : 'error',
-      message: result.message,
-    })
 
     if (result.success) {
-      navigate(`/bookings/${selectedBookingId}`)
+      showToast(result.message, 'success')
+      navigate(`/bookings/${selectedBookingId}`, {
+        state: { openMarkPaid: true },
+      })
+    } else {
+      setFeedback({ type: 'error', message: result.message })
     }
+
+    return result
   }
 
   const handleAssignWashBay = async (washBayId: string) => {
@@ -341,20 +344,11 @@ export function ServiceExecutionPage() {
                     <Button
                       fullWidth
                       variant="secondary"
-                      disabled={!allStepsDone || isCompletingService}
-                      onClick={handleCompleteService}
+                      disabled={!allStepsDone}
+                      onClick={() => setIsCompleteModalOpen(true)}
                     >
-                      {isCompletingService ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Đang hoàn thành dịch vụ...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 className="h-4 w-4" />
-                          Hoàn thành dịch vụ
-                        </>
-                      )}
+                      <CheckCircle2 className="h-4 w-4" />
+                      Hoàn thành dịch vụ
                     </Button>
                     {!allStepsDone ? (
                       <p className="mt-2 text-center text-xs text-slate-500">
@@ -389,6 +383,15 @@ export function ServiceExecutionPage() {
           booking={booking}
           availableBays={availableWashBays}
           onAssign={handleAssignWashBay}
+        />
+      ) : null}
+
+      {booking ? (
+        <CompleteServiceModal
+          open={isCompleteModalOpen}
+          onClose={() => setIsCompleteModalOpen(false)}
+          booking={booking}
+          onConfirm={handleConfirmCompleteService}
         />
       ) : null}
 

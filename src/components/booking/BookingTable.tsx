@@ -14,11 +14,13 @@ const columnHelper = createColumnHelper<Booking>()
 interface BookingTableProps {
   bookings: Booking[]
   emptyMessage?: string
+  onMarkPaid?: (booking: Booking) => void
 }
 
 export function BookingTable({
   bookings,
   emptyMessage = 'Không tìm thấy booking phù hợp',
+  onMarkPaid,
 }: BookingTableProps) {
   const columns = useMemo(
     () => [
@@ -86,6 +88,18 @@ export function BookingTable({
             return <span className="text-xs text-slate-400">—</span>
           }
 
+          if (action.label === 'Thanh toán' && onMarkPaid) {
+            return (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => onMarkPaid(row.original)}
+              >
+                {action.label}
+              </Button>
+            )
+          }
+
           return (
             <Link to={action.to}>
               <Button variant="secondary" size="sm">
@@ -96,7 +110,7 @@ export function BookingTable({
         },
       }),
     ],
-    [],
+    [onMarkPaid],
   )
 
   return (

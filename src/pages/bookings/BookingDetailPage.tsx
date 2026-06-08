@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ArrowLeft,
   Car,
@@ -8,7 +8,8 @@ import {
   Phone,
   User,
 } from 'lucide-react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
+import { MarkPaidModal } from '../../components/booking/MarkPaidModal'
 import { BookingServiceStepSummary } from '../../components/booking/BookingServiceStepSummary'
 import { BookingStatusBadge } from '../../components/booking/BookingStatusBadge'
 import { BookingTimeline } from '../../components/booking/BookingTimeline'
@@ -24,6 +25,7 @@ import {
 } from '../../components/ui/Card'
 import { VEHICLE_TYPE_LABELS } from '../../constants/washBayStatus'
 import { useBookings } from '../../contexts/BookingContext'
+import { useToast } from '../../contexts/ToastContext'
 import { getServicePackageName } from '../../mocks/servicePackages'
 import {
   getBookingAction,
@@ -35,17 +37,29 @@ import { formatDateTime, formatPrice, formatTime } from '../../utils/format'
 
 export function BookingDetailPage() {
   const { id } = useParams()
+  const location = useLocation()
+  const { showToast } = useToast()
   const {
     getBookingById,
     getWashBayById,
     getAvailableWashBaysForBooking,
     assignWashBay,
+    markBookingPaid,
     getServiceStepsByBookingId,
   } = useBookings()
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
+  const [isMarkPaidModalOpen, setIsMarkPaidModalOpen] = useState(false)
   const [assignFeedback, setAssignFeedback] = useState<string | null>(null)
 
   const booking = id ? getBookingById(id) : undefined
+
+  useEffect(() => {
+    const state = location.state as { openMarkPaid?: boolean } | null
+    if (state?.openMarkPaid && booking?.payment_status === 'UNPAID') {
+      setIsMarkPaidModalOpen(true)
+      window.history.replaceState({}, document.title)
+    }
+  }, [location.state, booking?.payment_status])
 
   if (!booking) {
     return (
@@ -85,6 +99,18 @@ export function BookingDetailPage() {
     return result
   }
 
+  const handleMarkPaid = async () => {
+    if (!id) {
+      return { success: false, message: 'Không xác định được booking.' }
+    }
+
+    const result = markBookingPaid(id)
+    if (result.success) {
+      showToast(result.message, 'success')
+    }
+    return result
+  }
+
   return (
     <div>
       <div className="mb-4">
@@ -103,13 +129,7 @@ export function BookingDetailPage() {
         action={
           action ? (
             action.label === 'Thanh toán' ? (
-              <Button
-                onClick={() =>
-                  window.alert(
-                    'Xác nhận thanh toán CASH — sẽ triển khai đầy đủ ở commit mark paid.',
-                  )
-                }
-              >
+              <Button onClick={() => setIsMarkPaidModalOpen(true)}>
                 {action.label}
               </Button>
             ) : (
@@ -297,6 +317,15 @@ export function BookingDetailPage() {
           booking={booking}
           availableBays={availableWashBays}
           onAssign={handleAssignWashBay}
+        />
+      ) : null}
+
+      {booking.status === 'COMPLETED' && booking.payment_status === 'UNPAID' ? (
+        <MarkPaidModal
+          open={isMarkPaidModalOpen}
+          onClose={() => setIsMarkPaidModalOpen(false)}
+          booking={booking}
+          onConfirm={handleMarkPaid}
         />
       ) : null}
     </div>
