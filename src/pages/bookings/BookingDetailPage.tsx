@@ -27,13 +27,12 @@ import {
   getBookingAction,
   getBookingCustomerName,
   getBookingPhone,
-  getServiceStepsByBookingId,
 } from '../../utils/booking'
 import { formatDateTime, formatPrice, formatTime } from '../../utils/format'
 
 export function BookingDetailPage() {
   const { id } = useParams()
-  const { getBookingById } = useBookings()
+  const { getBookingById, getServiceStepsByBookingId } = useBookings()
   const booking = id ? getBookingById(id) : undefined
 
   if (!booking) {
@@ -56,7 +55,7 @@ export function BookingDetailPage() {
   }
 
   const action = getBookingAction(booking)
-  const serviceSteps = getServiceStepsByBookingId(booking.id)
+  const serviceSteps = id ? getServiceStepsByBookingId(id) : []
   const washBay = booking.wash_bay_id
     ? mockWashBays.find((bay) => bay.id === booking.wash_bay_id)
     : null

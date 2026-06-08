@@ -7,8 +7,15 @@ import {
   type ReactNode,
 } from 'react'
 import { mockBookings } from '../mocks/bookings'
+import { mockServiceSteps } from '../mocks/serviceSteps'
 import type { Booking, WalkInBookingForm } from '../types/booking'
+import type { BookingServiceStep } from '../types/serviceStep'
 import { getBookingPhone, normalizeSearchText } from '../utils/booking'
+import {
+  areAllStepsDone,
+  canCompleteStep,
+  createDefaultStepsForBooking,
+} from '../utils/serviceSteps'
 import { buildWalkInBooking } from '../utils/walkIn'
 
 interface BookingContextValue {
@@ -20,6 +27,13 @@ interface BookingContextValue {
     garageId: string,
     data: WalkInBookingForm,
   ) => { success: boolean; message: string; bookingId?: string }
+  getServiceStepsByBookingId: (bookingId: string) => BookingServiceStep[]
+  startService: (bookingId: string) => { success: boolean; message: string }
+  completeServiceStep: (
+    stepId: string,
+    staffProfileId: string,
+  ) => { success: boolean; message: string }
+  completeService: (bookingId: string) => { success: boolean; message: string }
 }
 
 const BookingContext = createContext<BookingContextValue | null>(null)
@@ -28,10 +42,21 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   const [bookings, setBookings] = useState<Booking[]>(() =>
     mockBookings.map((booking) => ({ ...booking })),
   )
+  const [serviceSteps, setServiceSteps] = useState<BookingServiceStep[]>(() =>
+    mockServiceSteps.map((step) => ({ ...step })),
+  )
 
   const getBookingById = useCallback(
     (id: string) => bookings.find((booking) => booking.id === id),
     [bookings],
+  )
+
+  const getServiceStepsByBookingId = useCallback(
+    (bookingId: string) =>
+      serviceSteps
+        .filter((step) => step.booking_id === bookingId)
+        .sort((a, b) => a.order - b.order),
+    [serviceSteps],
   )
 
   const searchCheckInCandidates = useCallback(
@@ -94,6 +119,136 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     [bookings],
   )
 
+  const startService = useCallback(
+    (bookingId: string) => {
+      const booking = bookings.find((item) => item.id === bookingId)
+
+      if (!booking) {
+        return { success: false, message: 'Không tìm thấy booking.' }
+      }
+
+      if (booking.status !== 'CHECKED_IN') {
+        return {
+          success: false,
+          message: 'Chỉ booking đã check-in mới được bắt đầu dịch vụ.',
+        }
+      }
+
+      const existingSteps = serviceSteps.filter(
+        (step) => step.booking_id === bookingId,
+      )
+
+      if (existingSteps.length === 0) {
+        const newSteps = createDefaultStepsForBooking(booking)
+        setServiceSteps((current) => [...current, ...newSteps])
+      }
+
+      setBookings((current) =>
+        current.map((item) =>
+          item.id === bookingId ? { ...item, status: 'IN_PROGRESS' } : item,
+        ),
+      )
+
+      return {
+        success: true,
+        message: 'Đã bắt đầu dịch vụ và tạo các bước thực hiện.',
+      }
+    },
+    [bookings, serviceSteps],
+  )
+
+  const completeServiceStep = useCallback(
+    (stepId: string, staffProfileId: string) => {
+      const step = serviceSteps.find((item) => item.id === stepId)
+
+      if (!step) {
+        return { success: false, message: 'Không tìm thấy bước dịch vụ.' }
+      }
+
+      const bookingSteps = serviceSteps
+        .filter((item) => item.booking_id === step.booking_id)
+        .sort((a, b) => a.order - b.order)
+
+      if (!canCompleteStep(step, bookingSteps)) {
+        return {
+          success: false,
+          message: 'Hoàn thành các bước trước đó trước khi tiếp tục.',
+        }
+      }
+
+      const now = new Date().toISOString().slice(0, 19)
+      const nextPending = bookingSteps.find(
+        (item) => item.order === step.order + 1 && item.status === 'PENDING',
+      )
+
+      setServiceSteps((current) =>
+        current.map((item) => {
+          if (item.id === stepId) {
+            return {
+              ...item,
+              status: 'DONE',
+              confirmed_by_staff_id: staffProfileId,
+              completed_at: now,
+            }
+          }
+
+          if (nextPending && item.id === nextPending.id) {
+            return {
+              ...item,
+              status: 'IN_PROGRESS',
+              started_at: now,
+            }
+          }
+
+          return item
+        }),
+      )
+
+      return { success: true, message: `Đã hoàn thành bước "${step.step_name}".` }
+    },
+    [serviceSteps],
+  )
+
+  const completeService = useCallback(
+    (bookingId: string) => {
+      const booking = bookings.find((item) => item.id === bookingId)
+
+      if (!booking) {
+        return { success: false, message: 'Không tìm thấy booking.' }
+      }
+
+      if (booking.status !== 'IN_PROGRESS') {
+        return {
+          success: false,
+          message: 'Chỉ booking đang thực hiện mới hoàn thành được.',
+        }
+      }
+
+      const bookingSteps = serviceSteps.filter(
+        (step) => step.booking_id === bookingId,
+      )
+
+      if (!areAllStepsDone(bookingSteps)) {
+        return {
+          success: false,
+          message: 'Cần hoàn thành tất cả các bước trước khi kết thúc dịch vụ.',
+        }
+      }
+
+      setBookings((current) =>
+        current.map((item) =>
+          item.id === bookingId ? { ...item, status: 'COMPLETED' } : item,
+        ),
+      )
+
+      return {
+        success: true,
+        message: 'Đã hoàn thành dịch vụ. Khách có thể thanh toán tại quầy.',
+      }
+    },
+    [bookings, serviceSteps],
+  )
+
   const value = useMemo(
     () => ({
       bookings,
@@ -101,6 +256,10 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       searchCheckInCandidates,
       checkInBooking,
       createWalkInBooking,
+      getServiceStepsByBookingId,
+      startService,
+      completeServiceStep,
+      completeService,
     }),
     [
       bookings,
@@ -108,6 +267,10 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       searchCheckInCandidates,
       checkInBooking,
       createWalkInBooking,
+      getServiceStepsByBookingId,
+      startService,
+      completeServiceStep,
+      completeService,
     ],
   )
 
