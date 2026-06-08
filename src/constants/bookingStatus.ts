@@ -12,7 +12,7 @@ export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
 
 export const BOOKING_STATUS_COLORS: Record<BookingStatus, string> = {
   PENDING: 'bg-slate-100 text-slate-700',
-  CONFIRMED: 'bg-blue-100 text-blue-700',
+  CONFIRMED: 'bg-brand-100 text-brand-800',
   CHECKED_IN: 'bg-indigo-100 text-indigo-700',
   IN_PROGRESS: 'bg-amber-100 text-amber-700',
   COMPLETED: 'bg-green-100 text-green-700',

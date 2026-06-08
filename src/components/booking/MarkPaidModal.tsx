@@ -79,7 +79,7 @@ export function MarkPaidModal({
               id="final-price"
               readOnly
               value={formatPrice(booking.final_price)}
-              className="pl-10 font-semibold text-blue-600"
+              className="pl-10 font-semibold text-brand-700"
             />
           </div>
         </div>

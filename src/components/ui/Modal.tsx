@@ -45,7 +45,7 @@ export function Modal({
       <button
         type="button"
         aria-label="Đóng"
-        className="absolute inset-0 bg-slate-900/50 backdrop-blur-[1px]"
+        className="absolute inset-0 bg-navy-950/60 backdrop-blur-sm"
         onClick={onClose}
       />
 
@@ -54,13 +54,13 @@ export function Modal({
         aria-modal="true"
         aria-labelledby="modal-title"
         className={cn(
-          'relative z-10 w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-xl',
+          'relative z-10 w-full max-w-lg overflow-hidden rounded-2xl border border-white/20 bg-white shadow-[var(--shadow-carivo-lg)]',
           className,
         )}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-4">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-100 bg-gradient-to-r from-slate-50/90 to-white px-6 py-4">
           <div>
-            <h2 id="modal-title" className="text-lg font-semibold text-slate-900">
+            <h2 id="modal-title" className="text-lg font-bold tracking-tight text-slate-900">
               {title}
             </h2>
             {description ? (

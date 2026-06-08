@@ -63,7 +63,7 @@ export function CompleteServiceModal({
           <p className="mt-1 text-slate-500">
             {getServicePackageName(booking.service_package_id)}
           </p>
-          <p className="mt-2 font-semibold text-blue-600">
+          <p className="mt-2 font-semibold text-brand-700">
             {formatPrice(booking.final_price)}
           </p>
         </div>

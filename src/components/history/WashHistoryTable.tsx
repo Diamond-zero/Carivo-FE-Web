@@ -40,7 +40,7 @@ export function WashHistoryTable({
         cell: (info) => (
           <Link
             to={`/bookings/${info.getValue()}`}
-            className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
+            className="carivo-link"
           >
             {info.getValue().replace('booking-', '#')}
           </Link>
@@ -69,7 +69,7 @@ export function WashHistoryTable({
       columnHelper.accessor('final_price', {
         header: 'Thành tiền',
         cell: (info) => (
-          <span className="font-semibold text-blue-600">
+          <span className="font-semibold text-brand-700">
             {formatPrice(info.getValue())}
           </span>
         ),

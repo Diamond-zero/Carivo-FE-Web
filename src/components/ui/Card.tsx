@@ -5,7 +5,7 @@ export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
-        'rounded-2xl border border-slate-200 bg-white shadow-sm',
+        'carivo-panel overflow-hidden',
         className,
       )}
       {...props}
@@ -17,7 +17,15 @@ export function CardHeader({
   className,
   ...props
 }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('border-b border-slate-100 px-6 py-4', className)} {...props} />
+  return (
+    <div
+      className={cn(
+        'border-b border-slate-100/90 bg-gradient-to-r from-slate-50/80 to-white px-6 py-4',
+        className,
+      )}
+      {...props}
+    />
+  )
 }
 
 export function CardTitle({
@@ -26,7 +34,7 @@ export function CardTitle({
 }: HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h3
-      className={cn('text-base font-semibold text-slate-900', className)}
+      className={cn('text-base font-bold tracking-tight text-slate-900', className)}
       {...props}
     />
   )

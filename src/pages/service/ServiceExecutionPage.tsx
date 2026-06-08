@@ -285,7 +285,7 @@ export function ServiceExecutionPage() {
 
           <div className="space-y-6">
             {booking?.status === 'CHECKED_IN' ? (
-              <Card className="border-blue-200 bg-blue-50/50">
+              <Card className="border-brand-200 bg-brand-50/50">
                 <CardContent className="flex flex-col gap-4 py-6 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="font-medium text-slate-900">
@@ -341,7 +341,7 @@ export function ServiceExecutionPage() {
                     </CardContent>
                   </Card>
                 ) : assignedWashBay ? (
-                  <Card className="border-blue-200 bg-blue-50/40">
+                  <Card className="border-brand-200 bg-brand-50/40">
                     <CardContent className="py-4">
                       <p className="text-sm text-slate-600">Buồng rửa đang sử dụng</p>
                       <p className="mt-1 font-medium text-slate-900">

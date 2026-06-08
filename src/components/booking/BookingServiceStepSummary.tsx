@@ -34,7 +34,7 @@ export function BookingServiceStepSummary({
 
       <div className="h-2 overflow-hidden rounded-full bg-slate-100">
         <div
-          className="h-full rounded-full bg-blue-600 transition-all"
+          className="h-full rounded-full bg-brand-600 transition-all"
           style={{ width: `${(completedCount / steps.length) * 100}%` }}
         />
       </div>

@@ -264,7 +264,7 @@ export function BookingDetailPage() {
                 <div className="border-t border-slate-100 pt-3">
                   <div className="flex justify-between gap-4">
                     <dt className="font-medium text-slate-900">Thành tiền</dt>
-                    <dd className="text-lg font-semibold text-blue-600">
+                    <dd className="text-lg font-semibold text-brand-700">
                       {formatPrice(booking.final_price)}
                     </dd>
                   </div>
@@ -291,7 +291,7 @@ export function BookingDetailPage() {
             </CardHeader>
             <CardContent>
               {washBay ? (
-                <div className="rounded-xl bg-blue-50 px-4 py-3">
+                <div className="rounded-xl bg-brand-50 px-4 py-3">
                   <p className="font-medium text-slate-900">{washBay.name}</p>
                   <p className="text-sm text-slate-600">
                     {washBay.bay_code} · {VEHICLE_TYPE_LABELS[washBay.vehicle_type]}

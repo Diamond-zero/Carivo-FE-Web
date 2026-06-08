@@ -108,7 +108,7 @@ export function AssignWashBayModal({
                       className={cn(
                         'w-full rounded-xl border px-4 py-3 text-left transition-colors',
                         isSelected
-                          ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500'
+                          ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500'
                           : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50',
                       )}
                     >

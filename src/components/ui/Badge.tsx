@@ -12,7 +12,7 @@ const variantClasses: Record<BadgeVariant, string> = {
   success: 'bg-green-100 text-green-700',
   warning: 'bg-amber-100 text-amber-700',
   danger: 'bg-red-100 text-red-700',
-  info: 'bg-blue-100 text-blue-700',
+  info: 'bg-brand-50 text-brand-800 ring-1 ring-brand-100',
 }
 
 export function Badge({

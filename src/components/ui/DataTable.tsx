@@ -52,16 +52,21 @@ export function DataTable<TData>({
   }
 
   return (
-    <div className={cn('overflow-hidden rounded-xl border border-slate-200', className)}>
+    <div
+      className={cn(
+        'overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-[var(--shadow-carivo-sm)]',
+        className,
+      )}
+    >
       <div className="overflow-x-auto">
-        <table className="min-w-[640px] w-full divide-y divide-slate-200 md:min-w-full">
-          <thead className="bg-slate-50">
+        <table className="min-w-[640px] w-full divide-y divide-slate-100 md:min-w-full">
+          <thead>
             {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
+              <tr key={headerGroup.id} className="bg-slate-50/90">
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
+                    className="whitespace-nowrap px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500"
                   >
                     {header.isPlaceholder
                       ? null
@@ -74,7 +79,7 @@ export function DataTable<TData>({
               </tr>
             ))}
           </thead>
-          <tbody className="divide-y divide-slate-100 bg-white">
+          <tbody className="divide-y divide-slate-100/90 bg-white">
             {table.getRowModel().rows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="p-0">
@@ -95,11 +100,14 @@ export function DataTable<TData>({
               </tr>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="hover:bg-slate-50/80">
+                <tr
+                  key={row.id}
+                  className="transition-colors hover:bg-brand-50/40"
+                >
                   {row.getVisibleCells().map((cell) => (
                     <td
                       key={cell.id}
-                      className="whitespace-nowrap px-4 py-3 text-sm text-slate-700 md:whitespace-normal"
+                      className="whitespace-nowrap px-4 py-3.5 text-sm text-slate-700 md:whitespace-normal"
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>

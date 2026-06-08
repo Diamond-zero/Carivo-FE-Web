@@ -13,14 +13,14 @@ interface BookingTimelineProps {
 
 const stateStyles = {
   completed: {
-    dot: 'border-blue-600 bg-blue-600 text-white',
-    line: 'bg-blue-600',
-    label: 'text-blue-700 font-medium',
+    dot: 'border-brand-600 bg-brand-600 text-white',
+    line: 'bg-brand-600',
+    label: 'text-brand-800 font-medium',
   },
   current: {
-    dot: 'border-blue-600 bg-white text-blue-600 ring-4 ring-blue-100',
+    dot: 'border-brand-600 bg-white text-brand-600 ring-4 ring-brand-100',
     line: 'bg-slate-200',
-    label: 'text-blue-700 font-semibold',
+    label: 'text-brand-800 font-semibold',
   },
   upcoming: {
     dot: 'border-slate-300 bg-white text-slate-300',
@@ -79,7 +79,7 @@ export function BookingTimeline({ booking, className }: BookingTimelineProps) {
               <div className="min-w-0 pt-0.5 md:pt-3">
                 <p className={cn('text-sm', styles.label)}>{stage.label}</p>
                 {state === 'current' && !isCanceled ? (
-                  <p className="mt-0.5 text-xs text-blue-500">Hiện tại</p>
+                  <p className="mt-0.5 text-xs text-brand-600">Hiện tại</p>
                 ) : null}
               </div>
             </div>

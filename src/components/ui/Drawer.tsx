@@ -47,7 +47,7 @@ export function Drawer({
       <button
         type="button"
         aria-label="Đóng panel"
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]"
+        className="absolute inset-0 bg-navy-950/50 backdrop-blur-sm"
         onClick={onClose}
       />
 
@@ -56,15 +56,15 @@ export function Drawer({
         aria-modal="true"
         aria-labelledby="drawer-title"
         className={cn(
-          'absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-2xl',
+          'absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-slate-200/80 bg-white shadow-[var(--shadow-carivo-lg)]',
           className,
         )}
       >
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 bg-gradient-to-r from-slate-50/90 to-white px-5 py-4">
           <div className="min-w-0">
             <h2
               id="drawer-title"
-              className="truncate text-lg font-semibold text-slate-900"
+              className="truncate text-lg font-bold tracking-tight text-slate-900"
             >
               {title}
             </h2>
@@ -86,7 +86,7 @@ export function Drawer({
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">{children}</div>
 
         {footer ? (
-          <div className="shrink-0 border-t border-slate-100 px-5 py-4">
+          <div className="shrink-0 border-t border-slate-100 bg-slate-50/50 px-5 py-4">
             {footer}
           </div>
         ) : null}

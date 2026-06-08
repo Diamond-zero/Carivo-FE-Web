@@ -199,7 +199,7 @@ export function InspectionForm({
 
       <div>
         <Label required>Ảnh kiểm tra</Label>
-        <label className="mt-1.5 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 px-4 py-8 transition-colors hover:border-blue-300 hover:bg-blue-50/40">
+        <label className="mt-1.5 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 px-4 py-8 transition-colors hover:border-brand-300 hover:bg-brand-50/40">
           <ImagePlus className="h-8 w-8 text-slate-400" />
           <span className="mt-2 text-sm font-medium text-slate-700">
             Chọn ảnh từ thiết bị

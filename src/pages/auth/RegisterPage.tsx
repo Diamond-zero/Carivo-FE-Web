@@ -53,7 +53,7 @@ export function RegisterPage() {
           Đã có tài khoản?{' '}
           <Link
             to="/login"
-            className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
+            className="carivo-link"
           >
             Đăng nhập
           </Link>

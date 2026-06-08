@@ -205,8 +205,8 @@ export function WalkInForm({ onSubmit, isSubmitting = false }: WalkInFormProps) 
               className={cn(
                 'rounded-xl border px-4 py-3 text-left text-sm transition-colors',
                 timeSlot === option.value
-                  ? 'border-blue-400 bg-blue-50 font-medium text-blue-700'
-                  : 'border-slate-200 bg-white text-slate-700 hover:border-blue-200',
+                  ? 'border-brand-400 bg-brand-50 font-medium text-brand-800'
+                  : 'border-slate-200 bg-white text-slate-700 hover:border-brand-200',
               )}
             >
               {option.label}
@@ -244,15 +244,15 @@ export function WalkInForm({ onSubmit, isSubmitting = false }: WalkInFormProps) 
       </div>
 
       {selectedPackage ? (
-        <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-4">
-          <p className="text-sm font-medium text-blue-900">Tóm tắt</p>
-          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm text-blue-800">
+        <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-4">
+          <p className="text-sm font-medium text-brand-900">Tóm tắt</p>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm text-brand-800">
             <span>{selectedPackage.name}</span>
             <span className="font-semibold">
               {formatPrice(selectedPackage.base_price)}
             </span>
           </div>
-          <p className="mt-1 text-xs text-blue-600">
+          <p className="mt-1 text-xs text-brand-700">
             Walk-in sẽ được tạo với trạng thái{' '}
             <strong>Đã check-in</strong> (mock)
           </p>

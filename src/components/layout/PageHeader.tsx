@@ -6,6 +6,7 @@ interface PageHeaderProps {
   description?: string
   action?: ReactNode
   className?: string
+  eyebrow?: string
 }
 
 export function PageHeader({
@@ -13,6 +14,7 @@ export function PageHeader({
   description,
   action,
   className,
+  eyebrow = 'Carivo Staff',
 }: PageHeaderProps) {
   return (
     <div
@@ -22,9 +24,14 @@ export function PageHeader({
       )}
     >
       <div className="min-w-0">
-        <h1 className="text-xl font-semibold text-slate-900 md:text-2xl">{title}</h1>
+        <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-brand-700">
+          {eyebrow}
+        </p>
+        <h1 className="carivo-page-title">{title}</h1>
         {description ? (
-          <p className="mt-1 text-sm text-slate-500">{description}</p>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-500">
+            {description}
+          </p>
         ) : null}
       </div>
       {action ? <div className="w-full shrink-0 md:w-auto">{action}</div> : null}
