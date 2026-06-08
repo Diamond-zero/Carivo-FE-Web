@@ -7,9 +7,9 @@ import {
   STEP_TYPE_LABELS,
 } from '../../constants/serviceStep'
 import { STAFF_TYPE_LABELS } from '../../constants/staffType'
-import { canCompleteStep } from '../../utils/serviceSteps'
+import { getCompleteStepGuard } from '../../utils/bookingActionGuards'
 import { cn } from '../../lib/utils'
-import { Button } from '../ui/Button'
+import { GuardedActionButton } from '../booking/GuardedActionButton'
 
 interface ServiceStepListProps {
   steps: BookingServiceStep[]
@@ -45,8 +45,9 @@ export function ServiceStepList({
     <ul className="space-y-4">
       {steps.map((step) => {
         const isExpanded = expandedSteps[step.id] ?? step.status === 'IN_PROGRESS'
-        const canComplete = canCompleteStep(step, steps)
+        const stepGuard = getCompleteStepGuard(step, steps)
         const isDone = step.status === 'DONE'
+        const isSkipped = step.status === 'SKIPPED'
 
         return (
           <li
@@ -87,11 +88,13 @@ export function ServiceStepList({
                 </p>
               </div>
 
-              {canComplete ? (
-                <Button
+              {stepGuard.allowed ? (
+                <GuardedActionButton
+                  guard={stepGuard}
                   size="sm"
-                  onClick={() => onCompleteStep(step.id)}
+                  showHint={false}
                   disabled={completingStepId === step.id}
+                  onClick={() => onCompleteStep(step.id)}
                 >
                   {completingStepId === step.id ? (
                     'Đang xử lý...'
@@ -101,13 +104,22 @@ export function ServiceStepList({
                       Hoàn thành step
                     </>
                   )}
-                </Button>
+                </GuardedActionButton>
               ) : isDone ? (
                 <span className="inline-flex items-center gap-1 text-sm font-medium text-green-700">
                   <CheckCircle2 className="h-4 w-4" />
                   Đã xong
                 </span>
-              ) : null}
+              ) : isSkipped ? (
+                <span className="text-sm text-slate-500">Đã bỏ qua</span>
+              ) : (
+                <span
+                  className="text-xs text-slate-500"
+                  title={stepGuard.reason}
+                >
+                  {stepGuard.reason}
+                </span>
+              )}
             </div>
 
             <button

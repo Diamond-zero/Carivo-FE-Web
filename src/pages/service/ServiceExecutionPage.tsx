@@ -3,15 +3,21 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   CheckCircle2,
+  Info,
   Loader2,
   MapPin,
   Play,
+  Wrench,
 } from 'lucide-react'
 import { AssignWashBayModal } from '../../components/wash-bay/AssignWashBayModal'
+import { CompleteServiceModal } from '../../components/booking/CompleteServiceModal'
+import { GuardedActionButton } from '../../components/booking/GuardedActionButton'
+import { BookingExecutionDrawer } from '../../components/service/BookingExecutionDrawer'
 import { BookingStatusBadge } from '../../components/booking/BookingStatusBadge'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { ServiceStepList } from '../../components/service/ServiceStepList'
 import { Button } from '../../components/ui/Button'
+import { EmptyState } from '../../components/ui/EmptyState'
 import {
   Card,
   CardContent,
@@ -22,14 +28,18 @@ import {
 import { Select } from '../../components/ui/Select'
 import { useAuth } from '../../contexts/AuthContext'
 import { useBookings } from '../../contexts/BookingContext'
+import { useToast } from '../../contexts/ToastContext'
 import { getServicePackageName } from '../../mocks/servicePackages'
 import {
   getBookingCustomerName,
 } from '../../utils/booking'
-import { areAllStepsDone } from '../../utils/serviceSteps'
+import {
+  getAssignWashBayGuard,
+  getCompleteServiceGuard,
+  getStartServiceGuard,
+} from '../../utils/bookingActionGuards'
 import {
   bookingRequiresWashBay,
-  canAssignWashBay,
 } from '../../utils/washBay'
 import { formatTime } from '../../utils/format'
 
@@ -37,6 +47,7 @@ export function ServiceExecutionPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { session } = useAuth()
+  const { showToast } = useToast()
   const {
     bookings,
     getBookingById,
@@ -55,8 +66,9 @@ export function ServiceExecutionPage() {
   } | null>(null)
   const [completingStepId, setCompletingStepId] = useState<string | null>(null)
   const [isStarting, setIsStarting] = useState(false)
-  const [isCompletingService, setIsCompletingService] = useState(false)
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
+  const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false)
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false)
 
   const executableBookings = useMemo(
     () =>
@@ -77,11 +89,22 @@ export function ServiceExecutionPage() {
     ? getServiceStepsByBookingId(selectedBookingId)
     : []
 
-  const allStepsDone = areAllStepsDone(steps)
+  const staffGarageId = session?.staffProfile.garage_id
+
+  const assignWashBayGuard = booking
+    ? getAssignWashBayGuard(booking, staffGarageId)
+    : { allowed: false as const }
+  const startServiceGuard = booking
+    ? getStartServiceGuard(booking, staffGarageId)
+    : { allowed: false as const }
+  const completeServiceGuard = booking
+    ? getCompleteServiceGuard(booking, steps, staffGarageId)
+    : { allowed: false as const }
+
+  const needsWashBayAssignment = assignWashBayGuard.allowed
   const assignedWashBay = booking?.wash_bay_id
     ? getWashBayById(booking.wash_bay_id)
     : undefined
-  const needsWashBayAssignment = booking ? canAssignWashBay(booking) : false
   const availableWashBays = selectedBookingId
     ? getAvailableWashBaysForBooking(selectedBookingId)
     : []
@@ -92,6 +115,10 @@ export function ServiceExecutionPage() {
       setSearchParams({ bookingId: executableBookings[0].id }, { replace: true })
     }
   }, [executableBookings, searchParams, setSearchParams])
+
+  useEffect(() => {
+    setIsDetailDrawerOpen(false)
+  }, [selectedBookingId])
 
   const handleSelectBooking = (bookingId: string) => {
     setSearchParams({ bookingId })
@@ -137,23 +164,23 @@ export function ServiceExecutionPage() {
     })
   }
 
-  const handleCompleteService = async () => {
-    if (!selectedBookingId) return
-
-    setIsCompletingService(true)
-    setFeedback(null)
-    await new Promise((resolve) => setTimeout(resolve, 500))
+  const handleConfirmCompleteService = async () => {
+    if (!selectedBookingId) {
+      return { success: false, message: 'Không xác định được booking.' }
+    }
 
     const result = completeService(selectedBookingId)
-    setIsCompletingService(false)
-    setFeedback({
-      type: result.success ? 'success' : 'error',
-      message: result.message,
-    })
 
     if (result.success) {
-      navigate(`/bookings/${selectedBookingId}`)
+      showToast(result.message, 'success')
+      navigate(`/bookings/${selectedBookingId}`, {
+        state: { openMarkPaid: true },
+      })
+    } else {
+      setFeedback({ type: 'error', message: result.message })
     }
+
+    return result
   }
 
   const handleAssignWashBay = async (washBayId: string) => {
@@ -167,6 +194,11 @@ export function ServiceExecutionPage() {
       message: result.message,
     })
     return result
+  }
+
+  const handleRequestAssignFromDrawer = () => {
+    setIsDetailDrawerOpen(false)
+    setIsAssignModalOpen(true)
   }
 
   return (
@@ -188,12 +220,21 @@ export function ServiceExecutionPage() {
 
       {executableBookings.length === 0 ? (
         <Card>
-          <CardContent className="py-12 text-center text-sm text-slate-500">
-            Không có booking CHECKED_IN hoặc IN_PROGRESS để thực hiện.
+          <CardContent>
+            <EmptyState
+              icon={Wrench}
+              title="Không có booking đang xử lý"
+              description="Chỉ booking CHECKED_IN hoặc IN_PROGRESS mới hiển thị tại đây."
+              action={
+                <Link to="/bookings">
+                  <Button variant="secondary">Xem danh sách booking</Button>
+                </Link>
+              }
+            />
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6 xl:grid-cols-[320px_1fr]">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">
           <Card>
             <CardHeader>
               <CardTitle>Chọn booking</CardTitle>
@@ -228,6 +269,15 @@ export function ServiceExecutionPage() {
                   <div className="mt-3">
                     <BookingStatusBadge status={booking.status} />
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-3 w-full"
+                    onClick={() => setIsDetailDrawerOpen(true)}
+                  >
+                    <Info className="h-4 w-4" />
+                    Chi tiết booking
+                  </Button>
                 </div>
               ) : null}
             </CardContent>
@@ -245,7 +295,12 @@ export function ServiceExecutionPage() {
                       Bấm bắt đầu để tạo các bước dịch vụ và chuyển sang IN_PROGRESS.
                     </p>
                   </div>
-                  <Button onClick={handleStartService} disabled={isStarting}>
+                  <GuardedActionButton
+                    guard={startServiceGuard}
+                    showHint={false}
+                    disabled={isStarting}
+                    onClick={handleStartService}
+                  >
                     {isStarting ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -257,7 +312,7 @@ export function ServiceExecutionPage() {
                         Bắt đầu dịch vụ
                       </>
                     )}
-                  </Button>
+                  </GuardedActionButton>
                 </CardContent>
               </Card>
             ) : null}
@@ -275,10 +330,14 @@ export function ServiceExecutionPage() {
                           Chọn buồng rửa {booking.vehicle_type === 'CAR' ? 'ô tô' : 'xe máy'} đang trống để bắt đầu quy trình rửa.
                         </p>
                       </div>
-                      <Button onClick={() => setIsAssignModalOpen(true)}>
+                      <GuardedActionButton
+                        guard={assignWashBayGuard}
+                        showHint={false}
+                        onClick={() => setIsAssignModalOpen(true)}
+                      >
                         <MapPin className="h-4 w-4" />
                         Gán buồng rửa
-                      </Button>
+                      </GuardedActionButton>
                     </CardContent>
                   </Card>
                 ) : assignedWashBay ? (
@@ -300,11 +359,14 @@ export function ServiceExecutionPage() {
                       Hoàn thành lần lượt từng bước theo thứ tự
                     </CardDescription>
                   </div>
-                  <Link to={`/bookings/${booking.id}`}>
-                    <Button variant="ghost" size="sm">
-                      Chi tiết
-                    </Button>
-                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsDetailDrawerOpen(true)}
+                  >
+                    <Info className="h-4 w-4" />
+                    Chi tiết
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   <ServiceStepList
@@ -314,29 +376,16 @@ export function ServiceExecutionPage() {
                   />
 
                   <div className="mt-6 border-t border-slate-100 pt-6">
-                    <Button
+                    <GuardedActionButton
+                      guard={completeServiceGuard}
                       fullWidth
                       variant="secondary"
-                      disabled={!allStepsDone || isCompletingService}
-                      onClick={handleCompleteService}
+                      hintClassName="text-center"
+                      onClick={() => setIsCompleteModalOpen(true)}
                     >
-                      {isCompletingService ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Đang hoàn thành dịch vụ...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 className="h-4 w-4" />
-                          Hoàn thành dịch vụ
-                        </>
-                      )}
-                    </Button>
-                    {!allStepsDone ? (
-                      <p className="mt-2 text-center text-xs text-slate-500">
-                        Hoàn thành tất cả bước để kích hoạt nút này
-                      </p>
-                    ) : null}
+                      <CheckCircle2 className="h-4 w-4" />
+                      Hoàn thành dịch vụ
+                    </GuardedActionButton>
                   </div>
                 </CardContent>
               </Card>
@@ -365,6 +414,28 @@ export function ServiceExecutionPage() {
           booking={booking}
           availableBays={availableWashBays}
           onAssign={handleAssignWashBay}
+        />
+      ) : null}
+
+      {booking ? (
+        <CompleteServiceModal
+          open={isCompleteModalOpen}
+          onClose={() => setIsCompleteModalOpen(false)}
+          booking={booking}
+          onConfirm={handleConfirmCompleteService}
+        />
+      ) : null}
+
+      {booking ? (
+        <BookingExecutionDrawer
+          open={isDetailDrawerOpen}
+          onClose={() => setIsDetailDrawerOpen(false)}
+          booking={booking}
+          washBay={assignedWashBay}
+          needsWashBayAssignment={needsWashBayAssignment}
+          onRequestAssignWashBay={
+            needsWashBayAssignment ? handleRequestAssignFromDrawer : undefined
+          }
         />
       ) : null}
     </div>

@@ -3,6 +3,7 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { StaffLayout } from './components/layout/StaffLayout'
 import { AuthProvider } from './contexts/AuthContext'
 import { BookingProvider } from './contexts/BookingContext'
+import { ToastProvider } from './contexts/ToastContext'
 import { LoginPage } from './pages/auth/LoginPage'
 import { RegisterPage } from './pages/auth/RegisterPage'
 import { BookingDetailPage } from './pages/bookings/BookingDetailPage'
@@ -18,6 +19,7 @@ function App() {
   return (
     <AuthProvider>
       <BookingProvider>
+        <ToastProvider>
         <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
@@ -38,6 +40,7 @@ function App() {
 
         <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
+        </ToastProvider>
       </BookingProvider>
     </AuthProvider>
   )

@@ -10,10 +10,12 @@ import { mockBookings } from '../mocks/bookings'
 import { mockInspections } from '../mocks/inspections'
 import { mockServiceSteps } from '../mocks/serviceSteps'
 import { mockWashBays } from '../mocks/washBays'
+import { mockWashHistories } from '../mocks/washHistories'
 import type { Booking, WalkInBookingForm } from '../types/booking'
 import type { VehicleInspection } from '../types/inspection'
 import type { BookingServiceStep } from '../types/serviceStep'
 import type { WashBay } from '../types/washBay'
+import type { WashHistory } from '../types/washHistory'
 import { getBookingPhone, normalizeSearchText } from '../utils/booking'
 import {
   buildInspection,
@@ -29,6 +31,11 @@ import {
   bookingRequiresWashBay,
   getSelectableWashBays,
 } from '../utils/washBay'
+import {
+  buildWashHistory,
+  calculateEarnedPoints,
+  canMarkBookingPaid,
+} from '../utils/payment'
 
 interface BookingContextValue {
   bookings: Booking[]
@@ -54,6 +61,15 @@ interface BookingContextValue {
     staffProfileId: string,
   ) => { success: boolean; message: string }
   completeService: (bookingId: string) => { success: boolean; message: string }
+  markBookingPaid: (
+    bookingId: string,
+  ) => {
+    success: boolean
+    message: string
+    earnedPoints?: number
+    washHistoryId?: string
+  }
+  washHistories: WashHistory[]
   getInspectionsByBookingId: (bookingId: string) => VehicleInspection[]
   createInspection: (
     data: CreateInspectionInput,
@@ -75,6 +91,9 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   )
   const [washBays, setWashBays] = useState<WashBay[]>(() =>
     mockWashBays.map((bay) => ({ ...bay })),
+  )
+  const [washHistories, setWashHistories] = useState<WashHistory[]>(() =>
+    mockWashHistories.map((item) => ({ ...item })),
   )
 
   const getBookingById = useCallback(
@@ -364,11 +383,32 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      if (bookingRequiresWashBay(booking) && !booking.wash_bay_id) {
+        return {
+          success: false,
+          message: 'Cần gán buồng rửa trước khi hoàn thành dịch vụ.',
+        }
+      }
+
       setBookings((current) =>
         current.map((item) =>
           item.id === bookingId ? { ...item, status: 'COMPLETED' } : item,
         ),
       )
+
+      if (booking.wash_bay_id) {
+        setWashBays((current) =>
+          current.map((item) =>
+            item.id === booking.wash_bay_id
+              ? {
+                  ...item,
+                  status: 'AVAILABLE',
+                  current_booking_id: null,
+                }
+              : item,
+          ),
+        )
+      }
 
       return {
         success: true,
@@ -376,6 +416,49 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       }
     },
     [bookings, serviceSteps],
+  )
+
+  const markBookingPaid = useCallback(
+    (bookingId: string) => {
+      const booking = bookings.find((item) => item.id === bookingId)
+
+      if (!booking) {
+        return { success: false, message: 'Không tìm thấy booking.' }
+      }
+
+      if (!canMarkBookingPaid(booking)) {
+        return {
+          success: false,
+          message: 'Chỉ booking COMPLETED và chưa thanh toán mới được thu tiền.',
+        }
+      }
+
+      const earnedPoints = calculateEarnedPoints(booking)
+      const washHistory = buildWashHistory(booking)
+
+      setBookings((current) =>
+        current.map((item) =>
+          item.id === bookingId
+            ? { ...item, payment_status: 'PAID' }
+            : item,
+        ),
+      )
+
+      setWashHistories((current) => [washHistory, ...current])
+
+      const pointsMessage =
+        earnedPoints > 0
+          ? ` Đã cộng ${earnedPoints} điểm loyalty (mock).`
+          : ''
+
+      return {
+        success: true,
+        message: `Xác nhận thanh toán ${booking.id.replace('booking-', '#')} thành công.${pointsMessage}`,
+        earnedPoints,
+        washHistoryId: washHistory.id,
+      }
+    },
+    [bookings],
   )
 
   const createInspection = useCallback(
@@ -426,6 +509,8 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       startService,
       completeServiceStep,
       completeService,
+      markBookingPaid,
+      washHistories,
       getInspectionsByBookingId,
       createInspection,
     }),
@@ -444,6 +529,8 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       startService,
       completeServiceStep,
       completeService,
+      markBookingPaid,
+      washHistories,
       getInspectionsByBookingId,
       createInspection,
     ],

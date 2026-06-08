@@ -36,34 +36,8 @@ export interface BookingAction {
   to: string
 }
 
-export function getBookingAction(booking: Booking): BookingAction | null {
-  if (booking.status === 'CONFIRMED') {
-    return {
-      label: 'Check-in',
-      to: `/bookings/check-in?bookingId=${booking.id}`,
-    }
-  }
-
-  if (booking.status === 'CHECKED_IN') {
-    return {
-      label: 'Bắt đầu DV',
-      to: `/service/execution?bookingId=${booking.id}`,
-    }
-  }
-
-  if (booking.status === 'IN_PROGRESS') {
-    return {
-      label: 'Tiếp tục',
-      to: `/service/execution?bookingId=${booking.id}`,
-    }
-  }
-
-  if (booking.status === 'COMPLETED' && booking.payment_status === 'UNPAID') {
-    return {
-      label: 'Thanh toán',
-      to: `/bookings/${booking.id}`,
-    }
-  }
-
-  return null
-}
+export {
+  getBookingAction,
+  getBookingListAction,
+  type BookingListAction,
+} from './bookingActionGuards'

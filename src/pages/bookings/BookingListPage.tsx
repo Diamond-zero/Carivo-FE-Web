@@ -1,12 +1,19 @@
-import { Plus } from 'lucide-react'
+import { Plus, SearchX } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BookingListFilters } from '../../components/booking/BookingListFilters'
 import { BookingTable } from '../../components/booking/BookingTable'
+import { MarkPaidModal } from '../../components/booking/MarkPaidModal'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card'
+import { EmptyState } from '../../components/ui/EmptyState'
+import { PageHeaderSkeleton, TableRowsSkeleton } from '../../components/ui/Skeleton'
+import { useAuth } from '../../contexts/AuthContext'
 import { useBookings } from '../../contexts/BookingContext'
+import { useToast } from '../../contexts/ToastContext'
+import { useInitialPageSkeleton } from '../../hooks/useInitialPageSkeleton'
+import type { Booking } from '../../types/booking'
 import {
   DEFAULT_BOOKING_FILTERS,
   filterBookings,
@@ -14,16 +21,40 @@ import {
 } from '../../utils/bookingFilters'
 
 export function BookingListPage() {
-  const { bookings } = useBookings()
+  const { session } = useAuth()
+  const { bookings, markBookingPaid } = useBookings()
+  const { showToast } = useToast()
   const [filters, setFilters] = useState<BookingFilters>(DEFAULT_BOOKING_FILTERS)
+  const [markPaidBooking, setMarkPaidBooking] = useState<Booking | null>(null)
+  const isLoading = useInitialPageSkeleton(280)
 
   const filteredBookings = useMemo(
     () => filterBookings(bookings, filters),
     [bookings, filters],
   )
 
+  const handleMarkPaid = async () => {
+    if (!markPaidBooking) {
+      return { success: false, message: 'Không xác định được booking.' }
+    }
+
+    const result = markBookingPaid(markPaidBooking.id)
+    if (result.success) {
+      showToast(result.message, 'success')
+    }
+    return result
+  }
+
   return (
     <div>
+      {isLoading ? (
+        <>
+          <PageHeaderSkeleton />
+          <div className="mb-6 h-36 animate-pulse rounded-2xl bg-slate-200/60" />
+          <TableRowsSkeleton rows={6} columns={7} />
+        </>
+      ) : (
+        <>
       <PageHeader
         title="Danh sách booking"
         description="Xem và lọc booking theo trạng thái, ngày, biển số, số điện thoại."
@@ -58,9 +89,42 @@ export function BookingListPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0 pb-2">
-          <BookingTable bookings={filteredBookings} />
+          {filteredBookings.length === 0 ? (
+            <EmptyState
+              icon={SearchX}
+              title="Không tìm thấy booking"
+              description="Thử đổi bộ lọc hoặc xóa điều kiện tìm kiếm."
+              action={
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setFilters(DEFAULT_BOOKING_FILTERS)}
+                >
+                  Xóa bộ lọc
+                </Button>
+              }
+              compact
+            />
+          ) : (
+            <BookingTable
+              bookings={filteredBookings}
+              staffGarageId={session?.staffProfile.garage_id}
+              onMarkPaid={setMarkPaidBooking}
+            />
+          )}
         </CardContent>
       </Card>
+
+      {markPaidBooking ? (
+        <MarkPaidModal
+          open={Boolean(markPaidBooking)}
+          onClose={() => setMarkPaidBooking(null)}
+          booking={markPaidBooking}
+          onConfirm={handleMarkPaid}
+        />
+      ) : null}
+        </>
+      )}
     </div>
   )
 }

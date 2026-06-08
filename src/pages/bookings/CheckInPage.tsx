@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   Loader2,
   Search,
+  SearchX,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -12,6 +13,8 @@ import { z } from 'zod'
 import { BookingStatusBadge } from '../../components/booking/BookingStatusBadge'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
+import { EmptyState } from '../../components/ui/EmptyState'
+import { GuardedActionButton } from '../../components/booking/GuardedActionButton'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card'
 import { Input } from '../../components/ui/Input'
 import { Label } from '../../components/ui/Label'
@@ -22,6 +25,8 @@ import {
   getBookingCustomerName,
   getBookingPhone,
 } from '../../utils/booking'
+import { getCheckInGuard } from '../../utils/bookingActionGuards'
+import { useAuth } from '../../contexts/AuthContext'
 import { formatPrice, formatTime } from '../../utils/format'
 
 const searchSchema = z.object({
@@ -73,6 +78,7 @@ function CheckInResultCard({
 
 export function CheckInPage() {
   const [searchParams] = useSearchParams()
+  const { session } = useAuth()
   const { searchCheckInCandidates, checkInBooking, getBookingById } =
     useBookings()
 
@@ -159,6 +165,10 @@ export function CheckInPage() {
     setValue('query', '')
   }
 
+  const checkInGuard = selectedBooking
+    ? getCheckInGuard(selectedBooking, session?.staffProfile.garage_id)
+    : { allowed: false, reason: 'Vui lòng chọn booking cần check-in.' }
+
   return (
     <div>
       <PageHeader
@@ -216,9 +226,12 @@ export function CheckInPage() {
                 Nhập biển số hoặc SĐT rồi bấm Tìm để hiện booking khớp.
               </p>
             ) : results.length === 0 ? (
-              <p className="rounded-xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-                Không tìm thấy booking CONFIRMED nào phù hợp.
-              </p>
+              <EmptyState
+                icon={SearchX}
+                title="Không tìm thấy booking"
+                description="Không có booking CONFIRMED nào khớp biển số hoặc SĐT đã nhập."
+                compact
+              />
             ) : (
               <div className="space-y-3">
                 {results.map((booking) => (
@@ -252,7 +265,8 @@ export function CheckInPage() {
                   </div>
                 </dl>
 
-                <Button
+                <GuardedActionButton
+                  guard={checkInGuard}
                   fullWidth
                   className="mt-4"
                   disabled={isCheckingIn}
@@ -266,7 +280,7 @@ export function CheckInPage() {
                   ) : (
                     'Xác nhận Check-in'
                   )}
-                </Button>
+                </GuardedActionButton>
               </div>
             ) : null}
 

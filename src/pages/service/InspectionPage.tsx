@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Camera, CheckCircle2 } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { InspectionForm } from '../../components/service/InspectionForm'
 import { InspectionHistoryList } from '../../components/service/InspectionHistoryList'
 import { Button } from '../../components/ui/Button'
+import { EmptyState } from '../../components/ui/EmptyState'
 import {
   Card,
   CardContent,
@@ -15,6 +16,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext'
 import { useBookings } from '../../contexts/BookingContext'
 import type { InspectionFormValues } from '../../lib/validations/inspection'
+import { getCreateInspectionGuard } from '../../utils/bookingActionGuards'
 
 export function InspectionPage() {
   const { session } = useAuth()
@@ -30,10 +32,14 @@ export function InspectionPage() {
 
   const inspectableBookings = useMemo(
     () =>
-      bookings.filter((booking) =>
-        ['CHECKED_IN', 'IN_PROGRESS'].includes(booking.status),
+      bookings.filter(
+        (booking) =>
+          getCreateInspectionGuard(
+            booking,
+            session?.staffProfile.garage_id,
+          ).allowed,
       ),
-    [bookings],
+    [bookings, session?.staffProfile.garage_id],
   )
 
   const defaultBookingId =
@@ -108,17 +114,21 @@ export function InspectionPage() {
 
       {inspectableBookings.length === 0 ? (
         <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-sm text-slate-500">
-              Không có booking CHECKED_IN hoặc IN_PROGRESS để kiểm tra.
-            </p>
-            <Link to="/bookings" className="mt-4 inline-block">
-              <Button variant="secondary">Xem danh sách booking</Button>
-            </Link>
+          <CardContent>
+            <EmptyState
+              icon={Camera}
+              title="Không có booking để kiểm tra"
+              description="Chỉ booking CHECKED_IN hoặc IN_PROGRESS mới tạo được biên bản."
+              action={
+                <Link to="/bookings">
+                  <Button variant="secondary">Xem danh sách booking</Button>
+                </Link>
+              }
+            />
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6 xl:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Biên bản mới</CardTitle>
