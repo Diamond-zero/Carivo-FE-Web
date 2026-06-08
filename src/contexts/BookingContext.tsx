@@ -7,14 +7,19 @@ import {
   type ReactNode,
 } from 'react'
 import { mockBookings } from '../mocks/bookings'
-import type { Booking } from '../types/booking'
+import type { Booking, WalkInBookingForm } from '../types/booking'
 import { getBookingPhone, normalizeSearchText } from '../utils/booking'
+import { buildWalkInBooking } from '../utils/walkIn'
 
 interface BookingContextValue {
   bookings: Booking[]
   getBookingById: (id: string) => Booking | undefined
   searchCheckInCandidates: (query: string) => Booking[]
   checkInBooking: (id: string) => { success: boolean; message: string }
+  createWalkInBooking: (
+    garageId: string,
+    data: WalkInBookingForm,
+  ) => { success: boolean; message: string; bookingId?: string }
 }
 
 const BookingContext = createContext<BookingContextValue | null>(null)
@@ -74,14 +79,36 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     }
   }, [bookings])
 
+  const createWalkInBooking = useCallback(
+    (garageId: string, data: WalkInBookingForm) => {
+      const newBooking = buildWalkInBooking(garageId, data)
+
+      setBookings((current) => [newBooking, ...current])
+
+      return {
+        success: true,
+        message: `Tạo walk-in ${newBooking.id.replace('booking-', '#')} thành công.`,
+        bookingId: newBooking.id,
+      }
+    },
+    [bookings],
+  )
+
   const value = useMemo(
     () => ({
       bookings,
       getBookingById,
       searchCheckInCandidates,
       checkInBooking,
+      createWalkInBooking,
     }),
-    [bookings, getBookingById, searchCheckInCandidates, checkInBooking],
+    [
+      bookings,
+      getBookingById,
+      searchCheckInCandidates,
+      checkInBooking,
+      createWalkInBooking,
+    ],
   )
 
   return (
