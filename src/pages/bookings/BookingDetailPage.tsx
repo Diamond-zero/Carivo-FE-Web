@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import {
   ArrowLeft,
   Car,
   Bike,
   Mail,
+  MapPin,
   Phone,
   User,
 } from 'lucide-react'
@@ -12,6 +14,7 @@ import { BookingStatusBadge } from '../../components/booking/BookingStatusBadge'
 import { BookingTimeline } from '../../components/booking/BookingTimeline'
 import { PaymentStatusBadge } from '../../components/booking/PaymentStatusBadge'
 import { PageHeader } from '../../components/layout/PageHeader'
+import { AssignWashBayModal } from '../../components/wash-bay/AssignWashBayModal'
 import { Button } from '../../components/ui/Button'
 import {
   Card,
@@ -22,18 +25,26 @@ import {
 import { VEHICLE_TYPE_LABELS } from '../../constants/washBayStatus'
 import { useBookings } from '../../contexts/BookingContext'
 import { getServicePackageName } from '../../mocks/servicePackages'
-import { mockWashBays } from '../../mocks/washBays'
 import {
   getBookingAction,
   getBookingCustomerName,
   getBookingPhone,
-  getServiceStepsByBookingId,
 } from '../../utils/booking'
+import { canAssignWashBay } from '../../utils/washBay'
 import { formatDateTime, formatPrice, formatTime } from '../../utils/format'
 
 export function BookingDetailPage() {
   const { id } = useParams()
-  const { getBookingById } = useBookings()
+  const {
+    getBookingById,
+    getWashBayById,
+    getAvailableWashBaysForBooking,
+    assignWashBay,
+    getServiceStepsByBookingId,
+  } = useBookings()
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
+  const [assignFeedback, setAssignFeedback] = useState<string | null>(null)
+
   const booking = id ? getBookingById(id) : undefined
 
   if (!booking) {
@@ -56,11 +67,23 @@ export function BookingDetailPage() {
   }
 
   const action = getBookingAction(booking)
-  const serviceSteps = getServiceStepsByBookingId(booking.id)
+  const serviceSteps = id ? getServiceStepsByBookingId(id) : []
   const washBay = booking.wash_bay_id
-    ? mockWashBays.find((bay) => bay.id === booking.wash_bay_id)
+    ? getWashBayById(booking.wash_bay_id)
     : null
+  const needsWashBayAssignment = canAssignWashBay(booking)
+  const availableWashBays = id ? getAvailableWashBaysForBooking(id) : []
   const VehicleIcon = booking.vehicle_type === 'CAR' ? Car : Bike
+
+  const handleAssignWashBay = async (washBayId: string) => {
+    if (!id) {
+      return { success: false, message: 'Không xác định được booking.' }
+    }
+
+    const result = assignWashBay(id, washBayId)
+    setAssignFeedback(result.message)
+    return result
+  }
 
   return (
     <div>
@@ -224,8 +247,14 @@ export function BookingDetailPage() {
           </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between gap-4">
               <CardTitle>Buồng rửa</CardTitle>
+              {needsWashBayAssignment ? (
+                <Button size="sm" onClick={() => setIsAssignModalOpen(true)}>
+                  <MapPin className="h-4 w-4" />
+                  Gán buồng
+                </Button>
+              ) : null}
             </CardHeader>
             <CardContent>
               {washBay ? (
@@ -237,9 +266,16 @@ export function BookingDetailPage() {
                 </div>
               ) : (
                 <p className="text-sm text-slate-500">
-                  Chưa gán buồng rửa
+                  {needsWashBayAssignment
+                    ? 'Chưa gán buồng rửa — bấm "Gán buồng" để chọn.'
+                    : 'Chưa gán buồng rửa'}
                 </p>
               )}
+              {assignFeedback ? (
+                <p className="mt-3 rounded-xl bg-green-50 px-3 py-2 text-sm text-green-700">
+                  {assignFeedback}
+                </p>
+              ) : null}
             </CardContent>
           </Card>
         </div>
@@ -253,6 +289,16 @@ export function BookingDetailPage() {
           <BookingServiceStepSummary steps={serviceSteps} />
         </CardContent>
       </Card>
+
+      {needsWashBayAssignment ? (
+        <AssignWashBayModal
+          open={isAssignModalOpen}
+          onClose={() => setIsAssignModalOpen(false)}
+          booking={booking}
+          availableBays={availableWashBays}
+          onAssign={handleAssignWashBay}
+        />
+      ) : null}
     </div>
   )
 }

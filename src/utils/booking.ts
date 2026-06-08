@@ -1,12 +1,5 @@
 import type { Booking } from '../types/booking'
-import { mockServiceSteps } from '../mocks/serviceSteps'
 import { mockUsers } from '../mocks/users'
-
-export function getServiceStepsByBookingId(bookingId: string) {
-  return mockServiceSteps
-    .filter((step) => step.booking_id === bookingId)
-    .sort((a, b) => a.order - b.order)
-}
 
 export function getBookingCustomerName(booking: Booking) {
   if (booking.is_walk_in && booking.guest_name) {

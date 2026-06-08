@@ -1,20 +1,10 @@
 import type { BookingServiceStep } from '../../types/serviceStep'
+import {
+  STEP_STATUS_COLORS,
+  STEP_STATUS_LABELS,
+} from '../../constants/serviceStep'
 import { STAFF_TYPE_LABELS } from '../../constants/staffType'
 import { cn } from '../../lib/utils'
-
-const STEP_STATUS_LABELS = {
-  PENDING: 'Chờ',
-  IN_PROGRESS: 'Đang làm',
-  DONE: 'Xong',
-  SKIPPED: 'Bỏ qua',
-} as const
-
-const STEP_STATUS_COLORS = {
-  PENDING: 'bg-slate-100 text-slate-600',
-  IN_PROGRESS: 'bg-amber-100 text-amber-700',
-  DONE: 'bg-green-100 text-green-700',
-  SKIPPED: 'bg-gray-100 text-gray-600',
-} as const
 
 interface BookingServiceStepSummaryProps {
   steps: BookingServiceStep[]
