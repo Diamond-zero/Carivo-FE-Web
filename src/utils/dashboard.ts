@@ -1,5 +1,4 @@
 import type { Booking } from '../types/booking'
-import { mockUsers } from '../mocks/users'
 import { MOCK_TODAY } from './format'
 
 export interface DashboardStats {
@@ -47,17 +46,4 @@ export function getUpcomingBookings(bookings: Booking[], limit = 5) {
         new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
     )
     .slice(0, limit)
-}
-
-export function getBookingCustomerName(booking: Booking) {
-  if (booking.is_walk_in && booking.guest_name) {
-    return booking.guest_name
-  }
-
-  if (booking.customer_id) {
-    const customer = mockUsers.find((user) => user.id === booking.customer_id)
-    return customer?.full_name ?? 'Khách hàng'
-  }
-
-  return 'Khách hàng'
 }

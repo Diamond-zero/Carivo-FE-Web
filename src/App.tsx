@@ -4,6 +4,7 @@ import { StaffLayout } from './components/layout/StaffLayout'
 import { AuthProvider } from './contexts/AuthContext'
 import { LoginPage } from './pages/auth/LoginPage'
 import { RegisterPage } from './pages/auth/RegisterPage'
+import { BookingDetailPage } from './pages/bookings/BookingDetailPage'
 import { BookingListPage } from './pages/bookings/BookingListPage'
 import { CheckInPage } from './pages/bookings/CheckInPage'
 import { WalkInCreatePage } from './pages/bookings/WalkInCreatePage'
@@ -26,6 +27,7 @@ function App() {
             <Route path="/bookings" element={<BookingListPage />} />
             <Route path="/bookings/check-in" element={<CheckInPage />} />
             <Route path="/bookings/walk-in" element={<WalkInCreatePage />} />
+            <Route path="/bookings/:id" element={<BookingDetailPage />} />
             <Route path="/service/execution" element={<ServiceExecutionPage />} />
             <Route path="/service/inspection" element={<InspectionPage />} />
             <Route path="/history/wash" element={<WashHistoryPage />} />
