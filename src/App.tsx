@@ -15,6 +15,7 @@ import { WashHistoryPage } from './pages/history/WashHistoryPage'
 import { CustomerDetailPage } from './pages/customers/CustomerDetailPage'
 import { CustomerListPage } from './pages/customers/CustomerListPage'
 import { InspectionPage } from './pages/service/InspectionPage'
+import { PublicHomePage } from './pages/public/PublicHomePage'
 import { ServiceExecutionPage } from './pages/service/ServiceExecutionPage'
 import { SettingsPage } from './pages/settings/SettingsPage'
 
@@ -24,7 +25,8 @@ function App() {
       <BookingProvider>
         <ToastProvider>
         <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<Navigate to="/homepage" replace />} />
+        <Route path="/homepage" element={<PublicHomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
