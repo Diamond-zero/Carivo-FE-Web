@@ -23,8 +23,12 @@ import {
 } from '../utils/inspection'
 import {
   areAllStepsDone,
+  automatedStepRequiresAssignedBay,
   canCompleteStep,
+  canStartAutomatedWashStep,
   createDefaultStepsForBooking,
+  findStepToActivateAfterBayAssignment,
+  WASH_BAY_REQUIRED_FOR_AUTOMATED_STEP_MESSAGE,
 } from '../utils/serviceSteps'
 import { buildWalkInBooking } from '../utils/walkIn'
 import {
@@ -199,12 +203,32 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         ),
       )
 
+      const updatedBooking = { ...booking, wash_bay_id: washBayId }
+      const bookingSteps = serviceSteps.filter(
+        (step) => step.booking_id === bookingId,
+      )
+      const stepToActivate = findStepToActivateAfterBayAssignment(
+        bookingSteps,
+        updatedBooking,
+      )
+
+      if (stepToActivate) {
+        const now = new Date().toISOString().slice(0, 19)
+        setServiceSteps((current) =>
+          current.map((item) =>
+            item.id === stepToActivate.id
+              ? { ...item, status: 'IN_PROGRESS', started_at: now }
+              : item,
+          ),
+        )
+      }
+
       return {
         success: true,
         message: `Đã gán ${bay.name} cho booking ${bookingId.replace('booking-', '#')}.`,
       }
     },
-    [bookings, washBays],
+    [bookings, washBays, serviceSteps],
   )
 
   const searchCheckInCandidates = useCallback(
@@ -313,6 +337,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         return { success: false, message: 'Không tìm thấy bước dịch vụ.' }
       }
 
+      const booking = bookings.find((item) => item.id === step.booking_id)
       const bookingSteps = serviceSteps
         .filter((item) => item.booking_id === step.booking_id)
         .sort((a, b) => a.order - b.order)
@@ -324,10 +349,23 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      if (
+        automatedStepRequiresAssignedBay(step, booking) &&
+        !booking?.wash_bay_id
+      ) {
+        return {
+          success: false,
+          message: WASH_BAY_REQUIRED_FOR_AUTOMATED_STEP_MESSAGE,
+        }
+      }
+
       const now = new Date().toISOString().slice(0, 19)
       const nextPending = bookingSteps.find(
         (item) => item.order === step.order + 1 && item.status === 'PENDING',
       )
+      const shouldActivateNext =
+        nextPending &&
+        canStartAutomatedWashStep(nextPending, booking, bookingSteps)
 
       setServiceSteps((current) =>
         current.map((item) => {
@@ -340,7 +378,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
             }
           }
 
-          if (nextPending && item.id === nextPending.id) {
+          if (shouldActivateNext && item.id === nextPending.id) {
             return {
               ...item,
               status: 'IN_PROGRESS',
@@ -354,7 +392,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
 
       return { success: true, message: `Đã hoàn thành bước "${step.step_name}".` }
     },
-    [serviceSteps],
+    [bookings, serviceSteps],
   )
 
   const completeService = useCallback(

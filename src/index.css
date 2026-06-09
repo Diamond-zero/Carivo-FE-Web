@@ -78,4 +78,68 @@
   .sidebar-scroll::-webkit-scrollbar-thumb:hover {
     background: rgba(6, 182, 164, 0.45);
   }
+
+  .auth-interactive-grid {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    overflow: hidden;
+    pointer-events: auto;
+  }
+
+  .auth-interactive-grid span {
+    display: block;
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    border-radius: 2px;
+    background: rgba(10, 18, 32, 0.72);
+    transition:
+      background-color 1.5s ease,
+      box-shadow 1.5s ease;
+  }
+
+  .auth-interactive-grid span:hover {
+    background: rgba(29, 217, 196, 0.42);
+    box-shadow:
+      0 0 14px rgba(29, 217, 196, 0.35),
+      inset 0 0 6px rgba(29, 217, 196, 0.2);
+    transition-duration: 0s;
+  }
+
+  .auth-interactive-scan {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .auth-interactive-scan::before {
+    content: '';
+    position: absolute;
+    left: -10%;
+    width: 120%;
+    height: 38%;
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(6, 182, 164, 0.06) 42%,
+      rgba(29, 217, 196, 0.14) 50%,
+      rgba(6, 182, 164, 0.06) 58%,
+      transparent 100%
+    );
+    animation: auth-grid-scan 9s linear infinite;
+  }
+
+  @keyframes auth-grid-scan {
+    0% {
+      transform: translateY(-120%);
+    }
+    100% {
+      transform: translateY(320%);
+    }
+  }
 }
