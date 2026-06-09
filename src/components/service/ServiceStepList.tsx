@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ChevronDown, CheckCircle2 } from 'lucide-react'
+import type { Booking } from '../../types/booking'
 import type { BookingServiceStep } from '../../types/serviceStep'
 import {
   STEP_STATUS_COLORS,
@@ -13,12 +14,14 @@ import { GuardedActionButton } from '../booking/GuardedActionButton'
 
 interface ServiceStepListProps {
   steps: BookingServiceStep[]
+  booking?: Booking | null
   onCompleteStep: (stepId: string) => void
   completingStepId?: string | null
 }
 
 export function ServiceStepList({
   steps,
+  booking,
   onCompleteStep,
   completingStepId = null,
 }: ServiceStepListProps) {
@@ -45,7 +48,7 @@ export function ServiceStepList({
     <ul className="space-y-4">
       {steps.map((step) => {
         const isExpanded = expandedSteps[step.id] ?? step.status === 'IN_PROGRESS'
-        const stepGuard = getCompleteStepGuard(step, steps)
+        const stepGuard = getCompleteStepGuard(step, steps, booking)
         const isDone = step.status === 'DONE'
         const isSkipped = step.status === 'SKIPPED'
 

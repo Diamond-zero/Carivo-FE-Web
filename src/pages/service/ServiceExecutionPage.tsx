@@ -324,10 +324,12 @@ export function ServiceExecutionPage() {
                     <CardContent className="flex flex-col gap-4 py-6 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <p className="font-medium text-slate-900">
-                          Cần gán buồng rửa trước khi tiếp tục
+                          Cần gán buồng rửa trước bước rửa tự động
                         </p>
                         <p className="mt-1 text-sm text-slate-600">
-                          Chọn buồng rửa {booking.vehicle_type === 'CAR' ? 'ô tô' : 'xe máy'} đang trống để bắt đầu quy trình rửa.
+                          Hoàn thành bước kiểm tra xong, gán buồng{' '}
+                          {booking.vehicle_type === 'CAR' ? 'ô tô' : 'xe máy'} đang trống
+                          để mới bắt đầu và hoàn thành bước rửa tự động.
                         </p>
                       </div>
                       <GuardedActionButton
@@ -371,6 +373,7 @@ export function ServiceExecutionPage() {
                 <CardContent>
                   <ServiceStepList
                     steps={steps}
+                    booking={booking}
                     onCompleteStep={handleCompleteStep}
                     completingStepId={completingStepId}
                   />

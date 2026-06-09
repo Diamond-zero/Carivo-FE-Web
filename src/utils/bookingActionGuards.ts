@@ -2,7 +2,9 @@ import type { Booking } from '../types/booking'
 import type { BookingServiceStep } from '../types/serviceStep'
 import {
   areAllStepsDone,
+  automatedStepRequiresAssignedBay,
   canCompleteStep,
+  WASH_BAY_REQUIRED_FOR_AUTOMATED_STEP_MESSAGE,
 } from './serviceSteps'
 import { bookingRequiresWashBay } from './washBay'
 
@@ -197,6 +199,7 @@ export function getCreateInspectionGuard(
 export function getCompleteStepGuard(
   step: BookingServiceStep,
   steps: BookingServiceStep[],
+  booking?: Booking | null,
 ): ActionGuardResult {
   if (step.status === 'DONE' || step.status === 'SKIPPED') {
     return { allowed: false, reason: 'Bước đã hoàn thành.' }
@@ -206,6 +209,16 @@ export function getCompleteStepGuard(
     return {
       allowed: false,
       reason: 'Hoàn thành các bước trước đó trước khi tiếp tục.',
+    }
+  }
+
+  if (
+    automatedStepRequiresAssignedBay(step, booking) &&
+    !booking?.wash_bay_id
+  ) {
+    return {
+      allowed: false,
+      reason: WASH_BAY_REQUIRED_FOR_AUTOMATED_STEP_MESSAGE,
     }
   }
 

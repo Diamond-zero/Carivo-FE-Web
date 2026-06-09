@@ -23,11 +23,24 @@ function isPathActive(currentPath: string, targetPath: string) {
   return currentPath === targetPath || currentPath.startsWith(`${targetPath}/`)
 }
 
-function navLinkClass(active: boolean) {
+function subNavLinkClass(active: boolean) {
+  return cn(
+    'block rounded-lg px-3 py-2 text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand-400/40 focus-visible:ring-inset',
+    active
+      ? 'bg-brand-500/20 font-semibold text-brand-200'
+      : 'text-slate-500 hover:bg-navy-800/60 hover:text-slate-200',
+  )
+}
+
+function navLinkClass(active: boolean, showAccentBar = true) {
   return cn(
     'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all',
     active
-      ? 'carivo-sidebar-nav-active before:absolute before:inset-y-1.5 before:left-0 before:w-[3px] before:rounded-full before:bg-brand-400'
+      ? cn(
+          'carivo-sidebar-nav-active text-white',
+          showAccentBar &&
+            'before:absolute before:inset-y-1.5 before:left-0 before:w-[3px] before:rounded-full before:bg-brand-400',
+        )
       : 'text-slate-400 hover:bg-navy-800/70 hover:text-slate-100',
   )
 }
@@ -83,7 +96,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           <button
             type="button"
             onClick={() => toggleGroup(item.label)}
-            className={cn(navLinkClass(isGroupActive), 'w-full')}
+            className={cn(
+              navLinkClass(isGroupActive, !isExpanded),
+              'w-full outline-none focus-visible:ring-2 focus-visible:ring-brand-400/40 focus-visible:ring-inset',
+            )}
           >
             <NavItemContent item={item} active={isGroupActive} />
             {isExpanded ? (
@@ -94,20 +110,14 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </button>
 
           {isExpanded ? (
-            <div className="ml-5 space-y-0.5 border-l border-navy-700/80 pl-3">
+            <div className="ml-5 mt-1.5 flex flex-col gap-1 border-l border-navy-700/80 pl-3">
               {item.children.map((child) => (
                 <NavLink
                   key={child.path}
                   to={child.path}
+                  end
                   onClick={onClose}
-                  className={({ isActive }) =>
-                    cn(
-                      'block rounded-lg px-3 py-2 text-sm transition-all',
-                      isActive
-                        ? 'bg-brand-500/20 font-semibold text-brand-200'
-                        : 'text-slate-500 hover:bg-navy-800/60 hover:text-slate-200',
-                    )
-                  }
+                  className={({ isActive }) => subNavLinkClass(isActive)}
                 >
                   {child.label}
                 </NavLink>
@@ -123,7 +133,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         key={item.path}
         to={item.path!}
         onClick={onClose}
-        className={({ isActive }) => navLinkClass(isActive)}
+        className={({ isActive }) =>
+          cn(navLinkClass(isActive), 'outline-none focus-visible:ring-2 focus-visible:ring-brand-400/40 focus-visible:ring-inset')
+        }
       >
         {({ isActive }) => <NavItemContent item={item} active={isActive} />}
       </NavLink>

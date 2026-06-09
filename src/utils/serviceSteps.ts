@@ -1,6 +1,10 @@
 import type { Booking } from '../types/booking'
 import type { BookingServiceStep } from '../types/serviceStep'
 import type { StaffType } from '../types/staffProfile'
+import { bookingRequiresWashBay } from './washBay'
+
+export const WASH_BAY_REQUIRED_FOR_AUTOMATED_STEP_MESSAGE =
+  'Cần gán buồng rửa trước khi thực hiện bước rửa tự động.'
 
 const CAR_STEPS_TEMPLATE: Array<{
   step_code: string
@@ -92,6 +96,26 @@ export function createDefaultStepsForBooking(booking: Booking): BookingServiceSt
   }))
 }
 
+export function isAutomatedWashStep(step: BookingServiceStep) {
+  return step.step_type === 'AUTOMATED_WASH_STEP'
+}
+
+export function automatedStepRequiresAssignedBay(
+  step: BookingServiceStep,
+  booking?: Booking | null,
+) {
+  if (!booking) return false
+  return isAutomatedWashStep(step) && bookingRequiresWashBay(booking)
+}
+
+export function priorStepsAreDone(
+  step: BookingServiceStep,
+  steps: BookingServiceStep[],
+) {
+  const priorSteps = steps.filter((item) => item.order < step.order)
+  return priorSteps.every((item) => item.status === 'DONE')
+}
+
 export function canCompleteStep(
   step: BookingServiceStep,
   steps: BookingServiceStep[],
@@ -100,8 +124,33 @@ export function canCompleteStep(
     return false
   }
 
-  const priorSteps = steps.filter((item) => item.order < step.order)
-  return priorSteps.every((item) => item.status === 'DONE')
+  return priorStepsAreDone(step, steps)
+}
+
+export function canStartAutomatedWashStep(
+  step: BookingServiceStep,
+  booking: Booking | undefined,
+  steps: BookingServiceStep[],
+) {
+  if (!automatedStepRequiresAssignedBay(step, booking)) {
+    return true
+  }
+
+  return Boolean(booking?.wash_bay_id) && priorStepsAreDone(step, steps)
+}
+
+export function findStepToActivateAfterBayAssignment(
+  steps: BookingServiceStep[],
+  booking: Booking,
+) {
+  const ordered = [...steps].sort((a, b) => a.order - b.order)
+
+  return ordered.find(
+    (step) =>
+      step.status === 'PENDING' &&
+      priorStepsAreDone(step, steps) &&
+      canStartAutomatedWashStep(step, booking, steps),
+  )
 }
 
 export function areAllStepsDone(steps: BookingServiceStep[]) {

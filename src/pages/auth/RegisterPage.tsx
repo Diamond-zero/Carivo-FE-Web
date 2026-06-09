@@ -1,9 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Info, Loader2, Mail, Phone, UserRound } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
+import { AuthAlert } from '../../components/auth/AuthAlert'
 import { AuthLayout } from '../../components/auth/AuthLayout'
+import { PasswordField } from '../../components/auth/PasswordField'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Label } from '../../components/ui/Label'
@@ -14,8 +16,6 @@ import {
 
 export function RegisterPage() {
   const navigate = useNavigate()
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   const {
@@ -46,142 +46,116 @@ export function RegisterPage() {
 
   return (
     <AuthLayout
-      title="Tạo tài khoản"
-      subtitle="Đăng ký tài khoản mới. Tài khoản Staff sẽ được quản trị viên kích hoạt sau khi xác minh."
+      mode="register"
+      title="Tạo tài khoản mới"
+      subtitle="Điền thông tin cá nhân. Tài khoản Staff sẽ được quản trị viên kích hoạt sau khi xác minh."
       footer={
-        <p className="text-slate-600">
+        <p>
           Đã có tài khoản?{' '}
-          <Link
-            to="/login"
-            className="carivo-link"
-          >
+          <Link to="/login" className="carivo-link">
             Đăng nhập
           </Link>
         </p>
       }
     >
+      <div className="mb-6 flex items-start gap-3 rounded-xl border border-brand-200/60 bg-brand-50/50 px-4 py-3">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-700" />
+        <p className="text-xs leading-relaxed text-brand-900">
+          Đăng ký chỉ tạo hồ sơ ban đầu. Quyền truy cập Staff và gán garage do Admin
+          phê duyệt trước khi bạn có thể vận hành hệ thống.
+        </p>
+      </div>
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <div>
           <Label htmlFor="full_name" required>
             Họ và tên
           </Label>
-          <Input
-            id="full_name"
-            type="text"
-            placeholder="Nguyễn Văn A"
-            autoComplete="name"
-            error={errors.full_name?.message}
-            {...register('full_name')}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="phone" required>
-            Số điện thoại
-          </Label>
-          <Input
-            id="phone"
-            type="tel"
-            placeholder="0901234567"
-            autoComplete="tel"
-            error={errors.phone?.message}
-            {...register('phone')}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="email" required>
-            Email
-          </Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="name@example.com"
-            autoComplete="email"
-            error={errors.email?.message}
-            {...register('email')}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="password" required>
-            Mật khẩu
-          </Label>
           <div className="relative">
+            <UserRound className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              placeholder="••••••••"
-              autoComplete="new-password"
-              error={errors.password?.message}
-              className="pr-11"
-              {...register('password')}
+              id="full_name"
+              type="text"
+              placeholder="Nguyễn Văn A"
+              autoComplete="name"
+              error={errors.full_name?.message}
+              className="pl-10"
+              {...register('full_name')}
             />
-            <button
-              type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
-              aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-            >
-              {showPassword ? (
-                <EyeOff className="h-5 w-5" />
-              ) : (
-                <Eye className="h-5 w-5" />
-              )}
-            </button>
           </div>
         </div>
 
-        <div>
-          <Label htmlFor="confirm_password" required>
-            Xác nhận mật khẩu
-          </Label>
-          <div className="relative">
-            <Input
-              id="confirm_password"
-              type={showConfirmPassword ? 'text' : 'password'}
-              placeholder="••••••••"
-              autoComplete="new-password"
-              error={errors.confirm_password?.message}
-              className="pr-11"
-              {...register('confirm_password')}
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword((prev) => !prev)}
-              className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
-              aria-label={
-                showConfirmPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'
-              }
-            >
-              {showConfirmPassword ? (
-                <EyeOff className="h-5 w-5" />
-              ) : (
-                <Eye className="h-5 w-5" />
-              )}
-            </button>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="phone" required>
+              Số điện thoại
+            </Label>
+            <div className="relative">
+              <Phone className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="0901234567"
+                autoComplete="tel"
+                error={errors.phone?.message}
+                className="pl-10"
+                {...register('phone')}
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="email" required>
+              Email
+            </Label>
+            <div className="relative">
+              <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@example.com"
+                autoComplete="email"
+                error={errors.email?.message}
+                className="pl-10"
+                {...register('email')}
+              />
+            </div>
           </div>
         </div>
 
-        {submitError ? (
-          <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
-            {submitError}
-          </p>
-        ) : null}
+        <PasswordField
+          id="password"
+          label="Mật khẩu"
+          autoComplete="new-password"
+          registration={register('password')}
+          error={errors.password}
+        />
 
-        <p className="text-xs leading-relaxed text-slate-500">
-          Bằng việc đăng ký, bạn đồng ý với điều khoản sử dụng và chính sách bảo
-          mật của Carivo.
+        <PasswordField
+          id="confirm_password"
+          label="Xác nhận mật khẩu"
+          autoComplete="new-password"
+          registration={register('confirm_password')}
+          error={errors.confirm_password}
+        />
+
+        {submitError ? <AuthAlert variant="error">{submitError}</AuthAlert> : null}
+
+        <p className="rounded-xl bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-500">
+          Bằng việc đăng ký, bạn đồng ý với{' '}
+          <span className="font-medium text-slate-700">điều khoản sử dụng</span> và{' '}
+          <span className="font-medium text-slate-700">chính sách bảo mật</span> của
+          Carivo.
         </p>
 
-        <Button type="submit" fullWidth disabled={isSubmitting}>
+        <Button type="submit" fullWidth disabled={isSubmitting} size="lg">
           {isSubmitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
               Đang đăng ký...
             </>
           ) : (
-            'Đăng ký'
+            'Tạo tài khoản'
           )}
         </Button>
       </form>

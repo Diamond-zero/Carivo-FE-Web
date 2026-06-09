@@ -1,9 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Loader2, Phone } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
+import { AuthAlert } from '../../components/auth/AuthAlert'
 import { AuthLayout } from '../../components/auth/AuthLayout'
+import { PasswordField } from '../../components/auth/PasswordField'
 import { QuickStaffLogin } from '../../components/auth/QuickStaffLogin'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
@@ -15,7 +17,6 @@ import { loginSchema, type LoginFormValues } from '../../lib/validations/auth'
 export function LoginPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
-  const [showPassword, setShowPassword] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [selectedQuickPhone, setSelectedQuickPhone] = useState<string>()
 
@@ -63,15 +64,13 @@ export function LoginPage() {
 
   return (
     <AuthLayout
-      title="Đăng nhập Staff"
-      subtitle="Chỉ tài khoản có role Staff mới được truy cập cổng vận hành garage."
+      mode="login"
+      title="Chào mừng trở lại"
+      subtitle="Đăng nhập bằng số điện thoại Staff để truy cập cổng vận hành garage."
       footer={
-        <p className="text-slate-600">
+        <p>
           Chưa có tài khoản?{' '}
-          <Link
-            to="/register"
-            className="carivo-link"
-          >
+          <Link to="/register" className="carivo-link">
             Đăng ký ngay
           </Link>
         </p>
@@ -82,52 +81,32 @@ export function LoginPage() {
           <Label htmlFor="phone" required>
             Số điện thoại
           </Label>
-          <Input
-            id="phone"
-            type="tel"
-            placeholder="0901000001"
-            autoComplete="tel"
-            error={errors.phone?.message}
-            {...register('phone')}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="password" required>
-            Mật khẩu
-          </Label>
           <div className="relative">
+            <Phone className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              placeholder="Staff@123"
-              autoComplete="current-password"
-              error={errors.password?.message}
-              className="pr-11"
-              {...register('password')}
+              id="phone"
+              type="tel"
+              placeholder="0901000001"
+              autoComplete="tel"
+              error={errors.phone?.message}
+              className="pl-10"
+              {...register('phone')}
             />
-            <button
-              type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
-              aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-            >
-              {showPassword ? (
-                <EyeOff className="h-5 w-5" />
-              ) : (
-                <Eye className="h-5 w-5" />
-              )}
-            </button>
           </div>
         </div>
 
-        {submitError ? (
-          <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
-            {submitError}
-          </p>
-        ) : null}
+        <PasswordField
+          id="password"
+          label="Mật khẩu"
+          placeholder="Staff@123"
+          autoComplete="current-password"
+          registration={register('password')}
+          error={errors.password}
+        />
 
-        <Button type="submit" fullWidth disabled={isSubmitting}>
+        {submitError ? <AuthAlert variant="error">{submitError}</AuthAlert> : null}
+
+        <Button type="submit" fullWidth disabled={isSubmitting} size="lg">
           {isSubmitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
