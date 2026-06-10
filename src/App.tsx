@@ -24,6 +24,8 @@ import { ServiceExecutionPage } from './pages/service/ServiceExecutionPage'
 import { adminPlaceholderRoutes } from './constants/adminPlaceholderRoutes'
 import { AdminDashboardPage } from './pages/admin/dashboard/AdminDashboardPage'
 import { AdminSettingsPage } from './pages/admin/settings/AdminSettingsPage'
+import { AdminCustomerDetailPage } from './pages/admin/users/AdminCustomerDetailPage'
+import { AdminCustomerListPage } from './pages/admin/users/AdminCustomerListPage'
 import { SettingsPage } from './pages/settings/SettingsPage'
 
 function App() {
@@ -41,6 +43,11 @@ function App() {
         <Route element={<AdminProtectedRoute />}>
           <Route element={<AdminLayout />}>
             <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+            <Route path="/admin/users/customers" element={<AdminCustomerListPage />} />
+            <Route
+              path="/admin/users/customers/:id"
+              element={<AdminCustomerDetailPage />}
+            />
             {adminPlaceholderRoutes.map((route) => (
               <Route
                 key={route.path}

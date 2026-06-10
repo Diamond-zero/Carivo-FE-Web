@@ -6,11 +6,6 @@ export interface AdminPlaceholderRoute {
 
 export const adminPlaceholderRoutes: AdminPlaceholderRoute[] = [
   {
-    path: '/admin/users/customers',
-    title: 'Khách hàng',
-    description: 'Danh sách và chi tiết khách hàng toàn hệ thống Carivo.',
-  },
-  {
     path: '/admin/users/staff',
     title: 'Nhân viên',
     description: 'Quản lý hồ sơ nhân viên tại mọi garage.',

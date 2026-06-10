@@ -40,6 +40,10 @@ export {
 export { mockAdminTierRules } from './tierRules'
 export { mockAdminPromotions } from './promotions'
 export { getAdminAuditLogsByEntity, mockAdminAuditLogs } from './auditLogs'
+export {
+  getCustomerActiveStatus,
+  setCustomerActiveStatus,
+} from './customerStatusOverrides'
 
 import type { MockUser } from '../../types/user'
 import { mockUsers } from '../users'
