@@ -21,6 +21,7 @@ import { CustomerListPage } from './pages/customers/CustomerListPage'
 import { InspectionPage } from './pages/service/InspectionPage'
 import { PublicHomePage } from './pages/public/PublicHomePage'
 import { ServiceExecutionPage } from './pages/service/ServiceExecutionPage'
+import { adminPlaceholderRoutes } from './constants/adminPlaceholderRoutes'
 import { AdminDashboardPage } from './pages/admin/dashboard/AdminDashboardPage'
 import { AdminSettingsPage } from './pages/admin/settings/AdminSettingsPage'
 import { SettingsPage } from './pages/settings/SettingsPage'
@@ -40,14 +41,21 @@ function App() {
         <Route element={<AdminProtectedRoute />}>
           <Route element={<AdminLayout />}>
             <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+            {adminPlaceholderRoutes.map((route) => (
+              <Route
+                key={route.path}
+                path={route.path}
+                element={
+                  <PlaceholderPage
+                    title={route.title}
+                    description={route.description}
+                  />
+                }
+              />
+            ))}
             <Route
               path="/admin/users"
-              element={
-                <PlaceholderPage
-                  title="Users"
-                  description="Quản lý khách hàng và nhân viên toàn hệ thống."
-                />
-              }
+              element={<Navigate to="/admin/users/customers" replace />}
             />
             <Route path="/admin/settings" element={<AdminSettingsPage />} />
           </Route>
