@@ -26,6 +26,8 @@ import { AdminDashboardPage } from './pages/admin/dashboard/AdminDashboardPage'
 import { AdminSettingsPage } from './pages/admin/settings/AdminSettingsPage'
 import { AdminCustomerDetailPage } from './pages/admin/users/AdminCustomerDetailPage'
 import { AdminCustomerListPage } from './pages/admin/users/AdminCustomerListPage'
+import { AdminStaffFormPage } from './pages/admin/users/AdminStaffFormPage'
+import { AdminStaffListPage } from './pages/admin/users/AdminStaffListPage'
 import { SettingsPage } from './pages/settings/SettingsPage'
 
 function App() {
@@ -47,6 +49,12 @@ function App() {
             <Route
               path="/admin/users/customers/:id"
               element={<AdminCustomerDetailPage />}
+            />
+            <Route path="/admin/users/staff" element={<AdminStaffListPage />} />
+            <Route path="/admin/users/staff/new" element={<AdminStaffFormPage />} />
+            <Route
+              path="/admin/users/staff/:profileId/edit"
+              element={<AdminStaffFormPage />}
             />
             {adminPlaceholderRoutes.map((route) => (
               <Route

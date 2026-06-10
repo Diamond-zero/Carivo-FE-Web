@@ -6,11 +6,6 @@ export interface AdminPlaceholderRoute {
 
 export const adminPlaceholderRoutes: AdminPlaceholderRoute[] = [
   {
-    path: '/admin/users/staff',
-    title: 'Nhân viên',
-    description: 'Quản lý hồ sơ nhân viên tại mọi garage.',
-  },
-  {
     path: '/admin/garages/wash-bays',
     title: 'Buồng rửa',
     description: 'Cấu hình buồng rửa và trạng thái vận hành theo từng garage.',

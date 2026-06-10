@@ -24,6 +24,15 @@ export {
   mockAdminStaffProfiles,
   mockAdminStaffRecords,
 } from './staffProfiles'
+export {
+  createAdminStaffRecord,
+  getAdminStaffRecordByProfileId,
+  getAdminStaffRecordsFromStore,
+  getStaffUsersWithoutProfile,
+  isStaffCodeTaken,
+  toggleAdminStaffProfileActive,
+  updateAdminStaffRecord,
+} from './adminStaffStore'
 
 export {
   getAdminServicePackageById,
