@@ -2,7 +2,8 @@ import type { AdminStaffRecord } from '../../types/admin'
 import type { StaffProfile } from '../../types/staffProfile'
 import { mockStaffProfiles } from '../staffProfile'
 import { mockStaffUsers } from '../users'
-import { ADMIN_GARAGE_DN_ID, ADMIN_GARAGE_Q7_ID, getAdminGarageById } from './garages'
+import { getAdminGarageById } from './adminGarageStore'
+import { ADMIN_GARAGE_DN_ID, ADMIN_GARAGE_Q7_ID } from './garages'
 import { mockAdminExtendedUsers } from './extendedUsers'
 
 const extendedStaffProfiles: StaffProfile[] = [

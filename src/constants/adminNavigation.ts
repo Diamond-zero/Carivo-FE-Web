@@ -63,7 +63,10 @@ export const adminNavItems: AdminNavItem[] = [
     label: 'Garages',
     icon: Building2,
     section: 'management',
-    children: [{ label: 'Buồng rửa', path: '/admin/garages/wash-bays' }],
+    children: [
+      { label: 'Danh sách', path: '/admin/garages' },
+      { label: 'Buồng rửa', path: '/admin/garages/wash-bays' },
+    ],
   },
   {
     label: 'Service Packages',

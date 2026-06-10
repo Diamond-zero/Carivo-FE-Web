@@ -2,12 +2,19 @@ export {
   ADMIN_GARAGE_DN_ID,
   ADMIN_GARAGE_Q7_ID,
   MOCK_GARAGE_ID,
-  getAdminGarageById,
-  getAdminGarageName,
   mockAdminGarageDaNang,
   mockAdminGarageQ7,
   mockAdminGarages,
 } from './garages'
+export {
+  createAdminGarage,
+  getAdminGarageById,
+  getAdminGarageName,
+  getAdminGaragesFromStore,
+  isGarageCodeTaken,
+  toggleAdminGarageActive,
+  updateAdminGarage,
+} from './adminGarageStore'
 
 export { getAdminWashBaysByGarage, mockAdminWashBays } from './washBays'
 

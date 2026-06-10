@@ -37,12 +37,4 @@ export const mockAdminGarages: Garage[] = [
   mockAdminGarageDaNang,
 ]
 
-export function getAdminGarageById(id: string) {
-  return mockAdminGarages.find((garage) => garage.id === id)
-}
-
-export function getAdminGarageName(id: string) {
-  return getAdminGarageById(id)?.name ?? id
-}
-
 export { MOCK_GARAGE_ID }

@@ -19,7 +19,7 @@ import { StatCard } from '../../../components/ui/StatCard'
 import { STAFF_TYPE_LABELS, STAFF_TYPES } from '../../../constants/staffType'
 import { useToast } from '../../../contexts/ToastContext'
 import { useInitialPageSkeleton } from '../../../hooks/useInitialPageSkeleton'
-import { mockAdminGarages } from '../../../mocks/admin'
+import { getAdminGaragesFromStore } from '../../../mocks/admin'
 import { toggleAdminStaffProfileActive } from '../../../mocks/admin/adminStaffStore'
 import type { StaffType } from '../../../types/staffProfile'
 import { searchAdminStaff } from '../../../utils/adminStaffLookup'
@@ -42,6 +42,7 @@ export function AdminStaffListPage() {
   const activeCount = allStaff.filter(
     (record) => record.profile.is_active && record.user.is_active,
   ).length
+  const garages = useMemo(() => getAdminGaragesFromStore(), [refreshKey])
   const hasActiveFilter =
     query.trim().length > 0 || garageFilter !== 'ALL' || staffTypeFilter !== 'ALL'
 
@@ -131,7 +132,7 @@ export function AdminStaffListPage() {
                   onChange={(event) => setGarageFilter(event.target.value)}
                 >
                   <option value="ALL">Tất cả garage</option>
-                  {mockAdminGarages.map((garage) => (
+                  {garages.map((garage) => (
                     <option key={garage.id} value={garage.id}>
                       {garage.name}
                     </option>

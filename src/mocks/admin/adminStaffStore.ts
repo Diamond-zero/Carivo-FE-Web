@@ -1,6 +1,6 @@
 import type { AdminStaffRecord } from '../../types/admin'
 import type { StaffProfile, StaffType } from '../../types/staffProfile'
-import { getAdminGarageById } from './garages'
+import { getAdminGarageById } from './adminGarageStore'
 import { getAdminAllUsers, getAdminUserById } from './index'
 import { mockAdminStaffRecords } from './staffProfiles'
 

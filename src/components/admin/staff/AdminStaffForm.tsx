@@ -6,7 +6,7 @@ import {
   adminStaffFormSchema,
   type AdminStaffFormValues,
 } from '../../../lib/validations/adminStaff'
-import { mockAdminGarages } from '../../../mocks/admin'
+import { getAdminGaragesFromStore } from '../../../mocks/admin'
 import { getStaffUsersWithoutProfile } from '../../../mocks/admin/adminStaffStore'
 import type { AdminStaffRecord } from '../../../types/admin'
 import { Button } from '../../ui/Button'
@@ -28,6 +28,7 @@ export function AdminStaffForm({
   isSubmitting = false,
 }: AdminStaffFormProps) {
   const availableUsers = getStaffUsersWithoutProfile()
+  const garages = getAdminGaragesFromStore()
 
   const {
     register,
@@ -39,7 +40,7 @@ export function AdminStaffForm({
       user_id: initialRecord?.user.id ?? '',
       staff_code: initialRecord?.profile.staff_code ?? '',
       staff_type: initialRecord?.profile.staff_type ?? 'CUSTOMER_SERVICE_STAFF',
-      garage_id: initialRecord?.profile.garage_id ?? mockAdminGarages[0]?.id ?? '',
+      garage_id: initialRecord?.profile.garage_id ?? garages[0]?.id ?? '',
       is_active: initialRecord?.profile.is_active ?? true,
     },
   })
@@ -100,7 +101,7 @@ export function AdminStaffForm({
       <div>
         <Label htmlFor="garage_id">Garage làm việc</Label>
         <Select id="garage_id" error={errors.garage_id?.message} {...register('garage_id')}>
-          {mockAdminGarages.map((garage) => (
+          {garages.map((garage) => (
             <option key={garage.id} value={garage.id}>
               {garage.name} ({garage.garage_code})
             </option>
