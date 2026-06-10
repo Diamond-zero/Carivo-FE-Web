@@ -11,6 +11,14 @@ import {
 
 export type NavSection = 'operations' | 'records' | 'system'
 
+export const NAV_SECTION_ORDER: NavSection[] = ['operations', 'records', 'system']
+
+export const NAV_SECTION_LABELS: Record<NavSection, string> = {
+  operations: 'Vận hành',
+  records: 'Lưu trữ',
+  system: 'Hệ thống',
+}
+
 export interface StaffNavItem {
   label: string
   path?: string
@@ -21,14 +29,6 @@ export interface StaffNavItem {
     path: string
   }>
 }
-
-export const NAV_SECTION_LABELS: Record<NavSection, string> = {
-  operations: 'Vận hành',
-  records: 'Lưu trữ',
-  system: 'Hệ thống',
-}
-
-export const NAV_SECTION_ORDER: NavSection[] = ['operations', 'records', 'system']
 
 export const staffNavItems: StaffNavItem[] = [
   {

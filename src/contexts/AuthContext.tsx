@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react'
 import { STAFF_SESSION_STORAGE_KEY } from '../lib/auth/constants'
+import { clearAdminSession } from '../lib/auth/mockAuthLogin'
 import {
   mockStaffLogin,
   type StaffAuthSession,
@@ -41,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (phone: string, password: string) => {
     await new Promise((resolve) => setTimeout(resolve, 400))
 
+    clearAdminSession()
     const nextSession = mockStaffLogin(phone, password)
     sessionStorage.setItem(
       STAFF_SESSION_STORAGE_KEY,

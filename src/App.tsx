@@ -1,6 +1,10 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { AdminProtectedRoute } from './components/auth/AdminProtectedRoute'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
+import { AdminLayout } from './components/layout/admin/AdminLayout'
+import { PlaceholderPage } from './components/layout/PlaceholderPage'
 import { StaffLayout } from './components/layout/StaffLayout'
+import { AdminAuthProvider } from './contexts/AdminAuthContext'
 import { AuthProvider } from './contexts/AuthContext'
 import { BookingProvider } from './contexts/BookingContext'
 import { ToastProvider } from './contexts/ToastContext'
@@ -17,18 +21,37 @@ import { CustomerListPage } from './pages/customers/CustomerListPage'
 import { InspectionPage } from './pages/service/InspectionPage'
 import { PublicHomePage } from './pages/public/PublicHomePage'
 import { ServiceExecutionPage } from './pages/service/ServiceExecutionPage'
+import { AdminDashboardPage } from './pages/admin/dashboard/AdminDashboardPage'
+import { AdminSettingsPage } from './pages/admin/settings/AdminSettingsPage'
 import { SettingsPage } from './pages/settings/SettingsPage'
 
 function App() {
   return (
     <AuthProvider>
+      <AdminAuthProvider>
       <BookingProvider>
         <ToastProvider>
         <Routes>
-        <Route path="/" element={<Navigate to="/homepage" replace />} />
-        <Route path="/homepage" element={<PublicHomePage />} />
+        <Route path="/" element={<PublicHomePage />} />
+        <Route path="/homepage" element={<Navigate to="/" replace />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+
+        <Route element={<AdminProtectedRoute />}>
+          <Route element={<AdminLayout />}>
+            <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+            <Route
+              path="/admin/users"
+              element={
+                <PlaceholderPage
+                  title="Users"
+                  description="Quản lý khách hàng và nhân viên toàn hệ thống."
+                />
+              }
+            />
+            <Route path="/admin/settings" element={<AdminSettingsPage />} />
+          </Route>
+        </Route>
 
         <Route element={<ProtectedRoute />}>
           <Route element={<StaffLayout />}>
@@ -46,10 +69,11 @@ function App() {
           </Route>
         </Route>
 
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/homepage" replace />} />
         </Routes>
         </ToastProvider>
       </BookingProvider>
+      </AdminAuthProvider>
     </AuthProvider>
   )
 }
