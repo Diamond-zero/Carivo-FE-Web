@@ -49,11 +49,15 @@ export {
   updateAdminStaffRecord,
 } from './adminStaffStore'
 
+export { mockAdminServicePackages } from './servicePackages'
 export {
+  createAdminServicePackage,
   getAdminServicePackageById,
   getAdminServicePackageName,
-  mockAdminServicePackages,
-} from './servicePackages'
+  getAdminServicePackagesFromStore,
+  toggleAdminServicePackageActive,
+  updateAdminServicePackage,
+} from './adminServicePackageStore'
 
 export {
   getAdminBookingById,

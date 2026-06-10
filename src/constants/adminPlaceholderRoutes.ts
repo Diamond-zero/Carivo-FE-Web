@@ -6,11 +6,6 @@ export interface AdminPlaceholderRoute {
 
 export const adminPlaceholderRoutes: AdminPlaceholderRoute[] = [
   {
-    path: '/admin/services/packages',
-    title: 'Service Packages',
-    description: 'Quản lý gói dịch vụ, giá và cấu hình bước thực hiện.',
-  },
-  {
     path: '/admin/bookings',
     title: 'Bookings',
     description: 'Xem và can thiệp booking trên toàn hệ thống.',

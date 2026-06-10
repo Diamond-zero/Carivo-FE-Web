@@ -305,10 +305,3 @@ export const mockAdminServicePackages: ServicePackage[] = [
   },
 ]
 
-export function getAdminServicePackageById(id: string) {
-  return mockAdminServicePackages.find((pkg) => pkg.id === id)
-}
-
-export function getAdminServicePackageName(id: string) {
-  return getAdminServicePackageById(id)?.name ?? id
-}
