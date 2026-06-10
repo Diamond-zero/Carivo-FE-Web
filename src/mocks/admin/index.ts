@@ -16,7 +16,15 @@ export {
   updateAdminGarage,
 } from './adminGarageStore'
 
-export { getAdminWashBaysByGarage, mockAdminWashBays } from './washBays'
+export { mockAdminWashBays } from './washBays'
+export {
+  createAdminWashBay,
+  getAdminWashBayById,
+  getAdminWashBaysByGarage,
+  getAdminWashBaysFromStore,
+  toggleAdminWashBayActive,
+  updateAdminWashBay,
+} from './adminWashBayStore'
 
 export { mockAdminExtendedUsers } from './extendedUsers'
 

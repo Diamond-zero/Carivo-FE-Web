@@ -1,5 +1,5 @@
 import { getAdminGaragesFromStore } from '../mocks/admin/adminGarageStore'
-import { getAdminWashBaysByGarage } from '../mocks/admin/washBays'
+import { getAdminWashBaysByGarage } from '../mocks/admin/adminWashBayStore'
 import type { Garage } from '../types/garage'
 import { normalizeSearchText } from './booking'
 

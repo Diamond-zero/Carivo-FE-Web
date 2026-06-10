@@ -106,6 +106,3 @@ export const mockAdminWashBays: WashBay[] = [
   },
 ]
 
-export function getAdminWashBaysByGarage(garageId: string) {
-  return mockAdminWashBays.filter((bay) => bay.garage_id === garageId)
-}
