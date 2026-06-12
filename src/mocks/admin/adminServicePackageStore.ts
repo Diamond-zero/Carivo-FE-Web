@@ -1,5 +1,6 @@
 import type { ServicePackage, ServiceStepTemplate } from '../../types/servicePackage'
 import type { VehicleType } from '../../types/washBay'
+import { sanitizeStepsTemplate } from '../../utils/adminServicePackageSteps'
 import { mockAdminServicePackages } from './servicePackages'
 
 function clonePackages(items: ServicePackage[]): ServicePackage[] {
@@ -134,6 +135,25 @@ export function updateAdminServicePackage(packageId: string, input: AdminService
     requires_care_staff: input.requires_care_staff,
     included_service_ids: input.included_service_ids,
     is_active: input.is_active,
+  }
+
+  packages = [...packages.slice(0, index), updated, ...packages.slice(index + 1)]
+  return { ok: true as const, package: updated }
+}
+
+export function updateAdminServicePackageSteps(
+  packageId: string,
+  steps: ServiceStepTemplate[],
+) {
+  const index = packages.findIndex((item) => item.id === packageId)
+  if (index === -1) {
+    return { ok: false as const, message: 'Không tìm thấy gói dịch vụ.' }
+  }
+
+  const current = packages[index]
+  const updated: ServicePackage = {
+    ...current,
+    steps_template: sanitizeStepsTemplate(steps),
   }
 
   packages = [...packages.slice(0, index), updated, ...packages.slice(index + 1)]

@@ -57,6 +57,7 @@ export {
   getAdminServicePackagesFromStore,
   toggleAdminServicePackageActive,
   updateAdminServicePackage,
+  updateAdminServicePackageSteps,
 } from './adminServicePackageStore'
 
 export {

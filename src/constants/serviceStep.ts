@@ -1,3 +1,4 @@
+import type { ServiceStepType } from '../types/servicePackage'
 import type { StepStatus, StepType } from '../types/serviceStep'
 
 export const STEP_STATUS_LABELS: Record<StepStatus, string> = {
@@ -18,3 +19,13 @@ export const STEP_TYPE_LABELS: Record<StepType, string> = {
   AUTOMATED_WASH_STEP: 'Tự động',
   MANUAL_SERVICE_STEP: 'Thủ công',
 }
+
+export const SERVICE_STEP_TYPE_LABELS: Record<ServiceStepType, string> = {
+  AUTOMATED_WASH_STEP: 'Rửa tự động (buồng rửa)',
+  MANUAL_SERVICE_STEP: 'Thủ công (nhân viên)',
+}
+
+export const SERVICE_STEP_TYPES: ServiceStepType[] = [
+  'AUTOMATED_WASH_STEP',
+  'MANUAL_SERVICE_STEP',
+]

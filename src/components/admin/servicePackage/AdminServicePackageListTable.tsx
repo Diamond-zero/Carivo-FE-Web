@@ -104,6 +104,12 @@ export function AdminServicePackageListTable({
               {row.original.is_active ? 'Ngưng' : 'Kích hoạt'}
             </button>
             <Link
+              to={`/admin/services/packages/${row.original.id}/steps`}
+              className="text-sm font-medium text-slate-600 hover:text-slate-900"
+            >
+              Steps
+            </Link>
+            <Link
               to={`/admin/services/packages/${row.original.id}/edit`}
               className="carivo-link text-sm"
             >

@@ -1,7 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2 } from 'lucide-react'
+import { ListOrdered, Loader2 } from 'lucide-react'
 import { useMemo } from 'react'
 import { useForm } from 'react-hook-form'
+import { Link } from 'react-router-dom'
 import {
   SERVICE_TYPE_LABELS,
   SERVICE_TYPES,
@@ -240,12 +241,20 @@ export function AdminServicePackageForm({
       ) : null}
 
       {mode === 'edit' && initialPackage ? (
-        <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-4 text-sm text-slate-600">
-          <p className="font-semibold text-slate-800">Steps template</p>
-          <p className="mt-1">
-            {initialPackage.steps_template.length} bước thực hiện — chỉnh sửa chi tiết sẽ có ở commit
-            Steps Template Editor.
-          </p>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200/80 bg-slate-50/80 p-4">
+          <div className="text-sm text-slate-600">
+            <p className="font-semibold text-slate-800">Steps template</p>
+            <p className="mt-1">
+              {initialPackage.steps_template.length} bước thực hiện — kéo thả, chỉnh hướng dẫn từng
+              bước.
+            </p>
+          </div>
+          <Link to={`/admin/services/packages/${initialPackage.id}/steps`}>
+            <Button type="button" variant="secondary" size="sm">
+              <ListOrdered className="h-4 w-4" />
+              Mở Steps Editor
+            </Button>
+          </Link>
         </div>
       ) : (
         <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-4 text-sm text-slate-600">
