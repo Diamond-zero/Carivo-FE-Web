@@ -6,11 +6,6 @@ export interface AdminPlaceholderRoute {
 
 export const adminPlaceholderRoutes: AdminPlaceholderRoute[] = [
   {
-    path: '/admin/bookings',
-    title: 'Bookings',
-    description: 'Xem và can thiệp booking trên toàn hệ thống.',
-  },
-  {
     path: '/admin/loyalty/tier-rules',
     title: 'Loyalty — Tier Rules',
     description: 'Chỉnh sửa quy tắc hạng thành viên và điểm tích lũy.',

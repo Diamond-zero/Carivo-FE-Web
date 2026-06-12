@@ -60,11 +60,15 @@ export {
   updateAdminServicePackageSteps,
 } from './adminServicePackageStore'
 
+export { mockAdminBookings } from './bookings'
 export {
+  cancelAdminBooking,
   getAdminBookingById,
   getAdminBookingsByGarage,
-  mockAdminBookings,
-} from './bookings'
+  getAdminBookingsFromStore,
+  markAdminBookingPaid,
+  updateAdminBookingStatus,
+} from './adminBookingStore'
 
 export { mockAdminTierRules } from './tierRules'
 export { mockAdminPromotions } from './promotions'

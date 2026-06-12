@@ -29,6 +29,8 @@ import { AdminCustomerListPage } from './pages/admin/users/AdminCustomerListPage
 import { AdminGarageFormPage } from './pages/admin/garages/AdminGarageFormPage'
 import { AdminGarageListPage } from './pages/admin/garages/AdminGarageListPage'
 import { AdminWashBayManagementPage } from './pages/admin/garages/AdminWashBayManagementPage'
+import { AdminBookingDetailPage } from './pages/admin/bookings/AdminBookingDetailPage'
+import { AdminBookingListPage } from './pages/admin/bookings/AdminBookingListPage'
 import { AdminServicePackageFormPage } from './pages/admin/services/AdminServicePackageFormPage'
 import { AdminServicePackageListPage } from './pages/admin/services/AdminServicePackageListPage'
 import { AdminServicePackageStepsPage } from './pages/admin/services/AdminServicePackageStepsPage'
@@ -87,6 +89,11 @@ function App() {
             <Route
               path="/admin/services/packages/:packageId/steps"
               element={<AdminServicePackageStepsPage />}
+            />
+            <Route path="/admin/bookings" element={<AdminBookingListPage />} />
+            <Route
+              path="/admin/bookings/:bookingId"
+              element={<AdminBookingDetailPage />}
             />
             {adminPlaceholderRoutes.map((route) => (
               <Route

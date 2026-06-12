@@ -1,8 +1,8 @@
 import {
   getAdminCustomerById as getAdminCustomerRecord,
-  mockAdminBookings,
   mockAdminCustomers,
 } from '../mocks/admin'
+import { getAdminBookingsFromStore } from '../mocks/admin/adminBookingStore'
 import { getCustomerActiveStatus } from '../mocks/admin/customerStatusOverrides'
 import { mockLoyaltyPointHistory } from '../mocks/loyaltyPointHistory'
 import { mockTierUpgradeHistory } from '../mocks/tierUpgradeHistory'
@@ -24,7 +24,7 @@ export function getAdminCustomerSummaries(): AdminCustomerSummary[] {
     .map((record) => ({
       user: record.user,
       loyalty: record.loyalty,
-      bookingCount: mockAdminBookings.filter(
+      bookingCount: getAdminBookingsFromStore().filter(
         (booking) => booking.customer_id === record.user.id,
       ).length,
       is_active: getCustomerActiveStatus(record.user.id, record.user.is_active),
@@ -79,7 +79,7 @@ export function getAdminCustomerVehicles(customerId: string) {
 }
 
 export function getAdminBookingsForCustomer(customerId: string): Booking[] {
-  return mockAdminBookings
+  return getAdminBookingsFromStore()
     .filter((booking) => booking.customer_id === customerId)
     .sort(
       (a, b) =>

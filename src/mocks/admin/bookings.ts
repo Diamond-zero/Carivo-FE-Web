@@ -116,10 +116,3 @@ export const mockAdminBookings: Booking[] = [
   ...buildGeneratedBookings(),
 ]
 
-export function getAdminBookingsByGarage(garageId: string) {
-  return mockAdminBookings.filter((booking) => booking.garage_id === garageId)
-}
-
-export function getAdminBookingById(bookingId: string) {
-  return mockAdminBookings.find((booking) => booking.id === bookingId)
-}
