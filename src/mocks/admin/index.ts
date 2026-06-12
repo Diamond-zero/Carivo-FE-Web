@@ -79,6 +79,14 @@ export {
   updateAdminTierRule,
 } from './adminTierRuleStore'
 export { mockAdminPromotions } from './promotions'
+export {
+  createAdminPromotion,
+  getAdminPromotionById,
+  getAdminPromotionsFromStore,
+  isPromotionCodeTaken,
+  toggleAdminPromotionActive,
+  updateAdminPromotion,
+} from './adminPromotionStore'
 export { getAdminAuditLogsByEntity, mockAdminAuditLogs } from './auditLogs'
 export {
   getCustomerActiveStatus,

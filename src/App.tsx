@@ -32,6 +32,8 @@ import { AdminWashBayManagementPage } from './pages/admin/garages/AdminWashBayMa
 import { AdminBookingDetailPage } from './pages/admin/bookings/AdminBookingDetailPage'
 import { AdminBookingListPage } from './pages/admin/bookings/AdminBookingListPage'
 import { AdminTierRulesPage } from './pages/admin/loyalty/AdminTierRulesPage'
+import { AdminPromotionFormPage } from './pages/admin/promotions/AdminPromotionFormPage'
+import { AdminPromotionListPage } from './pages/admin/promotions/AdminPromotionListPage'
 import { AdminServicePackageFormPage } from './pages/admin/services/AdminServicePackageFormPage'
 import { AdminServicePackageListPage } from './pages/admin/services/AdminServicePackageListPage'
 import { AdminServicePackageStepsPage } from './pages/admin/services/AdminServicePackageStepsPage'
@@ -99,6 +101,12 @@ function App() {
             <Route
               path="/admin/loyalty/tier-rules"
               element={<AdminTierRulesPage />}
+            />
+            <Route path="/admin/promotions" element={<AdminPromotionListPage />} />
+            <Route path="/admin/promotions/new" element={<AdminPromotionFormPage />} />
+            <Route
+              path="/admin/promotions/:promotionId/edit"
+              element={<AdminPromotionFormPage />}
             />
             {adminPlaceholderRoutes.map((route) => (
               <Route

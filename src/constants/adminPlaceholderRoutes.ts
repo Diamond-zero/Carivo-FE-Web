@@ -11,11 +11,6 @@ export const adminPlaceholderRoutes: AdminPlaceholderRoute[] = [
     description: 'Tổng quan chương trình loyalty và phân bố hạng khách hàng.',
   },
   {
-    path: '/admin/promotions',
-    title: 'Promotions',
-    description: 'Tạo và quản lý mã khuyến mãi, ưu đãi theo chiến dịch.',
-  },
-  {
     path: '/admin/analytics/revenue',
     title: 'Analytics — Revenue',
     description: 'Biểu đồ doanh thu theo thời gian và theo garage.',
