@@ -25,3 +25,39 @@ export interface RecentBookingRow {
   final_price: number
   start_time: string
 }
+
+export interface MonthlyRevenueStat {
+  month: string
+  label: string
+  revenue: number
+}
+
+export interface GarageRevenueStat {
+  garage_id: string
+  garage_name: string
+  revenue: number
+  bookings: number
+}
+
+export interface BookingStatusStat {
+  status: string
+  label: string
+  count: number
+}
+
+export interface VehicleTypeBookingStat {
+  vehicle_type: string
+  label: string
+  count: number
+}
+
+export interface WashBayPerformanceRow {
+  bay_id: string
+  bay_code: string
+  bay_name: string
+  garage_name: string
+  utilization_percent: number
+  sessions_today: number
+  avg_session_minutes: number
+  avg_wait_minutes: number
+}

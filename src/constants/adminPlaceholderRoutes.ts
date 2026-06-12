@@ -11,21 +11,6 @@ export const adminPlaceholderRoutes: AdminPlaceholderRoute[] = [
     description: 'Tổng quan chương trình loyalty và phân bố hạng khách hàng.',
   },
   {
-    path: '/admin/analytics/revenue',
-    title: 'Analytics — Revenue',
-    description: 'Biểu đồ doanh thu theo thời gian và theo garage.',
-  },
-  {
-    path: '/admin/analytics/bookings',
-    title: 'Analytics — Bookings',
-    description: 'Thống kê lượt đặt, tỷ lệ hoàn thành và xu hướng theo ngày.',
-  },
-  {
-    path: '/admin/analytics/wash-bay',
-    title: 'Analytics — WashBay Performance',
-    description: 'Hiệu suất sử dụng buồng rửa và thời gian chờ trung bình.',
-  },
-  {
     path: '/admin/research/export',
     title: 'Research Export',
     description: 'Xuất dữ liệu nghiên cứu phục vụ khảo sát và báo cáo.',

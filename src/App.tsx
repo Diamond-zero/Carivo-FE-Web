@@ -32,6 +32,9 @@ import { AdminWashBayManagementPage } from './pages/admin/garages/AdminWashBayMa
 import { AdminBookingDetailPage } from './pages/admin/bookings/AdminBookingDetailPage'
 import { AdminBookingListPage } from './pages/admin/bookings/AdminBookingListPage'
 import { AdminTierRulesPage } from './pages/admin/loyalty/AdminTierRulesPage'
+import { AdminAnalyticsBookingsPage } from './pages/admin/analytics/AdminAnalyticsBookingsPage'
+import { AdminAnalyticsRevenuePage } from './pages/admin/analytics/AdminAnalyticsRevenuePage'
+import { AdminAnalyticsWashBayPage } from './pages/admin/analytics/AdminAnalyticsWashBayPage'
 import { AdminPromotionFormPage } from './pages/admin/promotions/AdminPromotionFormPage'
 import { AdminPromotionListPage } from './pages/admin/promotions/AdminPromotionListPage'
 import { AdminServicePackageFormPage } from './pages/admin/services/AdminServicePackageFormPage'
@@ -107,6 +110,18 @@ function App() {
             <Route
               path="/admin/promotions/:promotionId/edit"
               element={<AdminPromotionFormPage />}
+            />
+            <Route
+              path="/admin/analytics/revenue"
+              element={<AdminAnalyticsRevenuePage />}
+            />
+            <Route
+              path="/admin/analytics/bookings"
+              element={<AdminAnalyticsBookingsPage />}
+            />
+            <Route
+              path="/admin/analytics/wash-bay"
+              element={<AdminAnalyticsWashBayPage />}
             />
             {adminPlaceholderRoutes.map((route) => (
               <Route
