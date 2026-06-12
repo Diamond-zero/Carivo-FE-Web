@@ -6,11 +6,6 @@ export interface AdminPlaceholderRoute {
 
 export const adminPlaceholderRoutes: AdminPlaceholderRoute[] = [
   {
-    path: '/admin/loyalty/tier-rules',
-    title: 'Loyalty — Tier Rules',
-    description: 'Chỉnh sửa quy tắc hạng thành viên và điểm tích lũy.',
-  },
-  {
     path: '/admin/loyalty/overview',
     title: 'Loyalty — Overview',
     description: 'Tổng quan chương trình loyalty và phân bố hạng khách hàng.',

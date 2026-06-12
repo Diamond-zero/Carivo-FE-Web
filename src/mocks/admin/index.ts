@@ -71,6 +71,13 @@ export {
 } from './adminBookingStore'
 
 export { mockAdminTierRules } from './tierRules'
+export {
+  getAdminTierRuleById,
+  getAdminTierRuleByTier,
+  getAdminTierRulesFromStore,
+  toggleAdminTierRuleActive,
+  updateAdminTierRule,
+} from './adminTierRuleStore'
 export { mockAdminPromotions } from './promotions'
 export { getAdminAuditLogsByEntity, mockAdminAuditLogs } from './auditLogs'
 export {

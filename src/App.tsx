@@ -31,6 +31,7 @@ import { AdminGarageListPage } from './pages/admin/garages/AdminGarageListPage'
 import { AdminWashBayManagementPage } from './pages/admin/garages/AdminWashBayManagementPage'
 import { AdminBookingDetailPage } from './pages/admin/bookings/AdminBookingDetailPage'
 import { AdminBookingListPage } from './pages/admin/bookings/AdminBookingListPage'
+import { AdminTierRulesPage } from './pages/admin/loyalty/AdminTierRulesPage'
 import { AdminServicePackageFormPage } from './pages/admin/services/AdminServicePackageFormPage'
 import { AdminServicePackageListPage } from './pages/admin/services/AdminServicePackageListPage'
 import { AdminServicePackageStepsPage } from './pages/admin/services/AdminServicePackageStepsPage'
@@ -94,6 +95,10 @@ function App() {
             <Route
               path="/admin/bookings/:bookingId"
               element={<AdminBookingDetailPage />}
+            />
+            <Route
+              path="/admin/loyalty/tier-rules"
+              element={<AdminTierRulesPage />}
             />
             {adminPlaceholderRoutes.map((route) => (
               <Route
