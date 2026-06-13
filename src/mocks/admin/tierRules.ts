@@ -1,0 +1,48 @@
+import type { AdminTierRule } from '../../types/admin'
+
+export const mockAdminTierRules: AdminTierRule[] = [
+  {
+    id: 'tier-rule-bronze',
+    tier: 'BRONZE',
+    min_total_spent: 0,
+    min_total_visits: 0,
+    booking_window_days: 7,
+    max_upcoming_bookings: 1,
+    points_multiplier: 1.1,
+    priority_level: 1,
+    is_active: true,
+  },
+  {
+    id: 'tier-rule-silver',
+    tier: 'SILVER',
+    min_total_spent: 500000,
+    min_total_visits: 5,
+    booking_window_days: 10,
+    max_upcoming_bookings: 1,
+    points_multiplier: 1.2,
+    priority_level: 2,
+    is_active: true,
+  },
+  {
+    id: 'tier-rule-gold',
+    tier: 'GOLD',
+    min_total_spent: 2000000,
+    min_total_visits: 15,
+    booking_window_days: 12,
+    max_upcoming_bookings: 2,
+    points_multiplier: 1.35,
+    priority_level: 3,
+    is_active: true,
+  },
+  {
+    id: 'tier-rule-platinum',
+    tier: 'PLATINUM',
+    min_total_spent: 8000000,
+    min_total_visits: 35,
+    booking_window_days: 14,
+    max_upcoming_bookings: 3,
+    points_multiplier: 1.5,
+    priority_level: 4,
+    is_active: true,
+  },
+]

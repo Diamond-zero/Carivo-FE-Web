@@ -94,6 +94,8 @@ export const mockUsers: MockUser[] = [
   },
 ]
 
+export const mockAdminUser = mockUsers.find((user) => user.role === 'ADMIN')!
+
 export const mockStaffUsers = mockUsers.filter((user) => user.role === 'STAFF')
 
 export const mockCustomerUsers = mockUsers.filter((user) => user.role === 'CUSTOMER')

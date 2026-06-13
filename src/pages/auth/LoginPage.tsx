@@ -6,10 +6,12 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AuthAlert } from '../../components/auth/AuthAlert'
 import { AuthLayout } from '../../components/auth/AuthLayout'
 import { PasswordField } from '../../components/auth/PasswordField'
+import { QuickAdminLogin } from '../../components/auth/QuickAdminLogin'
 import { QuickStaffLogin } from '../../components/auth/QuickStaffLogin'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Label } from '../../components/ui/Label'
+import { useAdminAuth } from '../../contexts/AdminAuthContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { MockLoginError } from '../../lib/auth/mockStaffLogin'
 import { loginSchema, type LoginFormValues } from '../../lib/validations/auth'
@@ -17,6 +19,7 @@ import { loginSchema, type LoginFormValues } from '../../lib/validations/auth'
 export function LoginPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
+  const { login: adminLogin } = useAdminAuth()
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [selectedQuickPhone, setSelectedQuickPhone] = useState<string>()
 
@@ -50,6 +53,19 @@ export function LoginPage() {
     setSubmitError(null)
 
     try {
+      try {
+        await adminLogin(data.phone, data.password)
+        navigate('/admin/dashboard')
+        return
+      } catch (adminError) {
+        if (
+          adminError instanceof MockLoginError &&
+          adminError.code !== 'NOT_ADMIN_ROLE'
+        ) {
+          throw adminError
+        }
+      }
+
       await login(data.phone, data.password)
       navigate('/dashboard')
     } catch (error) {
@@ -66,7 +82,7 @@ export function LoginPage() {
     <AuthLayout
       mode="login"
       title="Chào mừng trở lại"
-      subtitle="Đăng nhập bằng số điện thoại Staff để truy cập cổng vận hành garage."
+      subtitle="Đăng nhập bằng số điện thoại. Tài khoản Staff vào cổng vận hành garage, tài khoản Admin vào cổng quản trị."
       footer={
         <p>
           Chưa có tài khoản?{' '}
@@ -119,6 +135,11 @@ export function LoginPage() {
       </form>
 
       <QuickStaffLogin
+        onSelect={handleQuickSelect}
+        selectedPhone={selectedQuickPhone ?? currentPhone}
+      />
+
+      <QuickAdminLogin
         onSelect={handleQuickSelect}
         selectedPhone={selectedQuickPhone ?? currentPhone}
       />

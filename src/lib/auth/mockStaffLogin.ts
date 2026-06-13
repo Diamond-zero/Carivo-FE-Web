@@ -8,6 +8,7 @@ import { mockUsers } from '../../mocks/users'
 export type MockLoginErrorCode =
   | 'INVALID_CREDENTIALS'
   | 'NOT_STAFF_ROLE'
+  | 'NOT_ADMIN_ROLE'
   | 'STAFF_INACTIVE'
   | 'NO_STAFF_PROFILE'
   | 'USER_INACTIVE'
@@ -22,6 +23,8 @@ const ERROR_MESSAGES: Record<MockLoginErrorCode, string> = {
   INVALID_CREDENTIALS: 'Số điện thoại hoặc mật khẩu không đúng.',
   NOT_STAFF_ROLE:
     'Tài khoản này không có quyền Staff. Vui lòng dùng cổng Admin hoặc ứng dụng khách hàng.',
+  NOT_ADMIN_ROLE:
+    'Tài khoản này không có quyền Admin. Chỉ role ADMIN được phép truy cập trang quản trị.',
   STAFF_INACTIVE: 'Tài khoản nhân viên đã bị vô hiệu hóa. Liên hệ quản trị viên.',
   NO_STAFF_PROFILE: 'Không tìm thấy hồ sơ nhân viên cho tài khoản này.',
   USER_INACTIVE: 'Tài khoản đã bị khóa. Liên hệ quản trị viên.',

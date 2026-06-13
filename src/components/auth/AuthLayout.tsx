@@ -61,7 +61,7 @@ export function AuthLayout({
   footer,
 }: AuthLayoutProps) {
   const hero = heroContent[mode]
-  const badgeLabel = eyebrow ?? (mode === 'login' ? 'Đăng nhập Staff' : 'Đăng ký tài khoản')
+  const badgeLabel = eyebrow ?? (mode === 'login' ? 'Đăng nhập hệ thống' : 'Đăng ký tài khoản')
 
   return (
     <div className="flex min-h-screen">
@@ -134,7 +134,7 @@ export function AuthLayout({
 
         <div className="pointer-events-none relative z-10 flex items-center gap-2 px-10 py-8 text-xs text-slate-500 xl:px-12">
           <ShieldCheck className="h-4 w-4 text-brand-500/70" />
-          Chỉ tài khoản Staff được phép truy cập cổng vận hành garage.
+          Tài khoản Staff vào cổng vận hành garage. Tài khoản Admin vào cổng quản trị hệ thống.
         </div>
       </aside>
 
