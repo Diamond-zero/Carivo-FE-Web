@@ -88,6 +88,7 @@ export {
   updateAdminPromotion,
 } from './adminPromotionStore'
 export { getAdminAuditLogsByEntity, mockAdminAuditLogs } from './auditLogs'
+export { mockAdminSurveys } from './surveys'
 export {
   getCustomerActiveStatus,
   setCustomerActiveStatus,

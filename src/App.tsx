@@ -35,6 +35,9 @@ import { AdminTierRulesPage } from './pages/admin/loyalty/AdminTierRulesPage'
 import { AdminAnalyticsBookingsPage } from './pages/admin/analytics/AdminAnalyticsBookingsPage'
 import { AdminAnalyticsRevenuePage } from './pages/admin/analytics/AdminAnalyticsRevenuePage'
 import { AdminAnalyticsWashBayPage } from './pages/admin/analytics/AdminAnalyticsWashBayPage'
+import { AdminAuditLogsPage } from './pages/admin/audit/AdminAuditLogsPage'
+import { AdminResearchExportPage } from './pages/admin/research/AdminResearchExportPage'
+import { AdminSurveysPage } from './pages/admin/surveys/AdminSurveysPage'
 import { AdminPromotionFormPage } from './pages/admin/promotions/AdminPromotionFormPage'
 import { AdminPromotionListPage } from './pages/admin/promotions/AdminPromotionListPage'
 import { AdminServicePackageFormPage } from './pages/admin/services/AdminServicePackageFormPage'
@@ -122,6 +125,12 @@ function App() {
             <Route
               path="/admin/analytics/wash-bay"
               element={<AdminAnalyticsWashBayPage />}
+            />
+            <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
+            <Route path="/admin/surveys" element={<AdminSurveysPage />} />
+            <Route
+              path="/admin/research/export"
+              element={<AdminResearchExportPage />}
             />
             {adminPlaceholderRoutes.map((route) => (
               <Route
