@@ -3,44 +3,117 @@ import { Info, Loader2, Mail, Phone, UserRound } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
+import { z } from 'zod'
+import {
+  registerApi,
+  requestPhoneVerificationApi,
+  verifyPhoneOtpApi,
+} from '../../api/auth.api'
+import { getApiErrorMessage } from '../../api/client'
 import { AuthAlert } from '../../components/auth/AuthAlert'
 import { AuthLayout } from '../../components/auth/AuthLayout'
 import { PasswordField } from '../../components/auth/PasswordField'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Label } from '../../components/ui/Label'
-import {
-  registerSchema,
-  type RegisterFormValues,
-} from '../../lib/validations/auth'
+import { registerSchema } from '../../lib/validations/auth'
+
+const registerWithOtpSchema = registerSchema.extend({
+  otp: z.string().optional(),
+})
+
+type RegisterWithOtpFormValues = z.infer<typeof registerWithOtpSchema>
 
 export function RegisterPage() {
   const navigate = useNavigate()
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [challengeId, setChallengeId] = useState<string | null>(null)
+  const [debugOtp, setDebugOtp] = useState<string | null>(null)
+  const [isSendingOtp, setIsSendingOtp] = useState(false)
+  const [otpSent, setOtpSent] = useState(false)
 
   const {
     register,
     handleSubmit,
+    getValues,
+    trigger,
     formState: { errors, isSubmitting },
-  } = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerSchema),
+  } = useForm<RegisterWithOtpFormValues>({
+    resolver: zodResolver(registerWithOtpSchema),
     defaultValues: {
       full_name: '',
       phone: '',
       email: '',
       password: '',
       confirm_password: '',
+      otp: '',
     },
   })
 
-  const onSubmit = async (_data: RegisterFormValues) => {
+  const handleSendOtp = async () => {
     setSubmitError(null)
+    setSuccessMessage(null)
+
+    const isPhoneValid = await trigger('phone')
+    if (!isPhoneValid) return
+
+    setIsSendingOtp(true)
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 800))
-      navigate('/login')
-    } catch {
-      setSubmitError('Đăng ký thất bại. Vui lòng thử lại sau.')
+      const challenge = await requestPhoneVerificationApi({
+        phone: getValues('phone'),
+        purpose: 'REGISTER',
+      })
+
+      setChallengeId(challenge.challenge_id)
+      setDebugOtp(challenge.debug_otp ?? null)
+      setOtpSent(true)
+      setSuccessMessage('Mã OTP đã được gửi. Vui lòng kiểm tra tin nhắn hoặc mã demo bên dưới.')
+    } catch (error) {
+      setSubmitError(getApiErrorMessage(error, 'Không thể gửi mã OTP. Vui lòng thử lại.'))
+    } finally {
+      setIsSendingOtp(false)
+    }
+  }
+
+  const onSubmit = async (data: RegisterWithOtpFormValues) => {
+    setSubmitError(null)
+    setSuccessMessage(null)
+
+    if (!challengeId) {
+      setSubmitError('Vui lòng gửi mã OTP trước khi đăng ký.')
+      return
+    }
+
+    if (!data.otp || data.otp.length < 4) {
+      setSubmitError('Vui lòng nhập mã OTP gồm 6 chữ số.')
+      return
+    }
+
+    try {
+      const verification = await verifyPhoneOtpApi({
+        challenge_id: challengeId,
+        otp: data.otp,
+      })
+
+      await registerApi({
+        full_name: data.full_name,
+        phone: data.phone,
+        email: data.email,
+        password: data.password,
+        phone_verification_token: verification.verification_token,
+      })
+
+      setSuccessMessage(
+        'Đăng ký thành công. Tài khoản CUSTOMER đã được tạo — Admin sẽ gán quyền Staff khi phê duyệt.',
+      )
+
+      setTimeout(() => {
+        navigate('/login')
+      }, 1500)
+    } catch (error) {
+      setSubmitError(getApiErrorMessage(error, 'Đăng ký thất bại. Vui lòng thử lại sau.'))
     }
   }
 
@@ -123,6 +196,49 @@ export function RegisterPage() {
           </div>
         </div>
 
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <Label htmlFor="otp" required={otpSent}>
+              Mã OTP
+            </Label>
+            <Input
+              id="otp"
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              placeholder="6 chữ số"
+              autoComplete="one-time-code"
+              error={errors.otp?.message}
+              disabled={!otpSent}
+              {...register('otp')}
+            />
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={isSendingOtp}
+            onClick={() => void handleSendOtp()}
+            className="shrink-0"
+          >
+            {isSendingOtp ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Đang gửi...
+              </>
+            ) : otpSent ? (
+              'Gửi lại OTP'
+            ) : (
+              'Gửi mã OTP'
+            )}
+          </Button>
+        </div>
+
+        {debugOtp ? (
+          <p className="rounded-xl bg-amber-50 px-4 py-3 text-xs text-amber-800">
+            Mã OTP demo (BE dev): <span className="font-mono font-bold">{debugOtp}</span>
+          </p>
+        ) : null}
+
         <PasswordField
           id="password"
           label="Mật khẩu"
@@ -140,6 +256,9 @@ export function RegisterPage() {
         />
 
         {submitError ? <AuthAlert variant="error">{submitError}</AuthAlert> : null}
+        {successMessage ? (
+          <AuthAlert variant="success">{successMessage}</AuthAlert>
+        ) : null}
 
         <p className="rounded-xl bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-500">
           Bằng việc đăng ký, bạn đồng ý với{' '}
@@ -148,7 +267,7 @@ export function RegisterPage() {
           Carivo.
         </p>
 
-        <Button type="submit" fullWidth disabled={isSubmitting} size="lg">
+        <Button type="submit" fullWidth disabled={isSubmitting || !otpSent} size="lg">
           {isSubmitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />

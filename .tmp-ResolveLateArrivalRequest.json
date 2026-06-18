@@ -1,0 +1,28 @@
+{
+  "type": "object",
+  "required": [
+    "resolution"
+  ],
+  "properties": {
+    "resolution": {
+      "type": "string",
+      "enum": [
+        "ACCEPT_WITHIN_ORIGINAL_WINDOW",
+        "RESCHEDULED"
+      ]
+    },
+    "new_start_time": {
+      "type": "string",
+      "format": "date-time",
+      "nullable": true,
+      "example": "2026-06-11T12:30:00+07:00"
+    },
+    "reason": {
+      "type": "string",
+      "example": "CUSTOMER_LATE"
+    },
+    "note": {
+      "type": "string"
+    }
+  }
+}

@@ -3,11 +3,13 @@ import { cn } from '../../lib/utils'
 
 const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   UNPAID: 'Chưa thanh toán',
+  PENDING: 'Đang chờ thanh toán',
   PAID: 'Đã thanh toán',
 }
 
 const PAYMENT_STATUS_COLORS: Record<PaymentStatus, string> = {
   UNPAID: 'bg-orange-100 text-orange-700',
+  PENDING: 'bg-amber-100 text-amber-700',
   PAID: 'bg-green-100 text-green-700',
 }
 

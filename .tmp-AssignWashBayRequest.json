@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "properties": {
+    "wash_bay_id": {
+      "type": "string",
+      "nullable": true
+    }
+  }
+}

@@ -145,6 +145,13 @@ export function getMarkPaidGuard(
     }
   }
 
+  if (booking.payment_status === 'PENDING') {
+    return {
+      allowed: false,
+      reason: 'Booking đang chờ thanh toán online.',
+    }
+  }
+
   return { allowed: true }
 }
 

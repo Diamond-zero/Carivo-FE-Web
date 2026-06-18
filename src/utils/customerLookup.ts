@@ -1,33 +1,27 @@
 import type { Booking } from '../types/booking'
-import type { CustomerLoyalty } from '../types/loyalty'
-import type { MockUser } from '../types/user'
+import type { User } from '../types/user'
 import type { Vehicle } from '../types/vehicle'
-import { mockCustomerLoyalty } from '../mocks/customerLoyalty'
-import { mockCustomerUsers } from '../mocks/users'
-import { mockLoyaltyPointHistory } from '../mocks/loyaltyPointHistory'
-import { mockTierUpgradeHistory } from '../mocks/tierUpgradeHistory'
-import { mockVehicles } from '../mocks/vehicles'
 import { normalizeSearchText } from './booking'
 
 export interface StaffCustomerSummary {
-  user: MockUser
-  loyalty: CustomerLoyalty
+  user: User
   garageBookingCount: number
   lastVisitAt: string | null
+  vehicles: Vehicle[]
 }
 
-export function getCustomerById(customerId: string) {
-  return mockCustomerUsers.find((user) => user.id === customerId)
-}
+function mapBookingCustomerToUser(booking: Booking): User | null {
+  if (!booking.customer_id) return null
 
-export function getCustomerLoyalty(customerId: string) {
-  return mockCustomerLoyalty.find((item) => item.customer_id === customerId)
-}
-
-export function getCustomerVehicles(customerId: string) {
-  return mockVehicles.filter(
-    (vehicle) => vehicle.customer_id === customerId && vehicle.is_active,
-  )
+  return {
+    id: booking.customer_id,
+    full_name: booking.customer_name ?? 'Khách hàng',
+    email: null,
+    phone: booking.customer_phone ?? '',
+    role: 'CUSTOMER',
+    avatar_url: null,
+    is_active: true,
+  }
 }
 
 export function getGarageBookingsForCustomer(
@@ -50,43 +44,83 @@ export function getCustomersForGarage(
   bookings: Booking[],
   garageId: string,
 ): StaffCustomerSummary[] {
-  const customerIds = new Set(
-    bookings
-      .filter((booking) => booking.garage_id === garageId && booking.customer_id)
-      .map((booking) => booking.customer_id as string),
-  )
+  const customerMap = new Map<string, StaffCustomerSummary>()
 
-  const summaries: StaffCustomerSummary[] = []
+  for (const booking of bookings) {
+    if (!booking.customer_id || booking.garage_id !== garageId) continue
 
-  for (const customerId of customerIds) {
-    const user = getCustomerById(customerId)
-    const loyalty = getCustomerLoyalty(customerId)
-    if (!user || !loyalty) continue
+    const user = mapBookingCustomerToUser(booking)
+    if (!user) continue
 
-    const garageBookings = getGarageBookingsForCustomer(
-      customerId,
-      bookings,
-      garageId,
-    )
+    const existing = customerMap.get(booking.customer_id)
+    const vehicle: Vehicle | null = booking.license_plate
+      ? {
+          id: booking.vehicle_id ?? `${booking.customer_id}-${booking.license_plate}`,
+          customer_id: booking.customer_id,
+          raw_license_plate: booking.license_plate,
+          normalized_license_plate: normalizeSearchText(booking.license_plate),
+          vehicle_type: booking.vehicle_type,
+          engine_type: 'GASOLINE',
+          motorbike_cc_group: null,
+          car_body_type: null,
+          seat_count: null,
+          brand: null,
+          model: null,
+          color: null,
+          is_default: false,
+          is_active: true,
+        }
+      : null
 
-    summaries.push({
-      user,
-      loyalty,
-      garageBookingCount: garageBookings.length,
-      lastVisitAt: garageBookings[0]?.start_time ?? null,
-    })
+    if (!existing) {
+      customerMap.set(booking.customer_id, {
+        user,
+        garageBookingCount: 1,
+        lastVisitAt: booking.start_time,
+        vehicles: vehicle ? [vehicle] : [],
+      })
+      continue
+    }
+
+    existing.garageBookingCount += 1
+    if (
+      !existing.lastVisitAt ||
+      new Date(booking.start_time).getTime() >
+        new Date(existing.lastVisitAt).getTime()
+    ) {
+      existing.lastVisitAt = booking.start_time
+      existing.user = user
+    }
+
+    if (
+      vehicle &&
+      !existing.vehicles.some(
+        (item) => item.raw_license_plate === vehicle.raw_license_plate,
+      )
+    ) {
+      existing.vehicles.push(vehicle)
+    }
   }
 
-  return summaries.sort((a, b) =>
+  return Array.from(customerMap.values()).sort((a, b) =>
     a.user.full_name.localeCompare(b.user.full_name, 'vi'),
   )
+}
+
+export function getCustomerById(
+  customerId: string,
+  bookings: Booking[],
+  garageId: string,
+) {
+  return getCustomersForGarage(bookings, garageId).find(
+    (item) => item.user.id === customerId,
+  )?.user
 }
 
 export function searchCustomersForGarage(
   query: string,
   bookings: Booking[],
   garageId: string,
-  vehicles: Vehicle[] = mockVehicles,
 ): StaffCustomerSummary[] {
   const normalizedQuery = normalizeSearchText(query.trim())
   const customers = getCustomersForGarage(bookings, garageId)
@@ -96,56 +130,16 @@ export function searchCustomersForGarage(
   return customers.filter((item) => {
     const name = normalizeSearchText(item.user.full_name)
     const phone = normalizeSearchText(item.user.phone)
-    const email = normalizeSearchText(item.user.email ?? '')
-    const customerVehicles = vehicles.filter(
-      (vehicle) => vehicle.customer_id === item.user.id,
-    )
-    const plateMatch = customerVehicles.some((vehicle) =>
+    const plateMatch = item.vehicles.some((vehicle) =>
       normalizeSearchText(vehicle.raw_license_plate).includes(normalizedQuery),
     )
 
     return (
       name.includes(normalizedQuery) ||
       phone.includes(normalizedQuery) ||
-      email.includes(normalizedQuery) ||
       plateMatch
     )
   })
-}
-
-export function findCustomerByPlateAtGarage(
-  plate: string,
-  bookings: Booking[],
-  garageId: string,
-) {
-  const normalizedPlate = normalizeSearchText(plate)
-  const vehicle = mockVehicles.find((item) =>
-    normalizeSearchText(item.raw_license_plate).includes(normalizedPlate),
-  )
-  if (!vehicle) return null
-
-  const summary = getCustomersForGarage(bookings, garageId).find(
-    (item) => item.user.id === vehicle.customer_id,
-  )
-  return summary ?? null
-}
-
-export function getTierUpgradeHistoryForCustomer(customerId: string) {
-  return mockTierUpgradeHistory
-    .filter((record) => record.customer_id === customerId)
-    .sort(
-      (a, b) =>
-        new Date(b.upgraded_at).getTime() - new Date(a.upgraded_at).getTime(),
-    )
-}
-
-export function getLoyaltyPointHistoryForCustomer(customerId: string) {
-  return mockLoyaltyPointHistory
-    .filter((record) => record.customer_id === customerId)
-    .sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    )
 }
 
 export function isCustomerAtGarage(
@@ -155,5 +149,17 @@ export function isCustomerAtGarage(
 ) {
   return getCustomersForGarage(bookings, garageId).some(
     (item) => item.user.id === customerId,
+  )
+}
+
+export function getCustomerVehicles(
+  customerId: string,
+  bookings: Booking[],
+  garageId: string,
+) {
+  return (
+    getCustomersForGarage(bookings, garageId).find(
+      (item) => item.user.id === customerId,
+    )?.vehicles ?? []
   )
 }

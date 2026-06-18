@@ -29,7 +29,6 @@ import { Select } from '../../components/ui/Select'
 import { useAuth } from '../../contexts/AuthContext'
 import { useBookings } from '../../contexts/BookingContext'
 import { useToast } from '../../contexts/ToastContext'
-import { getServicePackageName } from '../../mocks/servicePackages'
 import {
   getBookingCustomerName,
 } from '../../utils/booking'
@@ -55,6 +54,8 @@ export function ServiceExecutionPage() {
     getAvailableWashBaysForBooking,
     assignWashBay,
     getServiceStepsByBookingId,
+    fetchServiceSteps,
+    getServicePackageName,
     startService,
     completeServiceStep,
     completeService,
@@ -110,6 +111,12 @@ export function ServiceExecutionPage() {
     : []
 
   useEffect(() => {
+    if (selectedBookingId && booking?.status === 'IN_PROGRESS') {
+      void fetchServiceSteps(selectedBookingId)
+    }
+  }, [selectedBookingId, booking?.status, fetchServiceSteps])
+
+  useEffect(() => {
     const paramId = searchParams.get('bookingId')
     if (!paramId && executableBookings[0]?.id) {
       setSearchParams({ bookingId: executableBookings[0].id }, { replace: true })
@@ -130,9 +137,7 @@ export function ServiceExecutionPage() {
 
     setIsStarting(true)
     setFeedback(null)
-    await new Promise((resolve) => setTimeout(resolve, 400))
-
-    const result = startService(selectedBookingId)
+    const result = await startService(selectedBookingId)
     setIsStarting(false)
     setFeedback({
       type: result.success ? 'success' : 'error',
@@ -154,9 +159,7 @@ export function ServiceExecutionPage() {
 
     setCompletingStepId(stepId)
     setFeedback(null)
-    await new Promise((resolve) => setTimeout(resolve, 350))
-
-    const result = completeServiceStep(stepId, session.staffProfile.id)
+    const result = await completeServiceStep(stepId, session.staffProfile.id)
     setCompletingStepId(null)
     setFeedback({
       type: result.success ? 'success' : 'error',
@@ -169,7 +172,7 @@ export function ServiceExecutionPage() {
       return { success: false, message: 'Không xác định được booking.' }
     }
 
-    const result = completeService(selectedBookingId)
+    const result = await completeService(selectedBookingId)
 
     if (result.success) {
       showToast(result.message, 'success')
@@ -188,7 +191,7 @@ export function ServiceExecutionPage() {
       return { success: false, message: 'Không xác định được booking.' }
     }
 
-    const result = assignWashBay(selectedBookingId, washBayId)
+    const result = await assignWashBay(selectedBookingId, washBayId)
     setFeedback({
       type: result.success ? 'success' : 'error',
       message: result.message,
@@ -261,7 +264,7 @@ export function ServiceExecutionPage() {
                   </p>
                   <p className="mt-1 text-slate-600">{booking.license_plate}</p>
                   <p className="mt-1 text-slate-500">
-                    {getServicePackageName(booking.service_package_id)}
+                    {getServicePackageName(booking.service_package_id, booking.service_package_name)}
                   </p>
                   <p className="mt-1 text-slate-500">
                     {formatTime(booking.start_time)}

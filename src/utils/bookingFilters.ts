@@ -1,4 +1,5 @@
 import type { Booking, BookingStatus } from '../types/booking'
+import type { BookingListParams } from '../api/booking.api'
 import { getBookingPhone, normalizeSearchText } from './booking'
 
 export interface BookingFilters {
@@ -13,6 +14,37 @@ export const DEFAULT_BOOKING_FILTERS: BookingFilters = {
   date: '',
   licensePlate: '',
   phone: '',
+}
+
+export function toBookingListApiParams(
+  filters: BookingFilters,
+  garageId?: string,
+): BookingListParams {
+  const params: BookingListParams = { limit: 100 }
+
+  if (garageId) {
+    params.garage_id = garageId
+  }
+
+  if (filters.status !== 'ALL') {
+    params.status = filters.status
+  }
+
+  if (filters.date) {
+    params.from = filters.date
+    params.to = filters.date
+  }
+
+  const searchParts = [
+    filters.licensePlate.trim(),
+    filters.phone.trim(),
+  ].filter(Boolean)
+
+  if (searchParts.length > 0) {
+    params.search = searchParts.join(' ')
+  }
+
+  return params
 }
 
 export function filterBookings(

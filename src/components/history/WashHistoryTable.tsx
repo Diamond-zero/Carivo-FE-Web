@@ -2,7 +2,7 @@ import { createColumnHelper } from '@tanstack/react-table'
 import { Sparkles } from 'lucide-react'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { getServicePackageName } from '../../mocks/servicePackages'
+import { useBookings } from '../../contexts/BookingContext'
 import type { WashHistory } from '../../types/washHistory'
 import { formatDateTime, formatPrice } from '../../utils/format'
 import { DataTable, type DataTableEmptyState } from '../ui/DataTable'
@@ -20,6 +20,7 @@ export function WashHistoryTable({
   emptyState,
   loading = false,
 }: WashHistoryTableProps) {
+  const { getServicePackageName } = useBookings()
   const columns = useMemo(
     () => [
       columnHelper.accessor('washed_at', {
@@ -100,7 +101,7 @@ export function WashHistoryTable({
         ),
       }),
     ],
-    [],
+    [getServicePackageName],
   )
 
   return (

@@ -1,7 +1,7 @@
 import { createColumnHelper } from '@tanstack/react-table'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { getServicePackageName } from '../../mocks/servicePackages'
+import { useBookings } from '../../contexts/BookingContext'
 import type { Booking } from '../../types/booking'
 import { getBookingCustomerName } from '../../utils/booking'
 import { getBookingListAction } from '../../utils/bookingActionGuards'
@@ -26,6 +26,7 @@ export function BookingTable({
   staffGarageId,
   onMarkPaid,
 }: BookingTableProps) {
+  const { getServicePackageName } = useBookings()
   const columns = useMemo(
     () => [
       columnHelper.accessor('id', {
@@ -129,7 +130,7 @@ export function BookingTable({
         },
       }),
     ],
-    [staffGarageId, onMarkPaid],
+    [staffGarageId, onMarkPaid, getServicePackageName],
   )
 
   return (

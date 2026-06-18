@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Camera, CheckCircle2 } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
@@ -20,8 +20,13 @@ import { getCreateInspectionGuard } from '../../utils/bookingActionGuards'
 
 export function InspectionPage() {
   const { session } = useAuth()
-  const { bookings, inspections, getInspectionsByBookingId, createInspection } =
-    useBookings()
+  const {
+    bookings,
+    inspections,
+    getInspectionsByBookingId,
+    fetchInspections,
+    createInspection,
+  } = useBookings()
 
   const [feedback, setFeedback] = useState<{
     type: 'success' | 'error'
@@ -49,6 +54,12 @@ export function InspectionPage() {
     ? getInspectionsByBookingId(defaultBookingId)
     : []
 
+  useEffect(() => {
+    if (defaultBookingId) {
+      void fetchInspections(defaultBookingId)
+    }
+  }, [defaultBookingId, fetchInspections])
+
   const handleSubmit = async (
     data: InspectionFormValues,
     imageUrls: string[],
@@ -60,9 +71,8 @@ export function InspectionPage() {
 
     setIsSubmitting(true)
     setFeedback(null)
-    await new Promise((resolve) => setTimeout(resolve, 500))
 
-    const result = createInspection(
+    const result = await createInspection(
       {
         booking_id: data.booking_id,
         type: data.type,
@@ -94,7 +104,7 @@ export function InspectionPage() {
 
       <PageHeader
         title="Kiểm tra xe"
-        description="Tạo biên bản BEFORE_WASH / AFTER_WASH và upload ảnh minh chứng (mock)."
+        description="Tạo biên bản BEFORE_WASH / AFTER_WASH và upload ảnh minh chứng."
       />
 
       {feedback ? (
@@ -153,7 +163,7 @@ export function InspectionPage() {
               <CardTitle>Lịch sử kiểm tra</CardTitle>
               <CardDescription>
                 {defaultBookingId
-                  ? `Booking ${defaultBookingId.replace('booking-', '#')}`
+                  ? `Booking #${defaultBookingId.slice(-6)}`
                   : 'Chọn booking để xem lịch sử'}
               </CardDescription>
             </CardHeader>

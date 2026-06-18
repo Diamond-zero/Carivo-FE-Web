@@ -5,7 +5,6 @@ import {
   WASH_BAY_STATUS_COLORS,
   WASH_BAY_STATUS_LABELS,
 } from '../../constants/washBayStatus'
-import { mockBookings } from '../../mocks/bookings'
 import type { Booking } from '../../types/booking'
 import type { WashBay } from '../../types/washBay'
 import { cn } from '../../lib/utils'
@@ -26,7 +25,7 @@ function getOccupiedBooking(
 
 export function WashBayStatusGrid({
   washBays,
-  bookings = mockBookings,
+  bookings = [],
   className,
 }: WashBayStatusGridProps) {
   return (

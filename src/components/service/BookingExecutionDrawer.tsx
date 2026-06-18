@@ -14,7 +14,7 @@ import { PaymentStatusBadge } from '../booking/PaymentStatusBadge'
 import { Button } from '../ui/Button'
 import { Drawer } from '../ui/Drawer'
 import { VEHICLE_TYPE_LABELS } from '../../constants/washBayStatus'
-import { getServicePackageName } from '../../mocks/servicePackages'
+import { useBookings } from '../../contexts/BookingContext'
 import type { Booking } from '../../types/booking'
 import type { WashBay } from '../../types/washBay'
 import {
@@ -40,6 +40,7 @@ export function BookingExecutionDrawer({
   needsWashBayAssignment = false,
   onRequestAssignWashBay,
 }: BookingExecutionDrawerProps) {
+  const { getServicePackageName } = useBookings()
   const VehicleIcon = booking.vehicle_type === 'CAR' ? Car : Bike
 
   return (
@@ -47,7 +48,7 @@ export function BookingExecutionDrawer({
       open={open}
       onClose={onClose}
       title={`Booking ${booking.id.replace('booking-', '#')}`}
-      description={`${getServicePackageName(booking.service_package_id)} · ${booking.license_plate}`}
+      description={`${getServicePackageName(booking.service_package_id, booking.service_package_name)} · ${booking.license_plate}`}
       footer={
         <Link
           to={`/bookings/${booking.id}`}

@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "properties": {
+    "reason": {
+      "type": "string",
+      "example": "Customer did not arrive for the scheduled appointment"
+    }
+  }
+}

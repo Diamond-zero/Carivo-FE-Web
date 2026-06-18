@@ -9,8 +9,8 @@ export type BookingStatus =
   | 'CANCELED'
   | 'NO_SHOW'
 
-export type PaymentStatus = 'UNPAID' | 'PAID'
-export type PaymentMethod = 'CASH'
+export type PaymentStatus = 'UNPAID' | 'PENDING' | 'PAID'
+export type PaymentMethod = 'CASH' | 'PAYOS'
 
 export interface Booking {
   id: string
@@ -35,6 +35,17 @@ export interface Booking {
   payment_status: PaymentStatus
   status: BookingStatus
   note: string | null
+  /** Enriched from API — optional */
+  service_package_name?: string
+  customer_name?: string | null
+  customer_phone?: string | null
+  requires_wash_bay?: boolean
+  earned_points?: number
+  wash_bay_name?: string
+  wash_bay_code?: string
+  wash_bay_status?: import('./washBay').WashBayStatus
+  /** Toàn bộ field từ BE — không render UI, dùng cho debug/tích hợp sau */
+  raw?: import('./api/staff').ApiBooking
 }
 
 export interface WalkInBookingForm {
@@ -44,6 +55,12 @@ export interface WalkInBookingForm {
   license_plate: string
   vehicle_type: VehicleType
   service_package_id: string
-  start_time: string
+  /** Scheduled walk-in — omit when serve_now is true. */
+  start_time?: string
+  /** Immediate walk-in — BE sets current time and auto check-in. */
+  serve_now?: boolean
+  suggestion_days?: number
+  add_on_service_ids?: string[]
+  promotion_code?: string
   note?: string
 }

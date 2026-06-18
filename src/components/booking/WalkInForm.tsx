@@ -2,10 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import {
-  getServicePackageById,
-  getServicePackagesByVehicleType,
-} from '../../mocks/servicePackages'
+import { useBookings } from '../../contexts/BookingContext'
 import {
   walkInSchema,
   type WalkInFormValues,
@@ -28,6 +25,10 @@ import { VEHICLE_TYPE_LABELS } from '../../constants/washBayStatus'
 interface WalkInFormProps {
   onSubmit: (data: WalkInBookingForm) => Promise<void>
   isSubmitting?: boolean
+  garage?: {
+    name: string
+    code?: string
+  }
 }
 
 const TIME_SLOT_OPTIONS: Array<{
@@ -40,7 +41,12 @@ const TIME_SLOT_OPTIONS: Array<{
   { value: 'custom', label: 'Tùy chọn' },
 ]
 
-export function WalkInForm({ onSubmit, isSubmitting = false }: WalkInFormProps) {
+export function WalkInForm({
+  onSubmit,
+  isSubmitting = false,
+  garage,
+}: WalkInFormProps) {
+  const { getServicePackagesByVehicleType } = useBookings()
   const [timeSlot, setTimeSlot] = useState<WalkInTimeSlotOption>('now')
   const [customTime, setCustomTime] = useState('')
 
@@ -59,7 +65,6 @@ export function WalkInForm({ onSubmit, isSubmitting = false }: WalkInFormProps) 
       license_plate: '',
       vehicle_type: 'CAR',
       service_package_id: '',
-      start_time: getWalkInStartTime('now'),
       note: '',
     },
   })
@@ -69,11 +74,11 @@ export function WalkInForm({ onSubmit, isSubmitting = false }: WalkInFormProps) 
 
   const packages = useMemo(
     () => getServicePackagesByVehicleType(vehicleType as VehicleType),
-    [vehicleType],
+    [getServicePackagesByVehicleType, vehicleType],
   )
 
   const selectedPackage = servicePackageId
-    ? getServicePackageById(servicePackageId)
+    ? packages.find((pkg) => pkg.id === servicePackageId)
     : undefined
 
   useEffect(() => {
@@ -91,22 +96,30 @@ export function WalkInForm({ onSubmit, isSubmitting = false }: WalkInFormProps) 
   )
 
   const handleFormSubmit = async (data: WalkInFormValues) => {
-    const start_time = getWalkInStartTime(
-      timeSlot,
-      timeSlot === 'custom' ? customTime : undefined,
-    )
-
     if (timeSlot === 'custom' && !customTime) {
+      return
+    }
+
+    const start_time =
+      timeSlot === 'now'
+        ? undefined
+        : getWalkInStartTime(
+            timeSlot,
+            timeSlot === 'custom' ? customTime : undefined,
+          ) ?? undefined
+
+    if (timeSlot !== 'now' && !start_time) {
       return
     }
 
     await onSubmit({
       guest_name: data.guest_name,
       guest_phone: data.guest_phone,
-      guest_email: data.guest_email || undefined,
+      guest_email: data.guest_email?.trim() || '',
       license_plate: data.license_plate,
       vehicle_type: data.vehicle_type,
       service_package_id: data.service_package_id,
+      serve_now: timeSlot === 'now',
       start_time,
       note: data.note || undefined,
     })
@@ -114,6 +127,17 @@ export function WalkInForm({ onSubmit, isSubmitting = false }: WalkInFormProps) 
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+      {garage ? (
+        <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+          Booking walk-in sẽ được tạo tại garage{' '}
+          <strong>{garage.name}</strong>
+          {garage.code ? (
+            <span className="text-blue-700"> ({garage.code})</span>
+          ) : null}
+          .
+        </div>
+      ) : null}
+
       <div className="grid gap-4 md:grid-cols-2">
         <div>
           <Label htmlFor="guest_name" required>
@@ -227,11 +251,15 @@ export function WalkInForm({ onSubmit, isSubmitting = false }: WalkInFormProps) 
               </p>
             ) : null}
           </div>
-        ) : (
+        ) : timeSlot === 'now' ? (
           <p className="mt-2 text-sm text-slate-500">
-            Dự kiến: {formatDateTime(previewStartTime)}
+            Phục vụ ngay — booking sẽ được tạo và tự động check-in.
           </p>
-        )}
+        ) : previewStartTime ? (
+          <p className="mt-2 text-sm text-slate-500">
+            Dự kiến: {formatDateTime(previewStartTime)} (khung 30 phút)
+          </p>
+        ) : null}
       </div>
 
       <div>
@@ -253,8 +281,8 @@ export function WalkInForm({ onSubmit, isSubmitting = false }: WalkInFormProps) 
             </span>
           </div>
           <p className="mt-1 text-xs text-brand-700">
-            Walk-in sẽ được tạo với trạng thái{' '}
-            <strong>Đã check-in</strong> (mock)
+            Walk-in được tạo qua API và tự động chuyển sang trạng thái{' '}
+            <strong>Đã check-in</strong>.
           </p>
         </div>
       ) : null}
@@ -266,7 +294,7 @@ export function WalkInForm({ onSubmit, isSubmitting = false }: WalkInFormProps) 
             Đang tạo booking...
           </>
         ) : (
-          'Tạo walk-in booking'
+          'Tạo lịch đặt'
         )}
       </Button>
     </form>

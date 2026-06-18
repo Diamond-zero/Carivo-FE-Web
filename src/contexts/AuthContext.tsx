@@ -2,69 +2,89 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
-import { STAFF_SESSION_STORAGE_KEY } from '../lib/auth/constants'
 import { clearAdminSession } from '../lib/auth/mockAuthLogin'
 import {
-  mockStaffLogin,
+  MockLoginError,
   type StaffAuthSession,
 } from '../lib/auth/mockStaffLogin'
+import {
+  restoreStaffSession,
+  refreshStaffSession,
+  staffLogin,
+  staffLogout,
+} from '../lib/auth/staffAuthService'
 
 interface AuthContextValue {
   session: StaffAuthSession | null
   isAuthenticated: boolean
+  isInitializing: boolean
   login: (phone: string, password: string) => Promise<StaffAuthSession>
-  logout: () => void
+  logout: () => Promise<void>
+  refreshSession: () => Promise<StaffAuthSession>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-function readStoredSession(): StaffAuthSession | null {
-  const raw = sessionStorage.getItem(STAFF_SESSION_STORAGE_KEY)
-  if (!raw) return null
-
-  try {
-    return JSON.parse(raw) as StaffAuthSession
-  } catch {
-    sessionStorage.removeItem(STAFF_SESSION_STORAGE_KEY)
-    return null
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<StaffAuthSession | null>(() =>
-    readStoredSession(),
-  )
+  const [session, setSession] = useState<StaffAuthSession | null>(null)
+  const [isInitializing, setIsInitializing] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function init() {
+      try {
+        const restored = await restoreStaffSession()
+        if (!cancelled) {
+          setSession(restored)
+        }
+      } finally {
+        if (!cancelled) {
+          setIsInitializing(false)
+        }
+      }
+    }
+
+    void init()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const login = useCallback(async (phone: string, password: string) => {
-    await new Promise((resolve) => setTimeout(resolve, 400))
-
     clearAdminSession()
-    const nextSession = mockStaffLogin(phone, password)
-    sessionStorage.setItem(
-      STAFF_SESSION_STORAGE_KEY,
-      JSON.stringify(nextSession),
-    )
+    const nextSession = await staffLogin(phone, password)
     setSession(nextSession)
     return nextSession
   }, [])
 
-  const logout = useCallback(() => {
-    sessionStorage.removeItem(STAFF_SESSION_STORAGE_KEY)
+  const logout = useCallback(async () => {
+    await staffLogout()
     setSession(null)
+  }, [])
+
+  const refreshSession = useCallback(async () => {
+    const nextSession = await refreshStaffSession()
+    setSession(nextSession)
+    return nextSession
   }, [])
 
   const value = useMemo(
     () => ({
       session,
       isAuthenticated: Boolean(session),
+      isInitializing,
       login,
       logout,
+      refreshSession,
     }),
-    [session, login, logout],
+    [session, isInitializing, login, logout, refreshSession],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
@@ -77,3 +97,5 @@ export function useAuth() {
   }
   return context
 }
+
+export { MockLoginError }

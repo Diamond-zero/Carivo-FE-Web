@@ -28,7 +28,6 @@ import { VEHICLE_TYPE_LABELS } from '../../constants/washBayStatus'
 import { useAuth } from '../../contexts/AuthContext'
 import { useBookings } from '../../contexts/BookingContext'
 import { useToast } from '../../contexts/ToastContext'
-import { getServicePackageName } from '../../mocks/servicePackages'
 import {
   getBookingCustomerName,
   getBookingPhone,
@@ -49,12 +48,20 @@ export function BookingDetailPage() {
     assignWashBay,
     markBookingPaid,
     getServiceStepsByBookingId,
+    fetchServiceSteps,
+    getServicePackageName,
   } = useBookings()
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const [isMarkPaidModalOpen, setIsMarkPaidModalOpen] = useState(false)
   const [assignFeedback, setAssignFeedback] = useState<string | null>(null)
 
   const booking = id ? getBookingById(id) : undefined
+
+  useEffect(() => {
+    if (id && booking && ['IN_PROGRESS', 'CHECKED_IN', 'COMPLETED'].includes(booking.status)) {
+      void fetchServiceSteps(id)
+    }
+  }, [id, booking?.status, fetchServiceSteps])
 
   useEffect(() => {
     const state = location.state as { openMarkPaid?: boolean } | null
@@ -71,7 +78,7 @@ export function BookingDetailPage() {
           Không tìm thấy booking
         </h1>
         <p className="mt-2 text-sm text-slate-500">
-          Mã booking không tồn tại trong hệ thống mock.
+          Mã booking không tồn tại trong hệ thống.
         </p>
         <Link to="/bookings" className="mt-6">
           <Button variant="secondary">
@@ -99,7 +106,7 @@ export function BookingDetailPage() {
       return { success: false, message: 'Không xác định được booking.' }
     }
 
-    const result = assignWashBay(id, washBayId)
+    const result = await assignWashBay(id, washBayId)
     setAssignFeedback(result.message)
     return result
   }
@@ -109,7 +116,7 @@ export function BookingDetailPage() {
       return { success: false, message: 'Không xác định được booking.' }
     }
 
-    const result = markBookingPaid(id)
+    const result = await markBookingPaid(id)
     if (result.success) {
       showToast(result.message, 'success')
     }
@@ -130,7 +137,7 @@ export function BookingDetailPage() {
 
       <PageHeader
         title={`Booking ${booking.id.replace('booking-', '#')}`}
-        description={`${getServicePackageName(booking.service_package_id)} — ${booking.booking_date.split('-').reverse().join('/')}`}
+        description={`${getServicePackageName(booking.service_package_id, booking.service_package_name)} — ${booking.booking_date.split('-').reverse().join('/')}`}
         action={
           listAction ? (
             listAction.type === 'mark_paid' ? (

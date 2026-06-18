@@ -12,6 +12,7 @@ export type MockLoginErrorCode =
   | 'STAFF_INACTIVE'
   | 'NO_STAFF_PROFILE'
   | 'USER_INACTIVE'
+  | 'TOO_MANY_REQUESTS'
 
 export interface StaffAuthSession {
   user: User
@@ -28,6 +29,8 @@ const ERROR_MESSAGES: Record<MockLoginErrorCode, string> = {
   STAFF_INACTIVE: 'Tài khoản nhân viên đã bị vô hiệu hóa. Liên hệ quản trị viên.',
   NO_STAFF_PROFILE: 'Không tìm thấy hồ sơ nhân viên cho tài khoản này.',
   USER_INACTIVE: 'Tài khoản đã bị khóa. Liên hệ quản trị viên.',
+  TOO_MANY_REQUESTS:
+    'Quá nhiều lần đăng nhập. Vui lòng đợi vài phút rồi thử lại.',
 }
 
 export class MockLoginError extends Error {
