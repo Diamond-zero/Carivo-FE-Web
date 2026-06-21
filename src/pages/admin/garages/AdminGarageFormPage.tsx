@@ -1,6 +1,6 @@
 import { ArrowLeft, Building2 } from 'lucide-react'
-import { useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { getApiErrorMessage } from '../../../api/client'
 import { AdminGarageForm } from '../../../components/admin/garage/AdminGarageForm'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Button } from '../../../components/ui/Button'
@@ -8,26 +8,29 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { useToast } from '../../../contexts/ToastContext'
-import { useInitialPageSkeleton } from '../../../hooks/useInitialPageSkeleton'
-import type { AdminGarageFormValues } from '../../../lib/validations/adminGarage'
 import {
-  createAdminGarage,
-  getAdminGarageById,
-  updateAdminGarage,
-} from '../../../mocks/admin/adminGarageStore'
+  useAdminGarage,
+  useCreateAdminGarage,
+  useUpdateAdminGarage,
+} from '../../../hooks/api/admin/useAdminGarages'
+import type { AdminGarageFormValues } from '../../../lib/validations/adminGarage'
 
 export function AdminGarageFormPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { garageId } = useParams<{ garageId: string }>()
   const { showToast } = useToast()
-  const isLoading = useInitialPageSkeleton(240)
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const isCreate = location.pathname.endsWith('/new')
-  const garage = !isCreate && garageId ? getAdminGarageById(garageId) : undefined
+  const garageQuery = useAdminGarage(!isCreate ? garageId : undefined)
+  const createMutation = useCreateAdminGarage()
+  const updateMutation = useUpdateAdminGarage()
 
-  if (!isLoading && !isCreate && !garage) {
+  const garage = garageQuery.data
+  const isSubmitting = createMutation.isPending || updateMutation.isPending
+  const isLoading = !isCreate && garageQuery.isLoading
+
+  if (!isCreate && !isLoading && (garageQuery.isError || !garage)) {
     return (
       <div>
         <PageHeader
@@ -45,7 +48,10 @@ export function AdminGarageFormPage() {
         <EmptyState
           icon={Building2}
           title="Garage không tồn tại"
-          description="Mã garage không khớp với dữ liệu mock Admin."
+          description={getApiErrorMessage(
+            garageQuery.error,
+            'Mã garage không khớp với dữ liệu hệ thống.',
+          )}
           action={
             <Link to="/admin/garages">
               <Button>Về danh sách garage</Button>
@@ -57,46 +63,45 @@ export function AdminGarageFormPage() {
   }
 
   const handleSubmit = async (values: AdminGarageFormValues) => {
-    setIsSubmitting(true)
-
-    try {
-      const payload = {
-        name: values.name,
-        garage_code: values.garage_code,
-        address: values.address,
-        city: values.city,
-        phone: values.phone,
-        opening_time: values.opening_time,
-        closing_time: values.closing_time,
-        slot_interval_minutes: values.slot_interval_minutes,
-        is_active: values.is_active,
-      }
-
-      if (isCreate) {
-        const result = createAdminGarage(payload)
-        if (!result.ok) {
-          showToast(result.message, 'error')
-          return
-        }
-
-        showToast(`Đã tạo garage ${result.garage.name}.`, 'success')
-        navigate('/admin/garages')
-        return
-      }
-
-      if (!garageId) return
-
-      const result = updateAdminGarage(garageId, payload)
-      if (!result.ok) {
-        showToast(result.message, 'error')
-        return
-      }
-
-      showToast(`Đã cập nhật ${result.garage.name}.`, 'success')
-      navigate('/admin/garages')
-    } finally {
-      setIsSubmitting(false)
+    const payload = {
+      name: values.name,
+      garage_code: values.garage_code,
+      address: values.address,
+      city: values.city,
+      phone: values.phone,
+      opening_time: values.opening_time,
+      closing_time: values.closing_time,
+      slot_interval_minutes: values.slot_interval_minutes,
+      is_active: values.is_active,
     }
+
+    if (isCreate) {
+      createMutation.mutate(payload, {
+        onSuccess: (created) => {
+          showToast(`Đã tạo garage ${created.name}.`, 'success')
+          navigate('/admin/garages')
+        },
+        onError: (error) => {
+          showToast(getApiErrorMessage(error, 'Không thể tạo garage.'), 'error')
+        },
+      })
+      return
+    }
+
+    if (!garageId) return
+
+    updateMutation.mutate(
+      { garageId, payload },
+      {
+        onSuccess: (updated) => {
+          showToast(`Đã cập nhật ${updated.name}.`, 'success')
+          navigate('/admin/garages')
+        },
+        onError: (error) => {
+          showToast(getApiErrorMessage(error, 'Không thể cập nhật garage.'), 'error')
+        },
+      },
+    )
   }
 
   return (
@@ -106,7 +111,7 @@ export function AdminGarageFormPage() {
       ) : (
         <>
           <PageHeader
-            eyebrow="Carivo Admin"
+            eyebrow="Carivo Quản trị"
             title={isCreate ? 'Thêm garage' : 'Sửa garage'}
             description={
               isCreate

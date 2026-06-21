@@ -1,4 +1,3 @@
-import { mockAdminSurveys } from '../mocks/admin/surveys'
 import type { SurveyResponse } from '../types/survey'
 import { normalizeSearchText } from './booking'
 
@@ -14,20 +13,17 @@ export const DEFAULT_ADMIN_SURVEY_FILTERS: AdminSurveyFilters = {
   query: '',
 }
 
-const garageOptions = [
-  'Carivo FPT Hòa Lạc',
-  'Carivo Quận 7',
-  'Carivo Hải Châu',
-]
-
-export function getAdminSurveyGarageOptions() {
-  return garageOptions
+export function getAdminSurveyGarageOptions(surveys: SurveyResponse[]) {
+  return [...new Set(surveys.map((survey) => survey.garage_name).filter(Boolean))].sort()
 }
 
-export function searchAdminSurveys(filters: AdminSurveyFilters): SurveyResponse[] {
+export function searchAdminSurveys(
+  filters: AdminSurveyFilters,
+  surveys: SurveyResponse[],
+): SurveyResponse[] {
   const normalizedQuery = normalizeSearchText(filters.query.trim())
 
-  return mockAdminSurveys.filter((survey) => {
+  return surveys.filter((survey) => {
     if (filters.garage !== 'ALL' && survey.garage_name !== filters.garage) {
       return false
     }
@@ -62,14 +58,12 @@ export function hasActiveAdminSurveyFilters(filters: AdminSurveyFilters) {
   )
 }
 
-export function getAdminSurveyStats() {
-  const total = mockAdminSurveys.length
+export function getAdminSurveyStats(surveys: SurveyResponse[]) {
+  const total = surveys.length
   const avgRating =
-    total === 0
-      ? 0
-      : mockAdminSurveys.reduce((sum, item) => sum + item.rating, 0) / total
-  const fiveStarCount = mockAdminSurveys.filter((item) => item.rating === 5).length
-  const lowRatingCount = mockAdminSurveys.filter((item) => item.rating <= 3).length
+    total === 0 ? 0 : surveys.reduce((sum, item) => sum + item.rating, 0) / total
+  const fiveStarCount = surveys.filter((item) => item.rating === 5).length
+  const lowRatingCount = surveys.filter((item) => item.rating <= 3).length
 
   return { total, avgRating, fiveStarCount, lowRatingCount }
 }

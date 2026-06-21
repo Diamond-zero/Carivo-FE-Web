@@ -1,45 +1,66 @@
-import { mockAdminAuditLogs } from '../mocks/admin/auditLogs'
-import { getAdminBookingsFromStore } from '../mocks/admin/adminBookingStore'
-import { mockAdminCustomers } from '../mocks/admin/customers'
+import { getAdminAuditLogsApi } from '../api/analytics.api'
+import { getStaffBookingsApi } from '../api/booking.api'
+import { getAdminLoyaltyCustomersApi } from '../api/loyalty.api'
+import { mapApiAuditLog, mapApiLoyaltyCustomer } from '../lib/mappers/adminMappers'
+import { mapApiBooking } from '../lib/mappers/staffMappers'
 import type { ResearchExportDataset } from '../types/survey'
 
 export type ResearchExportFormat = 'json' | 'csv'
 
 const datasetLabels: Record<ResearchExportDataset, string> = {
-  bookings: 'Bookings',
-  customers: 'Customers',
-  loyalty: 'Loyalty',
-  audit_logs: 'Audit Logs',
+  bookings: 'Đặt lịch',
+  customers: 'Khách hàng',
+  loyalty: 'Điểm thưởng',
+  audit_logs: 'Nhật ký hệ thống',
 }
 
-function getExportRows(dataset: ResearchExportDataset): Record<string, unknown>[] {
+export async function fetchResearchExportRows(
+  dataset: ResearchExportDataset,
+): Promise<Record<string, unknown>[]> {
   switch (dataset) {
-    case 'bookings':
-      return getAdminBookingsFromStore().map((booking) => ({ ...booking }))
-    case 'customers':
-      return mockAdminCustomers.map((record) => ({
-        customer_id: record.user.id,
-        full_name: record.user.full_name,
-        phone: record.user.phone,
-        email: record.user.email,
-        tier: record.loyalty.current_tier,
-        total_spent: record.loyalty.total_spent,
-        total_visits: record.loyalty.total_visits,
-        total_points: record.loyalty.total_points,
-      }))
-    case 'loyalty':
-      return mockAdminCustomers.map((record) => ({
-        customer_id: record.user.id,
-        current_tier: record.loyalty.current_tier,
-        total_points: record.loyalty.total_points,
-        available_points: record.loyalty.available_points,
-        redeemed_points: record.loyalty.redeemed_points,
-        expired_points: record.loyalty.expired_points,
-        total_spent: record.loyalty.total_spent,
-        total_visits: record.loyalty.total_visits,
-      }))
-    case 'audit_logs':
-      return mockAdminAuditLogs.map((log) => ({ ...log }))
+    case 'bookings': {
+      const { bookings } = await getStaffBookingsApi({ limit: 100 })
+      return bookings.map((booking) => {
+        const mapped = mapApiBooking(booking)
+        return { ...mapped }
+      })
+    }
+    case 'customers': {
+      const { customers } = await getAdminLoyaltyCustomersApi({ limit: 100 })
+      return customers.map((record) => {
+        const mapped = mapApiLoyaltyCustomer(record)
+        return {
+          customer_id: mapped.user.id,
+          full_name: mapped.user.full_name,
+          phone: mapped.user.phone,
+          email: mapped.user.email,
+          tier: mapped.loyalty.current_tier,
+          total_spent: mapped.loyalty.total_spent,
+          total_visits: mapped.loyalty.total_visits,
+          total_points: mapped.loyalty.total_points,
+        }
+      })
+    }
+    case 'loyalty': {
+      const { customers } = await getAdminLoyaltyCustomersApi({ limit: 100 })
+      return customers.map((record) => {
+        const mapped = mapApiLoyaltyCustomer(record)
+        return {
+          customer_id: mapped.user.id,
+          current_tier: mapped.loyalty.current_tier,
+          total_points: mapped.loyalty.total_points,
+          available_points: mapped.loyalty.available_points,
+          redeemed_points: mapped.loyalty.redeemed_points,
+          expired_points: mapped.loyalty.expired_points,
+          total_spent: mapped.loyalty.total_spent,
+          total_visits: mapped.loyalty.total_visits,
+        }
+      })
+    }
+    case 'audit_logs': {
+      const { logs } = await getAdminAuditLogsApi({ limit: 100 })
+      return logs.map((log) => ({ ...mapApiAuditLog(log) }))
+    }
     default:
       return []
   }
@@ -69,11 +90,11 @@ export function getResearchExportLabel(dataset: ResearchExportDataset) {
   return datasetLabels[dataset]
 }
 
-export function downloadResearchExport(
+export async function downloadResearchExport(
   dataset: ResearchExportDataset,
   format: ResearchExportFormat,
 ) {
-  const rows = getExportRows(dataset)
+  const rows = await fetchResearchExportRows(dataset)
   const timestamp = new Date().toISOString().slice(0, 10)
   const filename = `carivo-${dataset}-${timestamp}.${format}`
 

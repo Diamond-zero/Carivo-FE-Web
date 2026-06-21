@@ -66,7 +66,7 @@ export function AdminGarageForm({
         </div>
 
         <div>
-          <Label htmlFor="phone">Hotline</Label>
+          <Label htmlFor="phone">Số hotline</Label>
           <Input
             id="phone"
             placeholder="02838761234"

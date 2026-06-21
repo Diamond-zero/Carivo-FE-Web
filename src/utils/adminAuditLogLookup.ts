@@ -1,4 +1,3 @@
-import { mockAdminAuditLogs } from '../mocks/admin/auditLogs'
 import type { AuditLog } from '../types/auditLog'
 import { normalizeSearchText } from './booking'
 
@@ -16,10 +15,13 @@ export const DEFAULT_ADMIN_AUDIT_LOG_FILTERS: AdminAuditLogFilters = {
   query: '',
 }
 
-export function searchAdminAuditLogs(filters: AdminAuditLogFilters): AuditLog[] {
+export function searchAdminAuditLogs(
+  filters: AdminAuditLogFilters,
+  logs: AuditLog[],
+): AuditLog[] {
   const normalizedQuery = normalizeSearchText(filters.query.trim())
 
-  return mockAdminAuditLogs.filter((log) => {
+  return logs.filter((log) => {
     if (filters.entity !== 'ALL' && log.entity !== filters.entity) {
       return false
     }
@@ -59,6 +61,6 @@ export function hasActiveAdminAuditLogFilters(filters: AdminAuditLogFilters) {
   )
 }
 
-export function getAdminAuditLogById(logId: string) {
-  return mockAdminAuditLogs.find((log) => log.id === logId)
+export function getAdminAuditLogById(logId: string, logs: AuditLog[]) {
+  return logs.find((log) => log.id === logId)
 }

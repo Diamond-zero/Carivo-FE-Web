@@ -31,6 +31,9 @@ import {
   AdminStaffFormPage,
   AdminStaffListPage,
   AdminSurveysPage,
+  AdminLoyaltyOverviewPage,
+  AdminWaitlistsPage,
+  AdminWashHistoryPage,
   AdminTierRulesPage,
   AdminWashBayManagementPage,
   BookingDetailPage,
@@ -223,10 +226,34 @@ function App() {
                   }
                 />
                 <Route
+                  path="/admin/waitlists"
+                  element={
+                    <LazyPage>
+                      <AdminWaitlistsPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/wash-histories"
+                  element={
+                    <LazyPage>
+                      <AdminWashHistoryPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
                   path="/admin/loyalty/tier-rules"
                   element={
                     <LazyPage>
                       <AdminTierRulesPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/loyalty/overview"
+                  element={
+                    <LazyPage>
+                      <AdminLoyaltyOverviewPage />
                     </LazyPage>
                   }
                 />

@@ -1,6 +1,7 @@
 import { ArrowLeft, Lock, Mail, Phone, Unlock, UserX } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
+import { getApiErrorMessage } from '../../../api/client'
 import { AdminCustomerBookingsTable } from '../../../components/admin/customer/AdminCustomerBookingsTable'
 import { CustomerLoyaltyCard } from '../../../components/customer/CustomerLoyaltyCard'
 import { CustomerVehicleList } from '../../../components/customer/CustomerVehicleList'
@@ -19,41 +20,35 @@ import { EmptyState } from '../../../components/ui/EmptyState'
 import { Modal } from '../../../components/ui/Modal'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { useToast } from '../../../contexts/ToastContext'
-import { useInitialPageSkeleton } from '../../../hooks/useInitialPageSkeleton'
 import {
-  getCustomerActiveStatus,
-  setCustomerActiveStatus,
-} from '../../../mocks/admin/customerStatusOverrides'
+  useAdminCustomerDetail,
+  useUpdateAdminCustomerStatus,
+} from '../../../hooks/api/admin/useAdminCustomers'
 import { cn } from '../../../lib/utils'
-import {
-  getAdminBookingsForCustomer,
-  getAdminCustomerLoyalty,
-  getAdminCustomerUser,
-  getAdminCustomerVehicles,
-  getLoyaltyPointHistoryForAdminCustomer,
-  getTierUpgradeHistoryForAdminCustomer,
-} from '../../../utils/adminCustomerLookup'
 
 export function AdminCustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { showToast } = useToast()
-  const isLoading = useInitialPageSkeleton(280)
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const [isActive, setIsActive] = useState(true)
 
-  const user = id ? getAdminCustomerUser(id) : undefined
-  const loyalty = id ? getAdminCustomerLoyalty(id) : undefined
-
-  useEffect(() => {
-    if (!user) return
-    setIsActive(getCustomerActiveStatus(user.id, user.is_active))
-  }, [user])
+  const {
+    user,
+    loyalty,
+    vehicles,
+    bookings,
+    tierHistory,
+    pointHistory,
+    isLoading,
+    isError,
+    error,
+  } = useAdminCustomerDetail(id)
+  const updateStatusMutation = useUpdateAdminCustomerStatus()
 
   if (!id) {
     return <Navigate to="/admin/users/customers" replace />
   }
 
-  if (!isLoading && (!user || !loyalty)) {
+  if (!isLoading && (isError || !user || !loyalty)) {
     return (
       <div>
         <PageHeader
@@ -71,7 +66,10 @@ export function AdminCustomerDetailPage() {
         <EmptyState
           icon={UserX}
           title="Khách hàng không tồn tại"
-          description="Mã khách không khớp với dữ liệu mock Admin."
+          description={getApiErrorMessage(
+            error,
+            'Mã khách không khớp với dữ liệu hệ thống.',
+          )}
           action={
             <Link to="/admin/users/customers">
               <Button>Về danh sách khách</Button>
@@ -82,34 +80,42 @@ export function AdminCustomerDetailPage() {
     )
   }
 
-  const vehicles = getAdminCustomerVehicles(id)
-  const bookings = getAdminBookingsForCustomer(id)
-  const tierUpgrades = getTierUpgradeHistoryForAdminCustomer(id)
-  const pointHistory = getLoyaltyPointHistoryForAdminCustomer(id)
+  const isActive = user?.is_active ?? true
 
   const handleToggleStatus = () => {
     if (!user) return
 
     const nextActive = !isActive
-    setCustomerActiveStatus(user.id, nextActive)
-    setIsActive(nextActive)
-    setConfirmOpen(false)
-    showToast(
-      nextActive
-        ? `Đã mở khóa tài khoản ${user.full_name}.`
-        : `Đã khóa tài khoản ${user.full_name}.`,
-      'success',
+    updateStatusMutation.mutate(
+      { userId: user.id, isActive: nextActive },
+      {
+        onSuccess: () => {
+          setConfirmOpen(false)
+          showToast(
+            nextActive
+              ? `Đã mở khóa tài khoản ${user.full_name}.`
+              : `Đã khóa tài khoản ${user.full_name}.`,
+            'success',
+          )
+        },
+        onError: (mutationError) => {
+          showToast(
+            getApiErrorMessage(mutationError, 'Không thể thay đổi trạng thái tài khoản.'),
+            'error',
+          )
+        },
+      },
     )
   }
 
   return (
     <div>
-      {isLoading ? (
+      {isLoading || !user || !loyalty ? (
         <DashboardPageSkeleton />
-      ) : user && loyalty ? (
+      ) : (
         <>
           <PageHeader
-            eyebrow="Carivo Admin"
+            eyebrow="Carivo Quản trị"
             title={user.full_name}
             description="Chi tiết khách hàng toàn hệ thống — loyalty, phương tiện và lịch sử booking."
             action={
@@ -193,7 +199,7 @@ export function AdminCustomerDetailPage() {
                 <CardTitle className="text-base">Lịch sử nâng hạ</CardTitle>
               </CardHeader>
               <CardContent>
-                <TierUpgradeHistoryList records={tierUpgrades} />
+                <TierUpgradeHistoryList records={tierHistory} />
               </CardContent>
             </Card>
 
@@ -243,13 +249,17 @@ export function AdminCustomerDetailPage() {
               <Button variant="secondary" onClick={() => setConfirmOpen(false)}>
                 Hủy
               </Button>
-              <Button variant={isActive ? 'danger' : 'primary'} onClick={handleToggleStatus}>
+              <Button
+                variant={isActive ? 'danger' : 'primary'}
+                onClick={handleToggleStatus}
+                disabled={updateStatusMutation.isPending}
+              >
                 {isActive ? 'Xác nhận khóa' : 'Xác nhận mở khóa'}
               </Button>
             </div>
           </Modal>
         </>
-      ) : null}
+      )}
     </div>
   )
 }

@@ -68,7 +68,7 @@ export function AdminServicePackageListTable({
       }),
       columnHelper.display({
         id: 'steps',
-        header: 'Steps',
+        header: 'Các bước',
         cell: ({ row }) => (
           <span className="text-sm text-slate-600">
             {row.original.steps_template.length} bước
@@ -107,7 +107,7 @@ export function AdminServicePackageListTable({
               to={`/admin/services/packages/${row.original.id}/steps`}
               className="text-sm font-medium text-slate-600 hover:text-slate-900"
             >
-              Steps
+              Các bước
             </Link>
             <Link
               to={`/admin/services/packages/${row.original.id}/edit`}

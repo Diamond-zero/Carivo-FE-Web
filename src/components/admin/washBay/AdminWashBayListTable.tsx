@@ -35,7 +35,7 @@ export function AdminWashBayListTable({
         ),
       }),
       columnHelper.accessor('garage_name', {
-        header: 'Garage',
+        header: 'Chi nhánh',
         cell: (info) => info.getValue(),
       }),
       columnHelper.accessor('vehicle_type', {

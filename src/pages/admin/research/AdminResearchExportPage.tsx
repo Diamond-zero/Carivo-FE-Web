@@ -1,5 +1,6 @@
-import { Download, FileJson, FileSpreadsheet, Loader2 } from 'lucide-react'
 import { useState } from 'react'
+import { Download, FileJson, FileSpreadsheet, Loader2 } from 'lucide-react'
+import { getApiErrorMessage } from '../../../api/client'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
@@ -7,6 +8,7 @@ import { Label } from '../../../components/ui/Label'
 import { Select } from '../../../components/ui/Select'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { useToast } from '../../../contexts/ToastContext'
+import { useAdminAuth } from '../../../contexts/AdminAuthContext'
 import { useInitialPageSkeleton } from '../../../hooks/useInitialPageSkeleton'
 import type { ResearchExportDataset } from '../../../types/survey'
 import {
@@ -23,14 +25,15 @@ const datasets: ResearchExportDataset[] = [
 ]
 
 const datasetDescriptions: Record<ResearchExportDataset, string> = {
-  bookings: '50 booking toàn hệ thống — trạng thái, giá, garage.',
-  customers: '20 khách hàng — thông tin cơ bản và loyalty.',
+  bookings: '100 booking toàn hệ thống — trạng thái, giá, garage.',
+  customers: 'Khách hàng loyalty — thông tin cơ bản và hạng.',
   loyalty: 'Điểm tích lũy, hạng và lịch sử chi tiêu khách.',
-  audit_logs: '100 audit log thao tác admin/staff.',
+  audit_logs: '100 nhật ký thao tác quản trị/nhân viên.',
 }
 
 export function AdminResearchExportPage() {
   const { showToast } = useToast()
+  const { isAuthenticated } = useAdminAuth()
   const isLoading = useInitialPageSkeleton(260)
   const [format, setFormat] = useState<ResearchExportFormat>('json')
   const [exportingDataset, setExportingDataset] = useState<ResearchExportDataset | null>(
@@ -39,14 +42,12 @@ export function AdminResearchExportPage() {
 
   const handleExport = async (dataset: ResearchExportDataset) => {
     setExportingDataset(dataset)
-    await new Promise((resolve) => setTimeout(resolve, 400))
 
     try {
-      const result = downloadResearchExport(dataset, format)
-      showToast(
-        `Đã tải ${result.filename} (${result.rowCount} dòng, mock).`,
-        'success',
-      )
+      const result = await downloadResearchExport(dataset, format)
+      showToast(`Đã tải ${result.filename} (${result.rowCount} dòng).`, 'success')
+    } catch (error) {
+      showToast(getApiErrorMessage(error, 'Không thể xuất dữ liệu.'), 'error')
     } finally {
       setExportingDataset(null)
     }
@@ -54,14 +55,14 @@ export function AdminResearchExportPage() {
 
   return (
     <div>
-      {isLoading ? (
+      {isLoading || !isAuthenticated ? (
         <DashboardPageSkeleton />
       ) : (
         <>
           <PageHeader
-            eyebrow="Carivo Admin"
-            title="Research Export"
-            description="Xuất dữ liệu nghiên cứu phục vụ khảo sát và báo cáo — tải file mock JSON/CSV."
+            eyebrow="Carivo Quản trị"
+            title="Xuất dữ liệu nghiên cứu"
+            description="Xuất dữ liệu nghiên cứu phục vụ khảo sát và báo cáo — tải file JSON/CSV từ API."
           />
 
           <Card className="mb-6 max-w-xl">
@@ -69,7 +70,7 @@ export function AdminResearchExportPage() {
               <CardTitle className="text-base">Định dạng xuất</CardTitle>
             </CardHeader>
             <CardContent>
-              <Label htmlFor="export-format">File format</Label>
+              <Label htmlFor="export-format">Định dạng file</Label>
               <Select
                 id="export-format"
                 value={format}
@@ -81,7 +82,7 @@ export function AdminResearchExportPage() {
                 <option value="csv">CSV (.csv)</option>
               </Select>
               <p className="mt-3 text-sm text-slate-500">
-                Dữ liệu lấy từ mock Admin hiện tại — không gọi API backend.
+                Dữ liệu được lấy trực tiếp từ API backend khi xuất.
               </p>
             </CardContent>
           </Card>

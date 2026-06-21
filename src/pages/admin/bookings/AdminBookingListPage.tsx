@@ -1,47 +1,42 @@
+import { useEffect, useState } from 'react'
 import { CalendarDays, CheckCircle2, Clock, XCircle } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { getApiErrorMessage } from '../../../api/client'
 import { AdminBookingListFilters } from '../../../components/admin/booking/AdminBookingListFilters'
 import { AdminBookingListTable } from '../../../components/admin/booking/AdminBookingListTable'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { StatCard } from '../../../components/ui/StatCard'
-import { useInitialPageSkeleton } from '../../../hooks/useInitialPageSkeleton'
-import { getAdminBookingsFromStore } from '../../../mocks/admin/adminBookingStore'
+import { useToast } from '../../../contexts/ToastContext'
+import {
+  useAdminBookingList,
+  useAdminBookingStats,
+} from '../../../hooks/api/admin/useAdminBookings'
 import {
   DEFAULT_ADMIN_BOOKING_FILTERS,
   hasActiveAdminBookingFilters,
-  searchAdminBookings,
   type AdminBookingFilters,
 } from '../../../utils/adminBookingLookup'
 
 export function AdminBookingListPage() {
+  const { showToast } = useToast()
   const [filters, setFilters] = useState<AdminBookingFilters>(
     DEFAULT_ADMIN_BOOKING_FILTERS,
   )
-  const [refreshKey, setRefreshKey] = useState(0)
-  const isLoading = useInitialPageSkeleton(280)
 
-  const allBookings = useMemo(
-    () => getAdminBookingsFromStore(),
-    [refreshKey],
-  )
+  const listQuery = useAdminBookingList(filters)
+  const statsQuery = useAdminBookingStats()
 
-  const bookings = useMemo(
-    () => searchAdminBookings(filters),
-    [filters, refreshKey],
-  )
+  const bookings = listQuery.data?.bookings ?? []
 
-  const inProgressCount = allBookings.filter(
-    (booking) => booking.status === 'IN_PROGRESS',
-  ).length
-  const completedCount = allBookings.filter(
-    (booking) => booking.status === 'COMPLETED',
-  ).length
-  const canceledCount = allBookings.filter((booking) =>
-    ['CANCELED', 'NO_SHOW'].includes(booking.status),
-  ).length
   const hasActiveFilter = hasActiveAdminBookingFilters(filters)
+  const isLoading = listQuery.isLoading || statsQuery.isLoading
+
+  useEffect(() => {
+    if (listQuery.isError) {
+      showToast(getApiErrorMessage(listQuery.error, 'Không tải được danh sách booking.'), 'error')
+    }
+  }, [listQuery.isError, listQuery.error, showToast])
 
   return (
     <div>
@@ -50,33 +45,33 @@ export function AdminBookingListPage() {
       ) : (
         <>
           <PageHeader
-            eyebrow="Carivo Admin"
-            title="Bookings"
+            eyebrow="Carivo Quản trị"
+            title="Đặt lịch"
             description="Xem và can thiệp booking trên toàn hệ thống — lọc theo garage, trạng thái, ngày và loại xe."
           />
 
           <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
               label="Tổng booking"
-              value={allBookings.length}
+              value={statsQuery.data?.total ?? 0}
               icon={CalendarDays}
               accent="brand"
             />
             <StatCard
               label="Đang thực hiện"
-              value={inProgressCount}
+              value={statsQuery.data?.inProgress ?? 0}
               icon={Clock}
               accent="amber"
             />
             <StatCard
               label="Hoàn thành"
-              value={completedCount}
+              value={statsQuery.data?.completed ?? 0}
               icon={CheckCircle2}
               accent="emerald"
             />
             <StatCard
-              label="Hủy / No-show"
-              value={canceledCount}
+              label="Hủy / Không đến"
+              value={statsQuery.data?.canceled ?? 0}
               icon={XCircle}
               accent="violet"
             />
@@ -86,10 +81,7 @@ export function AdminBookingListPage() {
             <AdminBookingListFilters
               filters={filters}
               onChange={setFilters}
-              onReset={() => {
-                setFilters(DEFAULT_ADMIN_BOOKING_FILTERS)
-                setRefreshKey((value) => value + 1)
-              }}
+              onReset={() => setFilters(DEFAULT_ADMIN_BOOKING_FILTERS)}
             />
           </div>
 

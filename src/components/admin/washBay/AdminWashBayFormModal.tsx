@@ -9,7 +9,7 @@ import {
   type AdminWashBayCreateValues,
   type AdminWashBayFormValues,
 } from '../../../lib/validations/adminWashBay'
-import { getAdminGaragesFromStore } from '../../../mocks/admin/adminGarageStore'
+import { useAdminGarages } from '../../../hooks/api/admin/useAdminGarages'
 import type { WashBay } from '../../../types/washBay'
 import { Button } from '../../ui/Button'
 import { Input } from '../../ui/Input'
@@ -34,7 +34,8 @@ export function AdminWashBayFormModal({
   onSubmit,
   isSubmitting = false,
 }: AdminWashBayFormModalProps) {
-  const garages = getAdminGaragesFromStore().filter((garage) => garage.is_active)
+  const { allGarages } = useAdminGarages()
+  const garages = allGarages.filter((garage) => garage.is_active)
   const isOccupied = initialBay?.status === 'OCCUPIED'
 
   const createForm = useForm<AdminWashBayCreateValues>({
@@ -110,7 +111,7 @@ export function AdminWashBayFormModal({
           className="space-y-4"
         >
           <div>
-            <Label htmlFor="create-garage_id">Garage</Label>
+            <Label htmlFor="create-garage_id">Chi nhánh</Label>
             <Select
               id="create-garage_id"
               error={createForm.formState.errors.garage_id?.message}
@@ -174,7 +175,7 @@ export function AdminWashBayFormModal({
       ) : (
         <form onSubmit={editForm.handleSubmit(onSubmit)} className="space-y-4">
           <div>
-            <Label htmlFor="edit-garage_id">Garage</Label>
+            <Label htmlFor="edit-garage_id">Chi nhánh</Label>
             <Select
               id="edit-garage_id"
               disabled={isOccupied}

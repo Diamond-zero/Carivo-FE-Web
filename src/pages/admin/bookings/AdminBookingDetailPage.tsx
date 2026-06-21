@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import {
   ArrowLeft,
   Bike,
@@ -7,8 +8,8 @@ import {
   Phone,
   User,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { getApiErrorMessage } from '../../../api/client'
 import { AdminBookingStatusPanel } from '../../../components/admin/booking/AdminBookingStatusPanel'
 import { BookingStatusBadge } from '../../../components/booking/BookingStatusBadge'
 import { BookingTimeline } from '../../../components/booking/BookingTimeline'
@@ -20,18 +21,10 @@ import { EmptyState } from '../../../components/ui/EmptyState'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { VEHICLE_TYPE_LABELS } from '../../../constants/washBayStatus'
 import { useToast } from '../../../contexts/ToastContext'
-import { useInitialPageSkeleton } from '../../../hooks/useInitialPageSkeleton'
 import {
-  getAdminGarageName,
-  getAdminServicePackageName,
-  getAdminWashBayById,
-} from '../../../mocks/admin'
-import {
-  cancelAdminBooking,
-  getAdminBookingById,
-  markAdminBookingPaid,
-  updateAdminBookingStatus,
-} from '../../../mocks/admin/adminBookingStore'
+  useAdminBookingDetail,
+  useAdminBookingMutations,
+} from '../../../hooks/api/admin/useAdminBookings'
 import type { BookingStatus } from '../../../types/booking'
 import {
   getAdminBookingCustomerName,
@@ -42,13 +35,14 @@ import { formatDateTime, formatPrice, formatTime } from '../../../utils/format'
 export function AdminBookingDetailPage() {
   const { bookingId } = useParams<{ bookingId: string }>()
   const { showToast } = useToast()
-  const isLoading = useInitialPageSkeleton(240)
-  const [refreshKey, setRefreshKey] = useState(0)
+  const { data: booking, isLoading, isError, error } = useAdminBookingDetail(bookingId)
+  const { cancelMutation, markPaidMutation, payosMutation } = useAdminBookingMutations(bookingId)
 
-  const booking = useMemo(
-    () => (bookingId ? getAdminBookingById(bookingId) : undefined),
-    [bookingId, refreshKey],
-  )
+  useEffect(() => {
+    if (isError) {
+      showToast(getApiErrorMessage(error, 'Không tải được chi tiết booking.'), 'error')
+    }
+  }, [isError, error, showToast])
 
   if (!isLoading && !booking) {
     return (
@@ -68,7 +62,7 @@ export function AdminBookingDetailPage() {
         <EmptyState
           icon={CalendarDays}
           title="Booking không tồn tại"
-          description="Mã booking không khớp với dữ liệu mock Admin."
+          description="Mã booking không khớp với dữ liệu hệ thống."
           action={
             <Link to="/admin/bookings">
               <Button>Về danh sách booking</Button>
@@ -79,26 +73,13 @@ export function AdminBookingDetailPage() {
     )
   }
 
-  const washBay = booking?.wash_bay_id
-    ? getAdminWashBayById(booking.wash_bay_id)
-    : null
   const VehicleIcon = booking?.vehicle_type === 'CAR' ? Car : Bike
 
-  const bumpRefresh = () => setRefreshKey((value) => value + 1)
-
-  const handleUpdateStatus = async (status: BookingStatus) => {
-    if (!bookingId) {
-      return { ok: false, message: 'Không xác định được booking.' }
+  const handleUpdateStatus = async (_status: BookingStatus) => {
+    return {
+      ok: false,
+      message: 'Cập nhật trạng thái thủ công chưa được hỗ trợ qua API.',
     }
-
-    const result = updateAdminBookingStatus(bookingId, status)
-    if (result.ok) {
-      bumpRefresh()
-      showToast(`Đã cập nhật trạng thái: ${status}.`, 'success')
-      return { ok: true, message: '' }
-    }
-
-    return { ok: false, message: result.message }
   }
 
   const handleMarkPaid = async () => {
@@ -106,14 +87,34 @@ export function AdminBookingDetailPage() {
       return { ok: false, message: 'Không xác định được booking.' }
     }
 
-    const result = markAdminBookingPaid(bookingId)
-    if (result.ok) {
-      bumpRefresh()
+    try {
+      await markPaidMutation.mutateAsync()
       showToast('Đã đánh dấu thanh toán.', 'success')
       return { ok: true, message: '' }
+    } catch (mutationError) {
+      return {
+        ok: false,
+        message: getApiErrorMessage(mutationError, 'Không thể đánh dấu thanh toán.'),
+      }
+    }
+  }
+
+  const handleMarkPaidPayos = async () => {
+    if (!bookingId) {
+      return { ok: false, message: 'Không xác định được booking.' }
     }
 
-    return { ok: false, message: result.message }
+    try {
+      const payment = await payosMutation.mutateAsync()
+      const checkoutUrl = payment.checkout_url
+      showToast('Đã tạo link thanh toán PayOS.', 'success')
+      return { ok: true, message: '', checkoutUrl }
+    } catch (mutationError) {
+      return {
+        ok: false,
+        message: getApiErrorMessage(mutationError, 'Không tạo được thanh toán PayOS.'),
+      }
+    }
   }
 
   const handleCancel = async () => {
@@ -121,14 +122,16 @@ export function AdminBookingDetailPage() {
       return { ok: false, message: 'Không xác định được booking.' }
     }
 
-    const result = cancelAdminBooking(bookingId)
-    if (result.ok) {
-      bumpRefresh()
+    try {
+      await cancelMutation.mutateAsync()
       showToast('Đã hủy booking.', 'success')
       return { ok: true, message: '' }
+    } catch (mutationError) {
+      return {
+        ok: false,
+        message: getApiErrorMessage(mutationError, 'Không thể hủy booking.'),
+      }
     }
-
-    return { ok: false, message: result.message }
   }
 
   return (
@@ -138,9 +141,9 @@ export function AdminBookingDetailPage() {
       ) : (
         <>
           <PageHeader
-            eyebrow="Carivo Admin"
+            eyebrow="Carivo Quản trị"
             title={`Booking ${booking.id.replace('booking-', 'BK-')}`}
-            description={`${getAdminServicePackageName(booking.service_package_id)} · ${getAdminGarageName(booking.garage_id)}`}
+            description={`${booking.service_package_name ?? booking.service_package_id} · ${booking.garage_id}`}
             action={
               <Link to="/admin/bookings">
                 <Button variant="secondary">
@@ -156,7 +159,7 @@ export function AdminBookingDetailPage() {
             <PaymentStatusBadge status={booking.payment_status} />
             {booking.is_walk_in ? (
               <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-medium text-violet-700">
-                Walk-in
+                Vãng lai
               </span>
             ) : null}
           </div>
@@ -168,10 +171,11 @@ export function AdminBookingDetailPage() {
               </CardHeader>
               <CardContent>
                 <AdminBookingStatusPanel
-                  key={`${booking.id}-${booking.status}-${booking.payment_status}-${refreshKey}`}
+                  key={`${booking.id}-${booking.status}-${booking.payment_status}`}
                   booking={booking}
                   onUpdateStatus={handleUpdateStatus}
                   onMarkPaid={handleMarkPaid}
+                  onMarkPaidPayos={handleMarkPaidPayos}
                   onCancel={handleCancel}
                 />
               </CardContent>
@@ -288,11 +292,11 @@ export function AdminBookingDetailPage() {
                   <CardTitle className="text-base">Buồng rửa</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {washBay ? (
+                  {booking.wash_bay_name ? (
                     <div className="rounded-xl bg-brand-50 px-4 py-3">
-                      <p className="font-medium text-slate-900">{washBay.name}</p>
+                      <p className="font-medium text-slate-900">{booking.wash_bay_name}</p>
                       <p className="text-sm text-slate-600">
-                        {washBay.bay_code} · {VEHICLE_TYPE_LABELS[washBay.vehicle_type]}
+                        {booking.wash_bay_code} · {VEHICLE_TYPE_LABELS[booking.vehicle_type]}
                       </p>
                     </div>
                   ) : (

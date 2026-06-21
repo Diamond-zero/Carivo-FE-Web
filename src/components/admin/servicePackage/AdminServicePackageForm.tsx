@@ -12,7 +12,7 @@ import {
   adminServicePackageFormSchema,
   type AdminServicePackageFormValues,
 } from '../../../lib/validations/adminServicePackage'
-import { getAdminServicePackagesFromStore } from '../../../mocks/admin/adminServicePackageStore'
+import { useAdminServicePackages } from '../../../hooks/api/admin/useAdminServicePackages'
 import type { ServicePackage } from '../../../types/servicePackage'
 import { Button } from '../../ui/Button'
 import { Input } from '../../ui/Input'
@@ -33,7 +33,7 @@ export function AdminServicePackageForm({
   onSubmit,
   isSubmitting = false,
 }: AdminServicePackageFormProps) {
-  const allPackages = getAdminServicePackagesFromStore()
+  const { allPackages } = useAdminServicePackages()
 
   const {
     register,
@@ -243,7 +243,7 @@ export function AdminServicePackageForm({
       {mode === 'edit' && initialPackage ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200/80 bg-slate-50/80 p-4">
           <div className="text-sm text-slate-600">
-            <p className="font-semibold text-slate-800">Steps template</p>
+            <p className="font-semibold text-slate-800">Mẫu các bước</p>
             <p className="mt-1">
               {initialPackage.steps_template.length} bước thực hiện — kéo thả, chỉnh hướng dẫn từng
               bước.
@@ -252,7 +252,7 @@ export function AdminServicePackageForm({
           <Link to={`/admin/services/packages/${initialPackage.id}/steps`}>
             <Button type="button" variant="secondary" size="sm">
               <ListOrdered className="h-4 w-4" />
-              Mở Steps Editor
+              Mở trình soạn bước
             </Button>
           </Link>
         </div>

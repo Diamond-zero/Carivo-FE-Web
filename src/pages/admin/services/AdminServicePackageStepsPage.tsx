@@ -1,6 +1,6 @@
 import { ArrowLeft, ListOrdered, Package } from 'lucide-react'
-import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { getApiErrorMessage } from '../../../api/client'
 import { AdminStepsTemplateEditor } from '../../../components/admin/servicePackage/AdminStepsTemplateEditor'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Button } from '../../../components/ui/Button'
@@ -8,11 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { useToast } from '../../../contexts/ToastContext'
-import { useInitialPageSkeleton } from '../../../hooks/useInitialPageSkeleton'
 import {
-  getAdminServicePackageById,
-  updateAdminServicePackageSteps,
-} from '../../../mocks/admin/adminServicePackageStore'
+  useAdminServicePackage,
+  useUpdateAdminServicePackageSteps,
+} from '../../../hooks/api/admin/useAdminServicePackages'
 import type { ServiceStepTemplate } from '../../../types/servicePackage'
 
 function getPackageSlug(packageId: string, packageName: string) {
@@ -30,16 +29,14 @@ function getPackageSlug(packageId: string, packageName: string) {
 export function AdminServicePackageStepsPage() {
   const { packageId } = useParams<{ packageId: string }>()
   const { showToast } = useToast()
-  const isLoading = useInitialPageSkeleton(240)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [refreshKey, setRefreshKey] = useState(0)
 
-  const pkg = useMemo(
-    () => (packageId ? getAdminServicePackageById(packageId) : undefined),
-    [packageId, refreshKey],
-  )
+  const packageQuery = useAdminServicePackage(packageId)
+  const updateStepsMutation = useUpdateAdminServicePackageSteps()
 
-  if (!isLoading && !pkg) {
+  const pkg = packageQuery.data
+  const isSubmitting = updateStepsMutation.isPending
+
+  if (!packageQuery.isLoading && (packageQuery.isError || !pkg)) {
     return (
       <div>
         <PageHeader
@@ -57,7 +54,10 @@ export function AdminServicePackageStepsPage() {
         <EmptyState
           icon={Package}
           title="Gói không tồn tại"
-          description="Mã gói không khớp với dữ liệu mock Admin."
+          description={getApiErrorMessage(
+            packageQuery.error,
+            'Mã gói không khớp với dữ liệu hệ thống.',
+          )}
           action={
             <Link to="/admin/services/packages">
               <Button>Về danh sách gói dịch vụ</Button>
@@ -71,30 +71,34 @@ export function AdminServicePackageStepsPage() {
   const handleSave = async (steps: ServiceStepTemplate[]) => {
     if (!packageId) return
 
-    setIsSubmitting(true)
-    try {
-      const result = updateAdminServicePackageSteps(packageId, steps)
-      if (!result.ok) {
-        showToast(result.message, 'error')
-        return
-      }
-
-      setRefreshKey((value) => value + 1)
-      showToast(`Đã cập nhật ${result.package.steps_template.length} bước cho ${result.package.name}.`, 'success')
-    } finally {
-      setIsSubmitting(false)
-    }
+    updateStepsMutation.mutate(
+      { packageId, steps },
+      {
+        onSuccess: (updated) => {
+          showToast(
+            `Đã cập nhật ${updated.steps_template.length} bước cho ${updated.name}.`,
+            'success',
+          )
+        },
+        onError: (error) => {
+          showToast(
+            getApiErrorMessage(error, 'Không thể cập nhật mẫu các bước.'),
+            'error',
+          )
+        },
+      },
+    )
   }
 
   return (
     <div>
-      {isLoading || !pkg ? (
+      {packageQuery.isLoading || !pkg ? (
         <DashboardPageSkeleton />
       ) : (
         <>
           <PageHeader
-            eyebrow="Carivo Admin"
-            title="Steps Template Editor"
+            eyebrow="Carivo Quản trị"
+            title="Trình soạn các bước"
             description={`Chỉnh sửa quy trình thực hiện cho gói ${pkg.name}`}
             action={
               <div className="flex flex-wrap gap-2">
@@ -120,7 +124,7 @@ export function AdminServicePackageStepsPage() {
             </CardHeader>
             <CardContent>
               <AdminStepsTemplateEditor
-                key={`${pkg.id}-${refreshKey}`}
+                key={pkg.id}
                 packageSlug={getPackageSlug(pkg.id, pkg.name)}
                 initialSteps={pkg.steps_template}
                 onSave={handleSave}

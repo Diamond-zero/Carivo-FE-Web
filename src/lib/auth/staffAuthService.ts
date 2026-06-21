@@ -1,18 +1,13 @@
 import { loginApi, logoutApi } from '../../api/auth.api'
-import { getGarageByIdApi, getMyStaffProfileApi } from '../../api/staff.api'
 import { getApiStatusCode } from '../../api/client'
 import type { ApiUser } from '../../types/api'
 import { STAFF_SESSION_STORAGE_KEY } from './constants'
-import {
-  mapApiGarage,
-  mapApiStaffProfile,
-  mapApiUser,
-} from './mapApiTypes'
 import {
   MockLoginError,
   mockStaffLogin,
   type StaffAuthSession,
 } from './mockStaffLogin'
+import { buildStaffSessionFromProfile } from './staffSessionBuilder'
 import { clearAccessToken, getAccessToken, setAccessToken } from './tokenStorage'
 
 let staffLoginInFlight: Promise<StaffAuthSession> | null = null
@@ -31,32 +26,18 @@ function assertStaffLogin(user: ApiUser) {
   }
 }
 
-async function buildStaffSessionFromProfile(): Promise<StaffAuthSession> {
-  const profile = await getMyStaffProfileApi()
-
-  if (!profile.is_active) {
-    throw new MockLoginError('STAFF_INACTIVE')
-  }
-
-  if (!profile.user) {
-    throw new MockLoginError('NO_STAFF_PROFILE')
-  }
-
-  const garage = await getGarageByIdApi(profile.garage_id)
-
-  return {
-    user: mapApiUser(profile.user),
-    staffProfile: mapApiStaffProfile(profile),
-    garage: mapApiGarage(garage),
-  }
-}
+export type { StaffAuthSession } from './mockStaffLogin'
 
 export function persistStaffSession(session: StaffAuthSession) {
   sessionStorage.setItem(STAFF_SESSION_STORAGE_KEY, JSON.stringify(session))
 }
 
-export function clearStaffSession() {
+export function clearStaffSessionStorage() {
   sessionStorage.removeItem(STAFF_SESSION_STORAGE_KEY)
+}
+
+export function clearStaffSession() {
+  clearStaffSessionStorage()
   clearAccessToken()
 }
 

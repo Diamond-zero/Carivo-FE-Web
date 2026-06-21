@@ -2,52 +2,71 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
 import {
-  clearAdminSession,
-  clearStaffSession,
-  mockAuthLogin,
-  persistAdminSession,
-  readStoredAdminSession,
+  adminLogin,
+  adminLogout,
+  restoreAdminSession,
   type AdminAuthSession,
-} from '../lib/auth/mockAuthLogin'
+} from '../lib/auth/adminAuthService'
 import { MockLoginError } from '../lib/auth/mockStaffLogin'
+import { clearStaffSessionStorage } from '../lib/auth/staffAuthService'
 
 interface AdminAuthContextValue {
   session: AdminAuthSession | null
   isAuthenticated: boolean
+  isInitializing: boolean
   login: (phone: string, password: string) => Promise<AdminAuthSession>
-  logout: () => void
+  establishSession: (session: AdminAuthSession) => void
+  logout: () => Promise<void>
 }
 
 const AdminAuthContext = createContext<AdminAuthContextValue | null>(null)
 
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<AdminAuthSession | null>(() =>
-    readStoredAdminSession(),
-  )
+  const [session, setSession] = useState<AdminAuthSession | null>(null)
+  const [isInitializing, setIsInitializing] = useState(true)
 
-  const login = useCallback(async (phone: string, password: string) => {
-    await new Promise((resolve) => setTimeout(resolve, 300))
+  useEffect(() => {
+    let cancelled = false
 
-    const result = mockAuthLogin(phone, password)
-    if (result.type !== 'admin') {
-      throw new MockLoginError(
-        result.type === 'staff' ? 'NOT_ADMIN_ROLE' : 'NOT_STAFF_ROLE',
-      )
+    async function init() {
+      try {
+        const restored = await restoreAdminSession()
+        if (!cancelled) {
+          setSession(restored)
+        }
+      } finally {
+        if (!cancelled) {
+          setIsInitializing(false)
+        }
+      }
     }
 
-    clearStaffSession()
-    persistAdminSession(result.session)
-    setSession(result.session)
-    return result.session
+    void init()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  const logout = useCallback(() => {
-    clearAdminSession()
+  const establishSession = useCallback((nextSession: AdminAuthSession) => {
+    setSession(nextSession)
+  }, [])
+
+  const login = useCallback(async (phone: string, password: string) => {
+    clearStaffSessionStorage()
+    const nextSession = await adminLogin(phone, password)
+    setSession(nextSession)
+    return nextSession
+  }, [])
+
+  const logout = useCallback(async () => {
+    await adminLogout()
     setSession(null)
   }, [])
 
@@ -55,10 +74,12 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     () => ({
       session,
       isAuthenticated: Boolean(session),
+      isInitializing,
       login,
+      establishSession,
       logout,
     }),
-    [session, login, logout],
+    [session, isInitializing, login, establishSession, logout],
   )
 
   return (
@@ -73,3 +94,5 @@ export function useAdminAuth() {
   }
   return context
 }
+
+export { MockLoginError }

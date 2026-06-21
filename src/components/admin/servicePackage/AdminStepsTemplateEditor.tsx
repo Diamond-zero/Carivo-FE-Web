@@ -125,7 +125,7 @@ export function AdminStepsTemplateEditor({
 
     const parsed = adminServicePackageStepsSchema.safeParse({ steps: sanitized })
     if (!parsed.success) {
-      setFormError(parsed.error.issues[0]?.message ?? 'Dữ liệu steps không hợp lệ.')
+      setFormError(parsed.error.issues[0]?.message ?? 'Dữ liệu các bước không hợp lệ.')
       return
     }
 
@@ -315,7 +315,7 @@ export function AdminStepsTemplateEditor({
               Đang lưu...
             </>
           ) : (
-            'Lưu steps template'
+            'Lưu mẫu các bước'
           )}
         </Button>
       </div>
@@ -326,7 +326,7 @@ export function AdminStepsTemplateEditor({
         title="Xóa bước thực hiện?"
         description={
           deleteIndex !== null
-            ? `Bước "${steps[deleteIndex]?.step_name}" sẽ bị xóa khỏi template.`
+            ? `Bước "${steps[deleteIndex]?.step_name}" sẽ bị xóa khỏi mẫu.`
             : undefined
         }
       >

@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { clearAdminSession } from '../lib/auth/mockAuthLogin'
+import { clearAdminSession } from '../lib/auth/adminAuthService'
 import {
   MockLoginError,
   type StaffAuthSession,
@@ -24,6 +24,7 @@ interface AuthContextValue {
   isAuthenticated: boolean
   isInitializing: boolean
   login: (phone: string, password: string) => Promise<StaffAuthSession>
+  establishSession: (session: StaffAuthSession) => void
   logout: () => Promise<void>
   refreshSession: () => Promise<StaffAuthSession>
 }
@@ -57,6 +58,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const establishSession = useCallback((nextSession: StaffAuthSession) => {
+    setSession(nextSession)
+  }, [])
+
   const login = useCallback(async (phone: string, password: string) => {
     clearAdminSession()
     const nextSession = await staffLogin(phone, password)
@@ -81,10 +86,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: Boolean(session),
       isInitializing,
       login,
+      establishSession,
       logout,
       refreshSession,
     }),
-    [session, isInitializing, login, logout, refreshSession],
+    [session, isInitializing, login, establishSession, logout, refreshSession],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

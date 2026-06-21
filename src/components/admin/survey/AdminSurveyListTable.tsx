@@ -53,7 +53,7 @@ export function AdminSurveyListTable({
         ),
       }),
       columnHelper.accessor('garage_name', {
-        header: 'Garage',
+        header: 'Chi nhánh',
         cell: (info) => info.getValue(),
       }),
       columnHelper.accessor('rating', {

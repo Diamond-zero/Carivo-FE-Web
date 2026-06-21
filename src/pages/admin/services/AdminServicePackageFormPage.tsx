@@ -1,6 +1,6 @@
 import { ArrowLeft, Package } from 'lucide-react'
-import { useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { getApiErrorMessage } from '../../../api/client'
 import { AdminServicePackageForm } from '../../../components/admin/servicePackage/AdminServicePackageForm'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Button } from '../../../components/ui/Button'
@@ -8,26 +8,29 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { useToast } from '../../../contexts/ToastContext'
-import { useInitialPageSkeleton } from '../../../hooks/useInitialPageSkeleton'
-import type { AdminServicePackageFormValues } from '../../../lib/validations/adminServicePackage'
 import {
-  createAdminServicePackage,
-  getAdminServicePackageById,
-  updateAdminServicePackage,
-} from '../../../mocks/admin/adminServicePackageStore'
+  useAdminServicePackage,
+  useCreateAdminServicePackage,
+  useUpdateAdminServicePackage,
+} from '../../../hooks/api/admin/useAdminServicePackages'
+import type { AdminServicePackageFormValues } from '../../../lib/validations/adminServicePackage'
 
 export function AdminServicePackageFormPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { packageId } = useParams<{ packageId: string }>()
   const { showToast } = useToast()
-  const isLoading = useInitialPageSkeleton(240)
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const isCreate = location.pathname.endsWith('/new')
-  const pkg = !isCreate && packageId ? getAdminServicePackageById(packageId) : undefined
+  const packageQuery = useAdminServicePackage(!isCreate ? packageId : undefined)
+  const createMutation = useCreateAdminServicePackage()
+  const updateMutation = useUpdateAdminServicePackage()
 
-  if (!isLoading && !isCreate && !pkg) {
+  const pkg = packageQuery.data
+  const isSubmitting = createMutation.isPending || updateMutation.isPending
+  const isLoading = !isCreate && packageQuery.isLoading
+
+  if (!isCreate && !isLoading && (packageQuery.isError || !pkg)) {
     return (
       <div>
         <PageHeader
@@ -45,7 +48,10 @@ export function AdminServicePackageFormPage() {
         <EmptyState
           icon={Package}
           title="Gói không tồn tại"
-          description="Mã gói không khớp với dữ liệu mock Admin."
+          description={getApiErrorMessage(
+            packageQuery.error,
+            'Mã gói không khớp với dữ liệu hệ thống.',
+          )}
           action={
             <Link to="/admin/services/packages">
               <Button>Về danh sách gói dịch vụ</Button>
@@ -57,47 +63,51 @@ export function AdminServicePackageFormPage() {
   }
 
   const handleSubmit = async (values: AdminServicePackageFormValues) => {
-    setIsSubmitting(true)
-
-    try {
-      const payload = {
-        name: values.name,
-        vehicle_type: values.vehicle_type,
-        service_type: values.service_type,
-        description: values.description,
-        base_price: values.base_price,
-        duration_minutes: values.duration_minutes,
-        wash_bay_duration_minutes: values.requires_wash_bay
-          ? values.wash_bay_duration_minutes ?? null
-          : null,
-        points_earned: values.points_earned,
-        requires_wash_bay: values.requires_wash_bay,
-        requires_care_staff: values.requires_care_staff,
-        included_service_ids:
-          values.service_type === 'COMBO' ? values.included_service_ids : [],
-        is_active: values.is_active,
-      }
-
-      if (isCreate) {
-        const result = createAdminServicePackage(payload)
-        showToast(`Đã tạo gói ${result.package.name}.`, 'success')
-        navigate('/admin/services/packages')
-        return
-      }
-
-      if (!packageId) return
-
-      const result = updateAdminServicePackage(packageId, payload)
-      if (!result.ok) {
-        showToast(result.message, 'error')
-        return
-      }
-
-      showToast(`Đã cập nhật ${result.package.name}.`, 'success')
-      navigate('/admin/services/packages')
-    } finally {
-      setIsSubmitting(false)
+    const payload = {
+      name: values.name,
+      vehicle_type: values.vehicle_type,
+      service_type: values.service_type,
+      description: values.description,
+      base_price: values.base_price,
+      duration_minutes: values.duration_minutes,
+      wash_bay_duration_minutes: values.requires_wash_bay
+        ? values.wash_bay_duration_minutes ?? null
+        : null,
+      points_earned: values.points_earned,
+      requires_wash_bay: values.requires_wash_bay,
+      requires_care_staff: values.requires_care_staff,
+      included_service_ids:
+        values.service_type === 'COMBO' ? values.included_service_ids : [],
+      is_active: values.is_active,
     }
+
+    if (isCreate) {
+      createMutation.mutate(payload, {
+        onSuccess: (created) => {
+          showToast(`Đã tạo gói ${created.name}.`, 'success')
+          navigate('/admin/services/packages')
+        },
+        onError: (error) => {
+          showToast(getApiErrorMessage(error, 'Không thể tạo gói dịch vụ.'), 'error')
+        },
+      })
+      return
+    }
+
+    if (!packageId) return
+
+    updateMutation.mutate(
+      { packageId, payload },
+      {
+        onSuccess: (updated) => {
+          showToast(`Đã cập nhật ${updated.name}.`, 'success')
+          navigate('/admin/services/packages')
+        },
+        onError: (error) => {
+          showToast(getApiErrorMessage(error, 'Không thể cập nhật gói dịch vụ.'), 'error')
+        },
+      },
+    )
   }
 
   return (
@@ -107,7 +117,7 @@ export function AdminServicePackageFormPage() {
       ) : (
         <>
           <PageHeader
-            eyebrow="Carivo Admin"
+            eyebrow="Carivo Quản trị"
             title={isCreate ? 'Thêm gói dịch vụ' : 'Sửa gói dịch vụ'}
             description={
               isCreate

@@ -45,13 +45,13 @@ export interface AdminNavItem {
 
 export const adminNavItems: AdminNavItem[] = [
   {
-    label: 'Dashboard',
+    label: 'Bảng điều khiển',
     path: '/admin/dashboard',
     icon: LayoutDashboard,
     section: 'overview',
   },
   {
-    label: 'Users',
+    label: 'Người dùng',
     icon: Users,
     section: 'management',
     children: [
@@ -60,65 +60,69 @@ export const adminNavItems: AdminNavItem[] = [
     ],
   },
   {
-    label: 'Garages',
+    label: 'Garage',
     icon: Building2,
     section: 'management',
     children: [
-      { label: 'Danh sách', path: '/admin/garages' },
+      { label: 'Danh sách garage', path: '/admin/garages' },
       { label: 'Buồng rửa', path: '/admin/garages/wash-bays' },
     ],
   },
   {
-    label: 'Service Packages',
+    label: 'Gói dịch vụ',
     path: '/admin/services/packages',
     icon: Package,
     section: 'management',
   },
   {
-    label: 'Bookings',
-    path: '/admin/bookings',
+    label: 'Đặt lịch',
     icon: ClipboardList,
     section: 'management',
+    children: [
+      { label: 'Danh sách booking', path: '/admin/bookings' },
+      { label: 'Danh sách chờ', path: '/admin/waitlists' },
+      { label: 'Lịch sử rửa', path: '/admin/wash-histories' },
+    ],
   },
   {
     label: 'Loyalty',
     icon: Star,
     section: 'management',
     children: [
-      { label: 'Tier Rules', path: '/admin/loyalty/tier-rules' },
-      { label: 'Overview', path: '/admin/loyalty/overview' },
+      { label: 'Quy tắc hạng', path: '/admin/loyalty/tier-rules' },
+      { label: 'Tổng quan điểm', path: '/admin/loyalty/overview' },
     ],
   },
   {
-    label: 'Promotions',
+    label: 'Khuyến mãi',
     path: '/admin/promotions',
     icon: Gift,
     section: 'management',
   },
   {
-    label: 'Analytics',
+    label: 'Phân tích',
     icon: BarChart3,
     section: 'insights',
     children: [
-      { label: 'Revenue', path: '/admin/analytics/revenue' },
-      { label: 'Bookings', path: '/admin/analytics/bookings' },
-      { label: 'WashBay Performance', path: '/admin/analytics/wash-bay' },
+      { label: 'Doanh thu', path: '/admin/analytics/revenue' },
+      { label: 'Booking', path: '/admin/analytics/bookings' },
+      { label: 'Hiệu suất buồng rửa', path: '/admin/analytics/wash-bay' },
     ],
   },
   {
-    label: 'Research Export',
+    label: 'Xuất dữ liệu',
     path: '/admin/research/export',
     icon: FileSearch,
     section: 'insights',
   },
   {
-    label: 'Surveys',
+    label: 'Khảo sát',
     path: '/admin/surveys',
     icon: MessageSquare,
     section: 'insights',
   },
   {
-    label: 'Audit Logs',
+    label: 'Nhật ký hệ thống',
     path: '/admin/audit-logs',
     icon: ScrollText,
     section: 'system',
@@ -131,13 +135,15 @@ export const adminNavItems: AdminNavItem[] = [
   },
 ]
 
-/** Path prefixes that auto-expand matching sidebar groups. */
 export const ADMIN_NAV_EXPAND_PREFIXES: Array<{
   prefix: string
   groupLabel: string
 }> = [
-  { prefix: '/admin/users', groupLabel: 'Users' },
-  { prefix: '/admin/garages', groupLabel: 'Garages' },
+  { prefix: '/admin/users', groupLabel: 'Người dùng' },
+  { prefix: '/admin/garages', groupLabel: 'Garage' },
+  { prefix: '/admin/bookings', groupLabel: 'Đặt lịch' },
+  { prefix: '/admin/waitlists', groupLabel: 'Đặt lịch' },
+  { prefix: '/admin/wash-histories', groupLabel: 'Đặt lịch' },
   { prefix: '/admin/loyalty', groupLabel: 'Loyalty' },
-  { prefix: '/admin/analytics', groupLabel: 'Analytics' },
+  { prefix: '/admin/analytics', groupLabel: 'Phân tích' },
 ]

@@ -37,7 +37,7 @@ export function AdminAuditLogListTable({
         ),
       }),
       columnHelper.accessor('entity', {
-        header: 'Entity',
+        header: 'Đối tượng',
         cell: (info) => (
           <span className="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-700">
             {info.getValue()}
@@ -45,7 +45,7 @@ export function AdminAuditLogListTable({
         ),
       }),
       columnHelper.accessor('entity_id', {
-        header: 'Entity ID',
+        header: 'Mã đối tượng',
         cell: (info) => (
           <span className="font-mono text-xs text-slate-500">{info.getValue()}</span>
         ),
@@ -66,7 +66,7 @@ export function AdminAuditLogListTable({
         ),
       }),
       columnHelper.accessor('actor_id', {
-        header: 'Actor',
+        header: 'Người thực hiện',
         cell: (info) => (
           <span className="font-mono text-xs text-slate-600">{info.getValue()}</span>
         ),
@@ -94,9 +94,9 @@ export function AdminAuditLogListTable({
       data={logs}
       emptyState={{
         icon: ScrollText,
-        title: hasActiveFilter ? 'Không tìm thấy audit log' : 'Chưa có audit log',
+        title: hasActiveFilter ? 'Không tìm thấy nhật ký' : 'Chưa có nhật ký',
         description: hasActiveFilter
-          ? 'Thử đổi bộ lọc entity, action hoặc từ khóa.'
+          ? 'Thử đổi bộ lọc đối tượng, hành động hoặc từ khóa.'
           : 'Nhật ký thao tác sẽ hiển thị tại đây.',
       }}
     />

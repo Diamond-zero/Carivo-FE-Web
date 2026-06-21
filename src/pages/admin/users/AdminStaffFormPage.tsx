@@ -1,6 +1,6 @@
 import { ArrowLeft, UserX } from 'lucide-react'
-import { useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { getApiErrorMessage } from '../../../api/client'
 import { AdminStaffForm } from '../../../components/admin/staff/AdminStaffForm'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Button } from '../../../components/ui/Button'
@@ -8,13 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { useToast } from '../../../contexts/ToastContext'
-import { useInitialPageSkeleton } from '../../../hooks/useInitialPageSkeleton'
-import type { AdminStaffFormValues } from '../../../lib/validations/adminStaff'
 import {
-  createAdminStaffRecord,
-  getAdminStaffRecordByProfileId,
-  updateAdminStaffRecord,
-} from '../../../mocks/admin/adminStaffStore'
+  useAdminStaffProfile,
+  useCreateAdminStaff,
+  useUpdateAdminStaff,
+} from '../../../hooks/api/admin/useAdminStaff'
+import type { AdminStaffFormValues } from '../../../lib/validations/adminStaff'
 import type { StaffType } from '../../../types/staffProfile'
 
 export function AdminStaffFormPage() {
@@ -22,14 +21,17 @@ export function AdminStaffFormPage() {
   const location = useLocation()
   const { profileId } = useParams<{ profileId: string }>()
   const { showToast } = useToast()
-  const isLoading = useInitialPageSkeleton(240)
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const isCreate = location.pathname.endsWith('/new')
-  const record =
-    !isCreate && profileId ? getAdminStaffRecordByProfileId(profileId) : undefined
+  const profileQuery = useAdminStaffProfile(!isCreate ? profileId : undefined)
+  const createMutation = useCreateAdminStaff()
+  const updateMutation = useUpdateAdminStaff()
 
-  if (!isLoading && !isCreate && !record) {
+  const record = profileQuery.data ?? undefined
+  const isSubmitting = createMutation.isPending || updateMutation.isPending
+  const isLoading = !isCreate && profileQuery.isLoading
+
+  if (!isCreate && !isLoading && (profileQuery.isError || !record)) {
     return (
       <div>
         <PageHeader
@@ -47,7 +49,10 @@ export function AdminStaffFormPage() {
         <EmptyState
           icon={UserX}
           title="Hồ sơ không tồn tại"
-          description="Mã hồ sơ không khớp với dữ liệu mock Admin."
+          description={getApiErrorMessage(
+            profileQuery.error,
+            'Mã hồ sơ không khớp với dữ liệu hệ thống.',
+          )}
           action={
             <Link to="/admin/users/staff">
               <Button>Về danh sách nhân viên</Button>
@@ -59,47 +64,50 @@ export function AdminStaffFormPage() {
   }
 
   const handleSubmit = async (values: AdminStaffFormValues) => {
-    setIsSubmitting(true)
-
-    try {
-      if (isCreate) {
-        const result = createAdminStaffRecord({
+    if (isCreate) {
+      createMutation.mutate(
+        {
           user_id: values.user_id,
           staff_code: values.staff_code,
           staff_type: values.staff_type as StaffType,
           garage_id: values.garage_id,
           is_active: values.is_active,
-        })
-
-        if (!result.ok) {
-          showToast(result.message, 'error')
-          return
-        }
-
-        showToast(`Đã tạo hồ sơ ${result.record.profile.staff_code}.`, 'success')
-        navigate('/admin/users/staff')
-        return
-      }
-
-      if (!profileId) return
-
-      const result = updateAdminStaffRecord(profileId, {
-        staff_code: values.staff_code,
-        staff_type: values.staff_type as StaffType,
-        garage_id: values.garage_id,
-        is_active: values.is_active,
-      })
-
-      if (!result.ok) {
-        showToast(result.message, 'error')
-        return
-      }
-
-      showToast(`Đã cập nhật ${result.record.profile.staff_code}.`, 'success')
-      navigate('/admin/users/staff')
-    } finally {
-      setIsSubmitting(false)
+        },
+        {
+          onSuccess: (created) => {
+            showToast(`Đã tạo hồ sơ ${created.profile.staff_code}.`, 'success')
+            navigate('/admin/users/staff')
+          },
+          onError: (error) => {
+            showToast(getApiErrorMessage(error, 'Không thể tạo hồ sơ nhân viên.'), 'error')
+          },
+        },
+      )
+      return
     }
+
+    if (!profileId) return
+
+    updateMutation.mutate(
+      {
+        profileId,
+        payload: {
+          staff_code: values.staff_code,
+          staff_type: values.staff_type as StaffType,
+          garage_id: values.garage_id,
+          is_active: values.is_active,
+        },
+      },
+      {
+        onSuccess: (updated) => {
+          showToast(`Đã cập nhật ${updated.profile.staff_code}.`, 'success')
+          navigate('/admin/users/staff')
+        },
+        onError: (error) => {
+          showToast(getApiErrorMessage(error, 'Không thể cập nhật hồ sơ nhân viên.'), 'error')
+        },
+      },
+    )
   }
 
   return (
@@ -109,7 +117,7 @@ export function AdminStaffFormPage() {
       ) : (
         <>
           <PageHeader
-            eyebrow="Carivo Admin"
+            eyebrow="Carivo Quản trị"
             title={isCreate ? 'Thêm nhân viên' : 'Sửa hồ sơ nhân viên'}
             description={
               isCreate
