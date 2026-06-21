@@ -26,7 +26,7 @@ export function AdminAuditLogDetailModal({ log, onClose }: AdminAuditLogDetailMo
     <Modal
       open={log !== null}
       onClose={onClose}
-      title={log ? `Audit ${log.id}` : 'Audit log'}
+      title={log ? `Nhật ký ${log.id}` : 'Nhật ký hệ thống'}
       description={
         log
           ? `${AUDIT_ACTION_LABELS[log.action] ?? log.action} · ${log.entity} · ${formatDateTime(log.created_at)}`
@@ -38,7 +38,7 @@ export function AdminAuditLogDetailModal({ log, onClose }: AdminAuditLogDetailMo
         <div className="space-y-4 text-sm">
           <dl className="grid gap-3 sm:grid-cols-2">
             <div>
-              <dt className="text-slate-500">Actor</dt>
+              <dt className="text-slate-500">Người thực hiện</dt>
               <dd className="font-mono text-slate-900">{log.actor_id}</dd>
             </div>
             <div>
@@ -46,16 +46,16 @@ export function AdminAuditLogDetailModal({ log, onClose }: AdminAuditLogDetailMo
               <dd className="font-medium text-slate-900">{log.actor_role}</dd>
             </div>
             <div>
-              <dt className="text-slate-500">Entity ID</dt>
+              <dt className="text-slate-500">Mã đối tượng</dt>
               <dd className="font-mono text-slate-900">{log.entity_id}</dd>
             </div>
             <div>
-              <dt className="text-slate-500">Entity</dt>
+              <dt className="text-slate-500">Đối tượng</dt>
               <dd className="font-medium text-slate-900">{log.entity}</dd>
             </div>
           </dl>
-          <JsonBlock label="old_value" value={log.old_value} />
-          <JsonBlock label="new_value" value={log.new_value} />
+          <JsonBlock label="Giá trị cũ" value={log.old_value} />
+          <JsonBlock label="Giá trị mới" value={log.new_value} />
         </div>
       ) : null}
     </Modal>

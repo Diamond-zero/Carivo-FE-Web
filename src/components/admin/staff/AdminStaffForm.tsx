@@ -6,8 +6,8 @@ import {
   adminStaffFormSchema,
   type AdminStaffFormValues,
 } from '../../../lib/validations/adminStaff'
-import { getAdminGaragesFromStore } from '../../../mocks/admin'
-import { getStaffUsersWithoutProfile } from '../../../mocks/admin/adminStaffStore'
+import { useAdminGarages } from '../../../hooks/api/admin/useAdminGarages'
+import { useAdminStaffUsersWithoutProfile } from '../../../hooks/api/admin/useAdminStaff'
 import type { AdminStaffRecord } from '../../../types/admin'
 import { Button } from '../../ui/Button'
 import { Input } from '../../ui/Input'
@@ -27,8 +27,8 @@ export function AdminStaffForm({
   onSubmit,
   isSubmitting = false,
 }: AdminStaffFormProps) {
-  const availableUsers = getStaffUsersWithoutProfile()
-  const garages = getAdminGaragesFromStore()
+  const { data: availableUsers = [] } = useAdminStaffUsersWithoutProfile()
+  const { allGarages: garages } = useAdminGarages()
 
   const {
     register,
@@ -70,7 +70,7 @@ export function AdminStaffForm({
         )}
         {mode === 'create' && availableUsers.length === 0 ? (
           <p className="mt-1.5 text-sm text-amber-700">
-            Tất cả tài khoản STAFF hiện đã có hồ sơ. Thêm user STAFF mới trong mock để tạo thêm.
+            Tất cả tài khoản STAFF hiện đã có hồ sơ. Thêm user STAFF mới trong hệ thống để tạo thêm.
           </p>
         ) : null}
       </div>

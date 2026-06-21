@@ -34,18 +34,18 @@ export function AdminAuditLogFiltersPanel({
     <div className="carivo-panel p-4">
       <div className="mb-4 flex items-center gap-2 text-sm font-medium text-slate-700">
         <Search className="h-4 w-4" />
-        Bộ lọc audit log
+        Bộ lọc nhật ký
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div>
-          <Label htmlFor="audit-entity">Entity</Label>
+          <Label htmlFor="audit-entity">Đối tượng</Label>
           <Select
             id="audit-entity"
             value={filters.entity}
             onChange={(event) => update({ entity: event.target.value })}
           >
-            <option value="ALL">Tất cả entity</option>
+            <option value="ALL">Tất cả đối tượng</option>
             {AUDIT_ENTITIES.map((entity) => (
               <option key={entity} value={entity}>
                 {entity}
@@ -55,13 +55,13 @@ export function AdminAuditLogFiltersPanel({
         </div>
 
         <div>
-          <Label htmlFor="audit-action">Action</Label>
+          <Label htmlFor="audit-action">Hành động</Label>
           <Select
             id="audit-action"
             value={filters.action}
             onChange={(event) => update({ action: event.target.value })}
           >
-            <option value="ALL">Tất cả action</option>
+            <option value="ALL">Tất cả hành động</option>
             {AUDIT_ACTIONS.map((action) => (
               <option key={action} value={action}>
                 {AUDIT_ACTION_LABELS[action]}
@@ -87,7 +87,7 @@ export function AdminAuditLogFiltersPanel({
           <Label htmlFor="audit-query">Tìm kiếm</Label>
           <Input
             id="audit-query"
-            placeholder="ID log, entity, actor..."
+            placeholder="ID nhật ký, đối tượng, người thực hiện..."
             value={filters.query}
             onChange={(event) => update({ query: event.target.value })}
           />

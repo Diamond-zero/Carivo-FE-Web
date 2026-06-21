@@ -106,6 +106,21 @@ export const AdminTierRulesPage = lazyNamed(
   'AdminTierRulesPage',
 )
 
+export const AdminLoyaltyOverviewPage = lazyNamed(
+  () => import('../pages/admin/loyalty/AdminLoyaltyOverviewPage'),
+  'AdminLoyaltyOverviewPage',
+)
+
+export const AdminWaitlistsPage = lazyNamed(
+  () => import('../pages/admin/waitlists/AdminWaitlistsPage'),
+  'AdminWaitlistsPage',
+)
+
+export const AdminWashHistoryPage = lazyNamed(
+  () => import('../pages/admin/history/AdminWashHistoryPage'),
+  'AdminWashHistoryPage',
+)
+
 export const AdminPromotionListPage = lazyNamed(
   () => import('../pages/admin/promotions/AdminPromotionListPage'),
   'AdminPromotionListPage',

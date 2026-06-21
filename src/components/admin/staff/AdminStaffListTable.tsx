@@ -57,7 +57,7 @@ export function AdminStaffListTable({
         ),
       }),
       columnHelper.accessor('garage.name', {
-        header: 'Garage',
+        header: 'Chi nhánh',
         cell: (info) => info.getValue(),
       }),
       columnHelper.display({

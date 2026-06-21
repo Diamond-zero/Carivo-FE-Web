@@ -1,3 +1,4 @@
+import { useEffect, useMemo } from 'react'
 import { Clock, Droplets, Gauge } from 'lucide-react'
 import {
   Bar,
@@ -8,33 +9,45 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { getApiErrorMessage } from '../../../api/client'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { StatCard } from '../../../components/ui/StatCard'
-import { useInitialPageSkeleton } from '../../../hooks/useInitialPageSkeleton'
-import { mockWashBayPerformanceRows } from '../../../mocks/adminAnalytics'
-
-const chartData = mockWashBayPerformanceRows.map((row) => ({
-  name: row.bay_code,
-  utilization: row.utilization_percent,
-}))
-
-const avgUtilization = Math.round(
-  mockWashBayPerformanceRows.reduce((sum, row) => sum + row.utilization_percent, 0) /
-    mockWashBayPerformanceRows.length,
-)
-const totalSessions = mockWashBayPerformanceRows.reduce(
-  (sum, row) => sum + row.sessions_today,
-  0,
-)
-const avgWait = Math.round(
-  mockWashBayPerformanceRows.reduce((sum, row) => sum + row.avg_wait_minutes, 0) /
-    mockWashBayPerformanceRows.length,
-)
+import { useToast } from '../../../contexts/ToastContext'
+import { useAdminAnalyticsWashBays } from '../../../hooks/api/admin/useAdminAnalytics'
 
 export function AdminAnalyticsWashBayPage() {
-  const isLoading = useInitialPageSkeleton(260)
+  const { showToast } = useToast()
+  const { data, isLoading, isError, error } = useAdminAnalyticsWashBays()
+  const rows = data?.rows ?? []
+
+  const chartData = useMemo(
+    () =>
+      rows.map((row) => ({
+        name: row.bay_code,
+        utilization: row.utilization_percent,
+      })),
+    [rows],
+  )
+
+  const avgUtilization =
+    rows.length > 0
+      ? Math.round(
+          rows.reduce((sum, row) => sum + row.utilization_percent, 0) / rows.length,
+        )
+      : 0
+  const totalSessions = rows.reduce((sum, row) => sum + row.sessions_today, 0)
+  const avgWait =
+    rows.length > 0
+      ? Math.round(rows.reduce((sum, row) => sum + row.avg_wait_minutes, 0) / rows.length)
+      : 0
+
+  useEffect(() => {
+    if (isError) {
+      showToast(getApiErrorMessage(error, 'Không tải được analytics buồng rửa.'), 'error')
+    }
+  }, [isError, error, showToast])
 
   if (isLoading) {
     return <DashboardPageSkeleton />
@@ -43,9 +56,9 @@ export function AdminAnalyticsWashBayPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Carivo Admin · Analytics"
-        title="WashBay Performance"
-        description="Hiệu suất sử dụng buồng rửa, phiên rửa trong ngày và thời gian chờ trung bình (mock)."
+        eyebrow="Carivo Quản trị · Phân tích"
+        title="Hiệu suất buồng rửa"
+        description="Hiệu suất sử dụng buồng rửa, phiên rửa trong ngày và thời gian chờ trung bình."
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
@@ -98,7 +111,7 @@ export function AdminAnalyticsWashBayPage() {
               <tr>
                 <th className="px-6 py-3">Mã buồng</th>
                 <th className="px-6 py-3">Tên</th>
-                <th className="px-6 py-3">Garage</th>
+                <th className="px-6 py-3">Chi nhánh</th>
                 <th className="px-6 py-3">Sử dụng</th>
                 <th className="px-6 py-3">Phiên hôm nay</th>
                 <th className="px-6 py-3">TB phiên (phút)</th>
@@ -106,7 +119,7 @@ export function AdminAnalyticsWashBayPage() {
               </tr>
             </thead>
             <tbody>
-              {mockWashBayPerformanceRows.map((row) => (
+              {rows.map((row) => (
                 <tr
                   key={row.bay_id}
                   className="border-b border-slate-100/80 last:border-0 hover:bg-slate-50/50"

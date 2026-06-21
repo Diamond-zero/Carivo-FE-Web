@@ -35,8 +35,8 @@ export function AdminSettingsPage() {
   const { session, logout } = useAdminAuth()
   const isLoading = useInitialPageSkeleton(240)
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     navigate('/login')
   }
 
@@ -53,7 +53,7 @@ export function AdminSettingsPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Carivo Admin"
+        eyebrow="Carivo Quản trị"
         title="Cài đặt"
         description="Xem thông tin tài khoản quản trị viên và quản lý phiên đăng nhập."
       />

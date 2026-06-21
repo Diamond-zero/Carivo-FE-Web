@@ -28,7 +28,7 @@ export function AdminCustomerBookingsTable({
         ),
       }),
       columnHelper.accessor('garage_id', {
-        header: 'Garage',
+        header: 'Chi nhánh',
         cell: (info) => getAdminGarageName(info.getValue()),
       }),
       columnHelper.accessor('license_plate', {

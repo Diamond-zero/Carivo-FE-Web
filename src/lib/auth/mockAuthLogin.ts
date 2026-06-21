@@ -1,9 +1,5 @@
 import type { User } from '../../types/user'
 import {
-  ADMIN_SESSION_STORAGE_KEY,
-  STAFF_SESSION_STORAGE_KEY,
-} from './constants'
-import {
   MockLoginError,
   mockStaffLogin,
   type StaffAuthSession,
@@ -48,28 +44,10 @@ export function mockAuthLogin(phone: string, password: string): AuthLoginResult 
   return { type: 'staff', session: mockStaffLogin(phone, password) }
 }
 
-export function persistAdminSession(session: AdminAuthSession) {
-  sessionStorage.setItem(ADMIN_SESSION_STORAGE_KEY, JSON.stringify(session))
-}
+export {
+  clearAdminSession,
+  persistAdminSession,
+  readStoredAdminSession,
+} from './adminAuthService'
 
-export function readStoredAdminSession(): AdminAuthSession | null {
-  const raw = sessionStorage.getItem(ADMIN_SESSION_STORAGE_KEY)
-  if (!raw) return null
-
-  try {
-    const session = JSON.parse(raw) as AdminAuthSession
-    if (session.user.role !== 'ADMIN') return null
-    return session
-  } catch {
-    sessionStorage.removeItem(ADMIN_SESSION_STORAGE_KEY)
-    return null
-  }
-}
-
-export function clearAdminSession() {
-  sessionStorage.removeItem(ADMIN_SESSION_STORAGE_KEY)
-}
-
-export function clearStaffSession() {
-  sessionStorage.removeItem(STAFF_SESSION_STORAGE_KEY)
-}
+export { clearStaffSessionStorage as clearStaffSession } from './staffAuthService'

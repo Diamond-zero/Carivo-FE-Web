@@ -35,7 +35,7 @@ export function AdminBookingListTable({
         ),
       }),
       columnHelper.accessor('garage_id', {
-        header: 'Garage',
+        header: 'Chi nhánh',
         cell: (info) => getAdminGarageName(info.getValue()),
       }),
       columnHelper.display({
@@ -47,7 +47,7 @@ export function AdminBookingListTable({
               {getAdminBookingCustomerName(row.original)}
             </p>
             {row.original.is_walk_in ? (
-              <p className="text-xs text-slate-500">Walk-in</p>
+              <p className="text-xs text-slate-500">Vãng lai</p>
             ) : null}
           </div>
         ),

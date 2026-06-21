@@ -11,22 +11,18 @@ import { QuickStaffLogin } from '../../components/auth/QuickStaffLogin'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Label } from '../../components/ui/Label'
-import { BE_STAFF_QUICK_LOGIN } from '../../constants/quickLogin'
 import { useAdminAuth } from '../../contexts/AdminAuthContext'
 import { MockLoginError, useAuth } from '../../contexts/AuthContext'
 import { getApiErrorMessage, getApiRetryAfterSeconds } from '../../api/client'
+import { unifiedLogin } from '../../lib/auth/unifiedLogin'
 import { loginSchema, type LoginFormValues } from '../../lib/validations/auth'
 
 const MIN_LOGIN_INTERVAL_MS = 2_000
 
-function normalizePhone(phone: string) {
-  return phone.replace(/\s+/g, '').trim()
-}
-
 export function LoginPage() {
   const navigate = useNavigate()
-  const { login } = useAuth()
-  const { login: adminLogin } = useAdminAuth()
+  const { establishSession: establishStaffSession } = useAuth()
+  const { establishSession: establishAdminSession } = useAdminAuth()
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [selectedQuickPhone, setSelectedQuickPhone] = useState<string>()
   const [cooldownSeconds, setCooldownSeconds] = useState(0)
@@ -87,30 +83,17 @@ export function LoginPage() {
     }
 
     lastLoginAttemptAt.current = now
-    const normalizedPhone = normalizePhone(data.phone)
-    const isStaffBeAccount =
-      normalizedPhone === normalizePhone(BE_STAFF_QUICK_LOGIN.phone)
 
     try {
-      if (!isStaffBeAccount) {
-        try {
-          await adminLogin(data.phone, data.password)
-          navigate('/admin/dashboard')
-          return
-        } catch (adminError: unknown) {
-          if (adminError instanceof MockLoginError) {
-            const tryStaffLogin =
-              adminError.code === 'NOT_ADMIN_ROLE' ||
-              adminError.code === 'INVALID_CREDENTIALS'
+      const result = await unifiedLogin(data.phone, data.password)
 
-            if (!tryStaffLogin) {
-              throw adminError
-            }
-          }
-        }
+      if (result.type === 'admin') {
+        establishAdminSession(result.session)
+        navigate('/admin/dashboard')
+        return
       }
 
-      await login(data.phone, data.password)
+      establishStaffSession(result.session)
       navigate('/dashboard')
     } catch (error: unknown) {
       if (error instanceof MockLoginError) {

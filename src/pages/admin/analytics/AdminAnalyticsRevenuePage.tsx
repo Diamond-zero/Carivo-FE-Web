@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Building2, CircleDollarSign, TrendingUp } from 'lucide-react'
 import {
   Bar,
@@ -10,52 +11,56 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { getApiErrorMessage } from '../../../api/client'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { StatCard } from '../../../components/ui/StatCard'
-import { useInitialPageSkeleton } from '../../../hooks/useInitialPageSkeleton'
-import {
-  mockAnalyticsOverview,
-  mockGarageRevenueStats,
-  mockMonthlyRevenueStats,
-} from '../../../mocks/adminAnalytics'
+import { useToast } from '../../../contexts/ToastContext'
+import { useAdminAnalyticsRevenue } from '../../../hooks/api/admin/useAdminAnalytics'
 import { formatCurrency } from '../../../lib/utils'
 
-const currentMonthRevenue =
-  mockMonthlyRevenueStats[mockMonthlyRevenueStats.length - 1]?.revenue ?? 0
-const topGarage = [...mockGarageRevenueStats].sort((a, b) => b.revenue - a.revenue)[0]
-
 export function AdminAnalyticsRevenuePage() {
-  const isLoading = useInitialPageSkeleton(260)
+  const { showToast } = useToast()
+  const { data, isLoading, isError, error } = useAdminAnalyticsRevenue()
 
-  if (isLoading) {
+  useEffect(() => {
+    if (isError) {
+      showToast(getApiErrorMessage(error, 'Không tải được analytics doanh thu.'), 'error')
+    }
+  }, [isError, error, showToast])
+
+  if (isLoading || !data) {
     return <DashboardPageSkeleton />
   }
+
+  const { overview, monthlyStats, garageStats } = data
+  const currentMonthRevenue = monthlyStats[monthlyStats.length - 1]?.revenue ?? 0
+  const topGarage = [...garageStats].sort((a, b) => b.revenue - a.revenue)[0]
 
   return (
     <div>
       <PageHeader
-        eyebrow="Carivo Admin · Analytics"
+        eyebrow="Carivo Quản trị · Phân tích"
         title="Doanh thu"
-        description="Phân tích doanh thu theo tháng và theo garage trên toàn hệ thống (mock)."
+        description="Phân tích doanh thu theo tháng và theo garage trên toàn hệ thống."
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard
           label="Tổng doanh thu"
-          value={formatCurrency(mockAnalyticsOverview.total_revenue)}
+          value={formatCurrency(overview.total_revenue)}
           icon={CircleDollarSign}
           accent="brand"
         />
         <StatCard
-          label="Tháng hiện tại (T6)"
+          label="Tháng hiện tại"
           value={formatCurrency(currentMonthRevenue)}
           icon={TrendingUp}
           accent="emerald"
         />
         <StatCard
-          label="Garage dẫn đầu"
+          label="Chi nhánh dẫn đầu"
           value={topGarage?.garage_name ?? '—'}
           icon={Building2}
           accent="violet"
@@ -70,7 +75,7 @@ export function AdminAnalyticsRevenuePage() {
           <CardContent>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={mockMonthlyRevenueStats}>
+                <LineChart data={monthlyStats}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                   <YAxis
@@ -99,7 +104,7 @@ export function AdminAnalyticsRevenuePage() {
           <CardContent>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={mockGarageRevenueStats} layout="vertical" margin={{ left: 24 }}>
+                <BarChart data={garageStats} layout="vertical" margin={{ left: 24 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis
                     type="number"
@@ -129,14 +134,14 @@ export function AdminAnalyticsRevenuePage() {
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr>
-                <th className="px-6 py-3">Garage</th>
-                <th className="px-6 py-3">Booking</th>
+                <th className="px-6 py-3">Chi nhánh</th>
+                <th className="px-6 py-3">Đặt lịch</th>
                 <th className="px-6 py-3">Doanh thu</th>
                 <th className="px-6 py-3">TB / booking</th>
               </tr>
             </thead>
             <tbody>
-              {mockGarageRevenueStats.map((row) => (
+              {garageStats.map((row) => (
                 <tr
                   key={row.garage_id}
                   className="border-b border-slate-100/80 last:border-0 hover:bg-slate-50/50"
@@ -147,7 +152,9 @@ export function AdminAnalyticsRevenuePage() {
                     {formatCurrency(row.revenue)}
                   </td>
                   <td className="px-6 py-4 text-slate-600">
-                    {formatCurrency(Math.round(row.revenue / row.bookings))}
+                    {formatCurrency(
+                      row.bookings > 0 ? Math.round(row.revenue / row.bookings) : 0,
+                    )}
                   </td>
                 </tr>
               ))}

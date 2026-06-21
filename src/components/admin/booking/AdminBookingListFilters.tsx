@@ -47,7 +47,7 @@ export function AdminBookingListFilters({
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <div>
-          <Label htmlFor="admin-booking-garage">Garage</Label>
+          <Label htmlFor="admin-booking-garage">Chi nhánh</Label>
           <Select
             id="admin-booking-garage"
             value={filters.garageId}

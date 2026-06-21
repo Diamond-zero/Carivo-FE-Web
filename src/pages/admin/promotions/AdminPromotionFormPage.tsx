@@ -1,6 +1,6 @@
 import { ArrowLeft, Gift } from 'lucide-react'
-import { useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { getApiErrorMessage } from '../../../api/client'
 import { AdminPromotionForm } from '../../../components/admin/promotion/AdminPromotionForm'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Button } from '../../../components/ui/Button'
@@ -8,27 +8,29 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { useToast } from '../../../contexts/ToastContext'
-import { useInitialPageSkeleton } from '../../../hooks/useInitialPageSkeleton'
-import type { AdminPromotionFormValues } from '../../../lib/validations/adminPromotion'
 import {
-  createAdminPromotion,
-  getAdminPromotionById,
-  updateAdminPromotion,
-} from '../../../mocks/admin/adminPromotionStore'
+  useAdminPromotion,
+  useCreateAdminPromotion,
+  useUpdateAdminPromotion,
+} from '../../../hooks/api/admin/useAdminPromotions'
+import type { AdminPromotionFormValues } from '../../../lib/validations/adminPromotion'
 
 export function AdminPromotionFormPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { promotionId } = useParams<{ promotionId: string }>()
   const { showToast } = useToast()
-  const isLoading = useInitialPageSkeleton(240)
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const isCreate = location.pathname.endsWith('/new')
-  const promotion =
-    !isCreate && promotionId ? getAdminPromotionById(promotionId) : undefined
+  const promotionQuery = useAdminPromotion(!isCreate ? promotionId : undefined)
+  const createMutation = useCreateAdminPromotion()
+  const updateMutation = useUpdateAdminPromotion()
 
-  if (!isLoading && !isCreate && !promotion) {
+  const promotion = promotionQuery.data
+  const isSubmitting = createMutation.isPending || updateMutation.isPending
+  const isLoading = !isCreate && promotionQuery.isLoading
+
+  if (!isCreate && !isLoading && (promotionQuery.isError || !promotion)) {
     return (
       <div>
         <PageHeader
@@ -46,7 +48,10 @@ export function AdminPromotionFormPage() {
         <EmptyState
           icon={Gift}
           title="Khuyến mãi không tồn tại"
-          description="Mã không khớp với dữ liệu mock Admin."
+          description={getApiErrorMessage(
+            promotionQuery.error,
+            'Mã không khớp với dữ liệu hệ thống.',
+          )}
           action={
             <Link to="/admin/promotions">
               <Button>Về danh sách khuyến mãi</Button>
@@ -58,52 +63,49 @@ export function AdminPromotionFormPage() {
   }
 
   const handleSubmit = async (values: AdminPromotionFormValues) => {
-    setIsSubmitting(true)
-
-    try {
-      const payload = {
-        code: values.code,
-        name: values.name,
-        description: values.description,
-        discount_type: values.discount_type,
-        discount_value: values.discount_value,
-        max_discount_amount:
-          values.discount_type === 'PERCENTAGE'
-            ? values.max_discount_amount ?? null
-            : null,
-        min_order_amount: values.min_order_amount,
-        applicable_tiers: values.applicable_tiers,
-        usage_limit: values.usage_limit ?? null,
-        start_at: values.start_at,
-        end_at: values.end_at,
-        is_active: values.is_active,
-      }
-
-      if (isCreate) {
-        const result = createAdminPromotion(payload)
-        if (!result.ok) {
-          showToast(result.message, 'error')
-          return
-        }
-
-        showToast(`Đã tạo mã ${result.promotion.code}.`, 'success')
-        navigate('/admin/promotions')
-        return
-      }
-
-      if (!promotionId) return
-
-      const result = updateAdminPromotion(promotionId, payload)
-      if (!result.ok) {
-        showToast(result.message, 'error')
-        return
-      }
-
-      showToast(`Đã cập nhật ${result.promotion.code}.`, 'success')
-      navigate('/admin/promotions')
-    } finally {
-      setIsSubmitting(false)
+    const payload = {
+      code: values.code,
+      name: values.name,
+      description: values.description,
+      discount_type: values.discount_type,
+      discount_value: values.discount_value,
+      max_discount_amount:
+        values.discount_type === 'PERCENTAGE' ? values.max_discount_amount ?? null : null,
+      min_order_amount: values.min_order_amount,
+      applicable_tiers: values.applicable_tiers,
+      usage_limit: values.usage_limit ?? null,
+      start_at: values.start_at,
+      end_at: values.end_at,
+      is_active: values.is_active,
     }
+
+    if (isCreate) {
+      createMutation.mutate(payload, {
+        onSuccess: (created) => {
+          showToast(`Đã tạo mã ${created.code}.`, 'success')
+          navigate('/admin/promotions')
+        },
+        onError: (error) => {
+          showToast(getApiErrorMessage(error, 'Không thể tạo khuyến mãi.'), 'error')
+        },
+      })
+      return
+    }
+
+    if (!promotionId) return
+
+    updateMutation.mutate(
+      { promotionId, payload },
+      {
+        onSuccess: (updated) => {
+          showToast(`Đã cập nhật ${updated.code}.`, 'success')
+          navigate('/admin/promotions')
+        },
+        onError: (error) => {
+          showToast(getApiErrorMessage(error, 'Không thể cập nhật khuyến mãi.'), 'error')
+        },
+      },
+    )
   }
 
   return (
@@ -113,7 +115,7 @@ export function AdminPromotionFormPage() {
       ) : (
         <>
           <PageHeader
-            eyebrow="Carivo Admin"
+            eyebrow="Carivo Quản trị"
             title={isCreate ? 'Thêm khuyến mãi' : 'Sửa khuyến mãi'}
             description={
               isCreate

@@ -23,7 +23,7 @@ export function AdminGarageListTable({
     () => [
       columnHelper.display({
         id: 'garage',
-        header: 'Garage',
+        header: 'Chi nhánh',
         cell: ({ row }) => (
           <div>
             <p className="font-medium text-slate-900">{row.original.name}</p>
@@ -36,7 +36,7 @@ export function AdminGarageListTable({
         cell: (info) => info.getValue(),
       }),
       columnHelper.accessor('phone', {
-        header: 'Hotline',
+        header: 'Số hotline',
         cell: (info) => info.getValue(),
       }),
       columnHelper.display({

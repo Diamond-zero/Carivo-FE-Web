@@ -1,6 +1,5 @@
 import type { Booking, BookingStatus } from '../types/booking'
 import type { VehicleType } from '../types/washBay'
-import { getAdminBookingsFromStore } from '../mocks/admin/adminBookingStore'
 import { normalizeSearchText } from './booking'
 import { getAdminBookingPhone } from './adminBooking'
 
@@ -22,10 +21,13 @@ export const DEFAULT_ADMIN_BOOKING_FILTERS: AdminBookingFilters = {
   query: '',
 }
 
-export function searchAdminBookings(filters: AdminBookingFilters): Booking[] {
+export function searchAdminBookings(
+  filters: AdminBookingFilters,
+  bookings: Booking[],
+): Booking[] {
   const normalizedQuery = normalizeSearchText(filters.query.trim())
 
-  return getAdminBookingsFromStore()
+  return bookings
     .filter((booking) => {
       if (filters.garageId !== 'ALL' && booking.garage_id !== filters.garageId) {
         return false

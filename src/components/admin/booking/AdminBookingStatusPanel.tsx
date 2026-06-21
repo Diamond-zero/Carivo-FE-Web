@@ -11,6 +11,7 @@ interface AdminBookingStatusPanelProps {
   booking: Booking
   onUpdateStatus: (status: BookingStatus) => Promise<{ ok: boolean; message: string }>
   onMarkPaid: () => Promise<{ ok: boolean; message: string }>
+  onMarkPaidPayos?: () => Promise<{ ok: boolean; message: string; checkoutUrl?: string }>
   onCancel: () => Promise<{ ok: boolean; message: string }>
 }
 
@@ -28,6 +29,7 @@ export function AdminBookingStatusPanel({
   booking,
   onUpdateStatus,
   onMarkPaid,
+  onMarkPaidPayos,
   onCancel,
 }: AdminBookingStatusPanelProps) {
   const [selectedStatus, setSelectedStatus] = useState<BookingStatus>(booking.status)
@@ -85,10 +87,9 @@ export function AdminBookingStatusPanel({
       <div className="flex items-start gap-3 rounded-xl border border-violet-200/80 bg-violet-50/60 p-4">
         <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-violet-600" />
         <div className="text-sm text-violet-900">
-          <p className="font-semibold">Can thiệp Admin</p>
+          <p className="font-semibold">Can thiệp quản trị</p>
           <p className="mt-1 text-violet-800/90">
-            Thay đổi trạng thái booking trên toàn hệ thống (mock). Hành động ghi nhận
-            cục bộ, chưa đồng bộ Staff context.
+            Hủy booking hoặc đánh dấu thanh toán (tiền mặt / PayOS) qua API backend.
           </p>
         </div>
       </div>
@@ -151,6 +152,30 @@ export function AdminBookingStatusPanel({
             </>
           )}
         </Button>
+
+        {onMarkPaidPayos ? (
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={!canMarkPaid || isMarkingPaid}
+            onClick={async () => {
+              setIsMarkingPaid(true)
+              setError(null)
+              const result = await onMarkPaidPayos()
+              setIsMarkingPaid(false)
+              if (!result.ok) {
+                setError(result.message)
+                return
+              }
+              if (result.checkoutUrl) {
+                window.open(result.checkoutUrl, '_blank', 'noopener,noreferrer')
+              }
+            }}
+          >
+            <CircleDollarSign className="h-4 w-4" />
+            Thanh toán PayOS
+          </Button>
+        ) : null}
 
         <Button
           type="button"
