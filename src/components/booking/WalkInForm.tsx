@@ -2,10 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import {
-  getServicePackageById,
-  getServicePackagesByVehicleType,
-} from '../../mocks/servicePackages'
+import { useBookings } from '../../contexts/BookingContext'
 import {
   walkInSchema,
   type WalkInFormValues,
@@ -28,6 +25,10 @@ import { VEHICLE_TYPE_LABELS } from '../../constants/washBayStatus'
 interface WalkInFormProps {
   onSubmit: (data: WalkInBookingForm) => Promise<void>
   isSubmitting?: boolean
+  garage?: {
+    name: string
+    code?: string
+  }
 }
 
 const TIME_SLOT_OPTIONS: Array<{
@@ -40,9 +41,15 @@ const TIME_SLOT_OPTIONS: Array<{
   { value: 'custom', label: 'Tùy chọn' },
 ]
 
-export function WalkInForm({ onSubmit, isSubmitting = false }: WalkInFormProps) {
+export function WalkInForm({
+  onSubmit,
+  isSubmitting = false,
+  garage,
+}: WalkInFormProps) {
+  const { getServicePackagesByVehicleType } = useBookings()
   const [timeSlot, setTimeSlot] = useState<WalkInTimeSlotOption>('now')
   const [customTime, setCustomTime] = useState('')
+  const [selectedAddOnIds, setSelectedAddOnIds] = useState<string[]>([])
 
   const {
     register,
@@ -59,7 +66,7 @@ export function WalkInForm({ onSubmit, isSubmitting = false }: WalkInFormProps) 
       license_plate: '',
       vehicle_type: 'CAR',
       service_package_id: '',
-      start_time: getWalkInStartTime('now'),
+      promotion_code: '',
       note: '',
     },
   })
@@ -68,12 +75,23 @@ export function WalkInForm({ onSubmit, isSubmitting = false }: WalkInFormProps) 
   const servicePackageId = watch('service_package_id')
 
   const packages = useMemo(
-    () => getServicePackagesByVehicleType(vehicleType as VehicleType),
-    [vehicleType],
+    () =>
+      getServicePackagesByVehicleType(vehicleType as VehicleType).filter(
+        (pkg) => pkg.service_type !== 'ADDON',
+      ),
+    [getServicePackagesByVehicleType, vehicleType],
+  )
+
+  const addOnPackages = useMemo(
+    () =>
+      getServicePackagesByVehicleType(vehicleType as VehicleType).filter(
+        (pkg) => pkg.service_type === 'ADDON',
+      ),
+    [getServicePackagesByVehicleType, vehicleType],
   )
 
   const selectedPackage = servicePackageId
-    ? getServicePackageById(servicePackageId)
+    ? packages.find((pkg) => pkg.id === servicePackageId)
     : undefined
 
   useEffect(() => {
@@ -83,7 +101,10 @@ export function WalkInForm({ onSubmit, isSubmitting = false }: WalkInFormProps) 
     ) {
       setValue('service_package_id', '')
     }
-  }, [packages, servicePackageId, setValue])
+    setSelectedAddOnIds((current) =>
+      current.filter((id) => addOnPackages.some((pkg) => pkg.id === id)),
+    )
+  }, [packages, addOnPackages, servicePackageId, setValue])
 
   const previewStartTime = getWalkInStartTime(
     timeSlot,
@@ -91,29 +112,51 @@ export function WalkInForm({ onSubmit, isSubmitting = false }: WalkInFormProps) 
   )
 
   const handleFormSubmit = async (data: WalkInFormValues) => {
-    const start_time = getWalkInStartTime(
-      timeSlot,
-      timeSlot === 'custom' ? customTime : undefined,
-    )
-
     if (timeSlot === 'custom' && !customTime) {
+      return
+    }
+
+    const start_time =
+      timeSlot === 'now'
+        ? undefined
+        : getWalkInStartTime(
+            timeSlot,
+            timeSlot === 'custom' ? customTime : undefined,
+          ) ?? undefined
+
+    if (timeSlot !== 'now' && !start_time) {
       return
     }
 
     await onSubmit({
       guest_name: data.guest_name,
       guest_phone: data.guest_phone,
-      guest_email: data.guest_email || undefined,
+      guest_email: data.guest_email?.trim() || '',
       license_plate: data.license_plate,
       vehicle_type: data.vehicle_type,
       service_package_id: data.service_package_id,
+      serve_now: timeSlot === 'now',
       start_time,
+      promotion_code: data.promotion_code?.trim() || undefined,
+      add_on_service_ids:
+        selectedAddOnIds.length > 0 ? selectedAddOnIds : undefined,
       note: data.note || undefined,
     })
   }
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+      {garage ? (
+        <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+          Booking walk-in sẽ được tạo tại garage{' '}
+          <strong>{garage.name}</strong>
+          {garage.code ? (
+            <span className="text-blue-700"> ({garage.code})</span>
+          ) : null}
+          .
+        </div>
+      ) : null}
+
       <div className="grid gap-4 md:grid-cols-2">
         <div>
           <Label htmlFor="guest_name" required>
@@ -194,6 +237,57 @@ export function WalkInForm({ onSubmit, isSubmitting = false }: WalkInFormProps) 
         </div>
       </div>
 
+      {addOnPackages.length > 0 ? (
+        <div>
+          <Label>Dịch vụ thêm (tùy chọn)</Label>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            {addOnPackages.map((pkg) => {
+              const checked = selectedAddOnIds.includes(pkg.id)
+              return (
+                <label
+                  key={pkg.id}
+                  className={cn(
+                    'flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 text-sm transition-colors',
+                    checked
+                      ? 'border-brand-400 bg-brand-50'
+                      : 'border-slate-200 bg-white hover:border-brand-200',
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={checked}
+                    onChange={() => {
+                      setSelectedAddOnIds((current) =>
+                        checked
+                          ? current.filter((id) => id !== pkg.id)
+                          : [...current, pkg.id],
+                      )
+                    }}
+                  />
+                  <span>
+                    <span className="font-medium text-slate-900">{pkg.name}</span>
+                    <span className="mt-0.5 block text-slate-500">
+                      {formatPrice(pkg.base_price)}
+                    </span>
+                  </span>
+                </label>
+              )
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      <div>
+        <Label htmlFor="promotion_code">Mã khuyến mãi</Label>
+        <Input
+          id="promotion_code"
+          placeholder="Nhập mã nếu có"
+          error={errors.promotion_code?.message}
+          {...register('promotion_code')}
+        />
+      </div>
+
       <div>
         <Label required>Thời gian</Label>
         <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -227,11 +321,15 @@ export function WalkInForm({ onSubmit, isSubmitting = false }: WalkInFormProps) 
               </p>
             ) : null}
           </div>
-        ) : (
+        ) : timeSlot === 'now' ? (
           <p className="mt-2 text-sm text-slate-500">
-            Dự kiến: {formatDateTime(previewStartTime)}
+            Phục vụ ngay — booking sẽ được tạo và tự động check-in.
           </p>
-        )}
+        ) : previewStartTime ? (
+          <p className="mt-2 text-sm text-slate-500">
+            Dự kiến: {formatDateTime(previewStartTime)} (khung 30 phút)
+          </p>
+        ) : null}
       </div>
 
       <div>
@@ -253,8 +351,8 @@ export function WalkInForm({ onSubmit, isSubmitting = false }: WalkInFormProps) 
             </span>
           </div>
           <p className="mt-1 text-xs text-brand-700">
-            Walk-in sẽ được tạo với trạng thái{' '}
-            <strong>Đã check-in</strong> (mock)
+            Walk-in được tạo qua API và tự động chuyển sang trạng thái{' '}
+            <strong>Đã check-in</strong>.
           </p>
         </div>
       ) : null}
@@ -266,7 +364,7 @@ export function WalkInForm({ onSubmit, isSubmitting = false }: WalkInFormProps) 
             Đang tạo booking...
           </>
         ) : (
-          'Tạo walk-in booking'
+          'Tạo lịch đặt'
         )}
       </Button>
     </form>

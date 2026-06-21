@@ -18,18 +18,11 @@ export function WalkInCreatePage() {
   const [createdBookingId, setCreatedBookingId] = useState<string | null>(null)
 
   const handleCreate = async (data: WalkInBookingForm) => {
-    if (!session?.garage.id) {
-      setError('Không xác định được garage.')
-      return
-    }
-
     setIsSubmitting(true)
     setError(null)
     setCreatedBookingId(null)
 
-    await new Promise((resolve) => setTimeout(resolve, 600))
-
-    const result = createWalkInBooking(session.garage.id, data)
+    const result = await createWalkInBooking(data)
     setIsSubmitting(false)
 
     if (!result.success || !result.bookingId) {
@@ -43,8 +36,8 @@ export function WalkInCreatePage() {
   return (
     <div>
       <PageHeader
-        title="Walk-in mới"
-        description="Tạo booking cho khách vãng lai tại garage — tự động check-in sau khi tạo."
+        title="Đặt lịch"
+        description="Tạo booking walk-in tại garage của nhân viên đang đăng nhập."
         action={
           <Link to="/bookings">
             <Button variant="secondary">Danh sách booking</Button>
@@ -64,9 +57,9 @@ export function WalkInCreatePage() {
                 <p className="mt-1 text-sm text-green-700">
                   Booking{' '}
                   <strong>
-                    {createdBookingId.replace('booking-', '#')}
+                    #{createdBookingId.slice(-6)}
                   </strong>{' '}
-                  — trạng thái Đã check-in
+                  — đã tạo thành công
                 </p>
               </div>
             </div>
@@ -90,7 +83,7 @@ export function WalkInCreatePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Thông tin khách walk-in</CardTitle>
+          <CardTitle>Thông tin đặt lịch</CardTitle>
         </CardHeader>
         <CardContent>
           {error ? (
@@ -100,7 +93,18 @@ export function WalkInCreatePage() {
           ) : null}
 
           {!createdBookingId ? (
-            <WalkInForm onSubmit={handleCreate} isSubmitting={isSubmitting} />
+            <WalkInForm
+              onSubmit={handleCreate}
+              isSubmitting={isSubmitting}
+              garage={
+                session?.garage
+                  ? {
+                      name: session.garage.name,
+                      code: session.garage.garage_code,
+                    }
+                  : undefined
+              }
+            />
           ) : (
             <p className="text-sm text-slate-500">
               Bấm &quot;Tạo thêm&quot; để nhập booking walk-in mới.

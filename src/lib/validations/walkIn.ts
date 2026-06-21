@@ -22,7 +22,7 @@ export const walkInSchema = z.object({
     .min(4, 'Biển số không hợp lệ'),
   vehicle_type: z.enum(['MOTORBIKE', 'CAR']),
   service_package_id: z.string().min(1, 'Vui lòng chọn gói dịch vụ'),
-  start_time: z.string().min(1, 'Vui lòng chọn thời gian'),
+  promotion_code: z.string().optional(),
   note: z.string().optional(),
 })
 

@@ -2,7 +2,7 @@ import { createColumnHelper } from '@tanstack/react-table'
 import { CalendarDays } from 'lucide-react'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { getServicePackageName } from '../../mocks/servicePackages'
+import { useBookings } from '../../contexts/BookingContext'
 import type { Booking } from '../../types/booking'
 import { formatDateTime, formatPrice } from '../../utils/format'
 import { BookingStatusBadge } from '../booking/BookingStatusBadge'
@@ -15,6 +15,7 @@ interface CustomerGarageBookingsProps {
 }
 
 export function CustomerGarageBookings({ bookings }: CustomerGarageBookingsProps) {
+  const { getServicePackageName } = useBookings()
   const columns = useMemo(
     () => [
       columnHelper.accessor('id', {
@@ -24,7 +25,7 @@ export function CustomerGarageBookings({ bookings }: CustomerGarageBookingsProps
             to={`/bookings/${info.getValue()}`}
             className="carivo-link"
           >
-            {info.getValue().replace('booking-', '#')}
+            #{info.getValue().slice(-6)}
           </Link>
         ),
       }),
@@ -34,7 +35,11 @@ export function CustomerGarageBookings({ bookings }: CustomerGarageBookingsProps
       }),
       columnHelper.accessor('service_package_id', {
         header: 'Gói dịch vụ',
-        cell: (info) => getServicePackageName(info.getValue()),
+        cell: (info) =>
+          getServicePackageName(
+            info.getValue(),
+            info.row.original.service_package_name,
+          ),
       }),
       columnHelper.accessor('start_time', {
         header: 'Thời gian',
@@ -49,7 +54,7 @@ export function CustomerGarageBookings({ bookings }: CustomerGarageBookingsProps
         cell: (info) => <BookingStatusBadge status={info.getValue()} />,
       }),
     ],
-    [],
+    [getServicePackageName],
   )
 
   return (

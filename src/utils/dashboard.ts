@@ -1,5 +1,5 @@
 import type { Booking } from '../types/booking'
-import { MOCK_TODAY } from './format'
+import { getTodayDateString } from './format'
 
 export interface DashboardStats {
   todayBookings: number
@@ -8,9 +8,14 @@ export interface DashboardStats {
   completedUnpaid: number
 }
 
+function isTodayBooking(booking: Booking, today: string) {
+  return booking.booking_date === today
+}
+
 export function getDashboardStats(bookings: Booking[]): DashboardStats {
-  const todayBookings = bookings.filter(
-    (booking) => booking.booking_date === MOCK_TODAY,
+  const today = getTodayDateString()
+  const todayBookings = bookings.filter((booking) =>
+    isTodayBooking(booking, today),
   )
 
   return {
@@ -29,6 +34,7 @@ export function getDashboardStats(bookings: Booking[]): DashboardStats {
 }
 
 export function getUpcomingBookings(bookings: Booking[], limit = 5) {
+  const today = getTodayDateString()
   const activeStatuses = new Set<Booking['status']>([
     'CONFIRMED',
     'CHECKED_IN',
@@ -38,8 +44,7 @@ export function getUpcomingBookings(bookings: Booking[], limit = 5) {
   return [...bookings]
     .filter(
       (booking) =>
-        booking.booking_date === MOCK_TODAY &&
-        activeStatuses.has(booking.status),
+        isTodayBooking(booking, today) && activeStatuses.has(booking.status),
     )
     .sort(
       (a, b) =>

@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom'
 import type { StaffCustomerSummary } from '../../utils/customerLookup'
 import { formatDateTime } from '../../utils/format'
 import { DataTable } from '../ui/DataTable'
-import { TierBadge } from './TierBadge'
 
 const columnHelper = createColumnHelper<StaffCustomerSummary>()
 
@@ -33,17 +32,6 @@ export function CustomerListTable({
             </Link>
             <p className="text-xs text-slate-500">{row.original.user.phone}</p>
           </div>
-        ),
-      }),
-      columnHelper.display({
-        id: 'tier',
-        header: 'Hạng loyalty',
-        cell: ({ row }) => <TierBadge tier={row.original.loyalty.current_tier} />,
-      }),
-      columnHelper.accessor('loyalty.available_points', {
-        header: 'Điểm khả dụng',
-        cell: (info) => (
-          <span className="font-medium text-slate-900">{info.getValue()}</span>
         ),
       }),
       columnHelper.accessor('garageBookingCount', {

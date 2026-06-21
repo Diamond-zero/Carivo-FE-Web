@@ -1,27 +1,24 @@
 import type { Booking } from '../types/booking'
-import { mockUsers } from '../mocks/users'
 
 export function getBookingCustomerName(booking: Booking) {
-  if (booking.is_walk_in && booking.guest_name) {
-    return booking.guest_name
+  if (booking.customer_name) {
+    return booking.customer_name
   }
 
-  if (booking.customer_id) {
-    const customer = mockUsers.find((user) => user.id === booking.customer_id)
-    return customer?.full_name ?? 'Khách hàng'
+  if (booking.is_walk_in && booking.guest_name) {
+    return booking.guest_name
   }
 
   return 'Khách hàng'
 }
 
 export function getBookingPhone(booking: Booking) {
-  if (booking.guest_phone) {
-    return booking.guest_phone
+  if (booking.customer_phone) {
+    return booking.customer_phone
   }
 
-  if (booking.customer_id) {
-    const customer = mockUsers.find((user) => user.id === booking.customer_id)
-    return customer?.phone ?? ''
+  if (booking.guest_phone) {
+    return booking.guest_phone
   }
 
   return ''

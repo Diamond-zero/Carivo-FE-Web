@@ -1,6 +1,6 @@
 import { CheckCircle2, Loader2 } from 'lucide-react'
 import { useState } from 'react'
-import { getServicePackageName } from '../../mocks/servicePackages'
+import { useBookings } from '../../contexts/BookingContext'
 import type { Booking } from '../../types/booking'
 import { getBookingCustomerName } from '../../utils/booking'
 import { formatPrice } from '../../utils/format'
@@ -20,6 +20,7 @@ export function CompleteServiceModal({
   booking,
   onConfirm,
 }: CompleteServiceModalProps) {
+  const { getServicePackageName } = useBookings()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

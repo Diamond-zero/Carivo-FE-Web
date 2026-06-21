@@ -31,7 +31,7 @@ import {
   getDashboardStats,
   getUpcomingBookings,
 } from '../../utils/dashboard'
-import { formatPrice, formatTime, MOCK_TODAY } from '../../utils/format'
+import { formatPrice, formatTime, getTodayDateString } from '../../utils/format'
 
 const columnHelper = createColumnHelper<Booking>()
 
@@ -114,7 +114,7 @@ export function DashboardPage() {
         <>
       <PageHeader
         title="Dashboard"
-        description={`Tổng quan garage ${session?.garage.name ?? ''} — ${MOCK_TODAY.split('-').reverse().join('/')}`}
+        description={`Tổng quan garage ${session?.garage.name ?? ''} — ${getTodayDateString().split('-').reverse().join('/')}`}
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

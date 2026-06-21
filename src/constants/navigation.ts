@@ -44,7 +44,7 @@ export const staffNavItems: StaffNavItem[] = [
     children: [
       { label: 'Danh sách', path: '/bookings' },
       { label: 'Check-in', path: '/bookings/check-in' },
-      { label: 'Walk-in mới', path: '/bookings/walk-in' },
+      { label: 'Đặt lịch', path: '/bookings/walk-in' },
     ],
   },
   {

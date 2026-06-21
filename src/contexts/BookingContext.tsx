@@ -6,123 +6,245 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { mockBookings } from '../mocks/bookings'
-import { mockInspections } from '../mocks/inspections'
-import { mockServiceSteps } from '../mocks/serviceSteps'
-import { mockWashBays } from '../mocks/washBays'
-import { mockWashHistories } from '../mocks/washHistories'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  assignWashBayApi,
+  cancelBookingApi,
+  checkInBookingApi,
+  completeServiceApi,
+  completeServiceStepApi,
+  createBookingInspectionApi,
+  createWalkInBookingApi,
+  getBookingInspectionsApi,
+  getBookingServiceStepsApi,
+  getLateArrivalOptionsApi,
+  getStaffBookingsApi,
+  markBookingNoShowApi,
+  markBookingPaidApi,
+  resolveLateArrivalApi,
+  startServiceApi,
+} from '../api/booking.api'
+import { getServicePackagesApi } from '../api/servicePackage.api'
+import { createPayosPaymentApi } from '../api/payment.api'
+import { getAvailableWashBaysApi, getGarageWashBaysApi } from '../api/washBay.api'
+import { getWashHistoriesApi } from '../api/washHistory.api'
+import { getApiErrorMessage } from '../api/client'
+import { useAuth } from './AuthContext'
+import {
+  deriveWashBaysFromBookings,
+  mapApiBooking,
+  mapApiInspection,
+  mapApiServicePackage,
+  mapApiServiceStep,
+  mapApiWashBay,
+  mapApiWashHistory,
+} from '../lib/mappers/staffMappers'
+import type {
+  ApiBooking,
+  CancelBookingApiPayload,
+  MarkNoShowApiPayload,
+  ResolveLateArrivalApiPayload,
+} from '../types/api/staff'
 import type { Booking, WalkInBookingForm } from '../types/booking'
 import type { VehicleInspection } from '../types/inspection'
+import type { ServicePackage } from '../types/servicePackage'
 import type { BookingServiceStep } from '../types/serviceStep'
 import type { WashBay } from '../types/washBay'
 import type { WashHistory } from '../types/washHistory'
 import { getBookingPhone, normalizeSearchText } from '../utils/booking'
-import {
-  buildInspection,
-  type CreateInspectionInput,
-} from '../utils/inspection'
-import {
-  areAllStepsDone,
-  automatedStepRequiresAssignedBay,
-  canCompleteStep,
-  canStartAutomatedWashStep,
-  createDefaultStepsForBooking,
-  findStepToActivateAfterBayAssignment,
-  WASH_BAY_REQUIRED_FOR_AUTOMATED_STEP_MESSAGE,
-} from '../utils/serviceSteps'
-import { buildWalkInBooking } from '../utils/walkIn'
-import {
-  bookingRequiresWashBay,
-  getSelectableWashBays,
-} from '../utils/washBay'
-import {
-  buildWashHistory,
-  calculateEarnedPoints,
-  canMarkBookingPaid,
-} from '../utils/payment'
+import type { CreateInspectionInput } from '../utils/inspection'
+import { getSelectableWashBays } from '../utils/washBay'
+import { buildWalkInBookingPayload, getStaffGarageId } from '../utils/walkIn'
+import { staffQueryKeys } from '../hooks/api/staff/queryKeys'
+
+export interface ActionResult {
+  success: boolean
+  message: string
+  bookingId?: string
+  earnedPoints?: number
+  washHistoryId?: string
+  inspectionId?: string
+  checkoutUrl?: string
+  paymentId?: string
+}
 
 interface BookingContextValue {
+  isLoading: boolean
+  isMutating: boolean
   bookings: Booking[]
+  servicePackages: ServicePackage[]
   inspections: VehicleInspection[]
   washBays: WashBay[]
+  washHistories: WashHistory[]
+  isLoadingWashHistories: boolean
+  isWashHistoriesError: boolean
+  washHistoriesError: string | null
+  refetchWashHistories: () => Promise<void>
   getBookingById: (id: string) => Booking | undefined
   getWashBayById: (id: string) => WashBay | undefined
   getAvailableWashBaysForBooking: (bookingId: string) => WashBay[]
-  assignWashBay: (
-    bookingId: string,
-    washBayId: string,
-  ) => { success: boolean; message: string }
+  fetchAvailableWashBaysForBooking: (bookingId: string) => Promise<WashBay[]>
+  getServicePackageName: (id: string, fallback?: string) => string
+  getServicePackagesByVehicleType: (
+    vehicleType: Booking['vehicle_type'],
+  ) => ServicePackage[]
+  assignWashBay: (bookingId: string, washBayId: string) => Promise<ActionResult>
   searchCheckInCandidates: (query: string) => Booking[]
-  checkInBooking: (id: string) => { success: boolean; message: string }
-  createWalkInBooking: (
-    garageId: string,
-    data: WalkInBookingForm,
-  ) => { success: boolean; message: string; bookingId?: string }
+  checkInBooking: (id: string) => Promise<ActionResult>
+  createWalkInBooking: (data: WalkInBookingForm) => Promise<ActionResult>
+  cancelBooking: (
+    id: string,
+    payload?: CancelBookingApiPayload,
+  ) => Promise<ActionResult>
+  markBookingNoShow: (
+    id: string,
+    payload?: MarkNoShowApiPayload,
+  ) => Promise<ActionResult>
+  getLateArrivalOptions: (bookingId: string, days?: number) => Promise<
+    import('../types/api/staff').ApiLateArrivalOptions
+  >
+  resolveLateArrival: (
+    bookingId: string,
+    payload: ResolveLateArrivalApiPayload,
+  ) => Promise<ActionResult>
   getServiceStepsByBookingId: (bookingId: string) => BookingServiceStep[]
-  startService: (bookingId: string) => { success: boolean; message: string }
+  fetchServiceSteps: (bookingId: string) => Promise<BookingServiceStep[]>
+  startService: (bookingId: string) => Promise<ActionResult>
   completeServiceStep: (
     stepId: string,
     staffProfileId: string,
-  ) => { success: boolean; message: string }
-  completeService: (bookingId: string) => { success: boolean; message: string }
-  markBookingPaid: (
+  ) => Promise<ActionResult>
+  completeService: (bookingId: string) => Promise<ActionResult>
+  markBookingPaid: (bookingId: string) => Promise<ActionResult>
+  createPayosPayment: (
     bookingId: string,
-  ) => {
-    success: boolean
-    message: string
-    earnedPoints?: number
-    washHistoryId?: string
-  }
-  washHistories: WashHistory[]
+  ) => Promise<ActionResult & { checkoutUrl?: string; paymentId?: string }>
   getInspectionsByBookingId: (bookingId: string) => VehicleInspection[]
+  fetchInspections: (bookingId: string) => Promise<VehicleInspection[]>
   createInspection: (
     data: CreateInspectionInput,
     staffProfileId: string,
-  ) => { success: boolean; message: string; inspectionId?: string }
+  ) => Promise<ActionResult>
+  refreshBookings: () => Promise<void>
 }
 
 const BookingContext = createContext<BookingContextValue | null>(null)
 
 export function BookingProvider({ children }: { children: ReactNode }) {
-  const [bookings, setBookings] = useState<Booking[]>(() =>
-    mockBookings.map((booking) => ({ ...booking })),
-  )
-  const [serviceSteps, setServiceSteps] = useState<BookingServiceStep[]>(() =>
-    mockServiceSteps.map((step) => ({ ...step })),
-  )
-  const [inspections, setInspections] = useState<VehicleInspection[]>(() =>
-    mockInspections.map((inspection) => ({ ...inspection })),
-  )
-  const [washBays, setWashBays] = useState<WashBay[]>(() =>
-    mockWashBays.map((bay) => ({ ...bay })),
-  )
-  const [washHistories, setWashHistories] = useState<WashHistory[]>(() =>
-    mockWashHistories.map((item) => ({ ...item })),
-  )
+  const { session, isAuthenticated } = useAuth()
+  const queryClient = useQueryClient()
+  const garageId = session?.staffProfile.garage_id
+
+  const [stepsByBooking, setStepsByBooking] = useState<
+    Record<string, BookingServiceStep[]>
+  >({})
+  const [inspectionsByBooking, setInspectionsByBooking] = useState<
+    Record<string, VehicleInspection[]>
+  >({})
+  const [availableBaysByBooking, setAvailableBaysByBooking] = useState<
+    Record<string, WashBay[]>
+  >({})
+
+  const washBaysQuery = useQuery({
+    queryKey: staffQueryKeys.washBays(garageId),
+    queryFn: async () => {
+      if (!garageId) return [] as WashBay[]
+      try {
+        const bays = await getGarageWashBaysApi(garageId)
+        return bays.map((bay) => mapApiWashBay(bay, garageId))
+      } catch {
+        return []
+      }
+    },
+    enabled: isAuthenticated && Boolean(garageId),
+  })
+
+  const bookingsQuery = useQuery({
+    queryKey: staffQueryKeys.bookings(garageId),
+    queryFn: async () => {
+      const result = await getStaffBookingsApi({
+        limit: 100,
+        garage_id: garageId,
+      })
+      return {
+        raw: result.bookings,
+        mapped: result.bookings.map(mapApiBooking),
+      }
+    },
+    enabled: isAuthenticated && Boolean(garageId),
+  })
+
+  const servicePackagesQuery = useQuery({
+    queryKey: staffQueryKeys.servicePackages,
+    queryFn: async () => {
+      const packages = await getServicePackagesApi()
+      return packages.map(mapApiServicePackage)
+    },
+    enabled: isAuthenticated,
+  })
+
+  const washHistoriesQuery = useQuery({
+    queryKey: staffQueryKeys.washHistories(garageId),
+    queryFn: async () => {
+      if (!garageId) return [] as WashHistory[]
+
+      const result = await getWashHistoriesApi({
+        garage_id: garageId,
+        limit: 100,
+      })
+      return result.histories.map(mapApiWashHistory)
+    },
+    enabled: isAuthenticated && Boolean(garageId),
+    staleTime: 30_000,
+  })
+
+  const bookings = bookingsQuery.data?.mapped ?? []
+  const rawBookings: ApiBooking[] = bookingsQuery.data?.raw ?? []
+  const servicePackages = servicePackagesQuery.data ?? []
+  const washHistories = washHistoriesQuery.data ?? []
+
+  const washBays = useMemo(() => {
+    if (!garageId) return []
+
+    const apiBays = washBaysQuery.data ?? []
+    const baseBays =
+      apiBays.length > 0
+        ? apiBays
+        : deriveWashBaysFromBookings(rawBookings, garageId)
+
+    const bayMap = new Map(baseBays.map((bay) => [bay.id, { ...bay }]))
+
+    for (const booking of rawBookings) {
+      if (booking.status !== 'IN_PROGRESS' || !booking.wash_bay_id) continue
+      const bay = bayMap.get(booking.wash_bay_id)
+      if (bay) {
+        bay.status = 'OCCUPIED'
+        bay.current_booking_id = booking.id
+      }
+    }
+
+    return Array.from(bayMap.values())
+  }, [garageId, washBaysQuery.data, rawBookings])
+
+  const invalidateBookings = useCallback(async () => {
+    await queryClient.invalidateQueries({
+      queryKey: staffQueryKeys.bookings(garageId),
+    })
+    await queryClient.invalidateQueries({
+      queryKey: staffQueryKeys.washHistories(garageId),
+    })
+    await queryClient.invalidateQueries({
+      queryKey: staffQueryKeys.washBays(garageId),
+    })
+  }, [garageId, queryClient])
+
+  const refetchWashHistories = useCallback(async () => {
+    await washHistoriesQuery.refetch()
+  }, [washHistoriesQuery])
 
   const getBookingById = useCallback(
     (id: string) => bookings.find((booking) => booking.id === id),
     [bookings],
-  )
-
-  const getServiceStepsByBookingId = useCallback(
-    (bookingId: string) =>
-      serviceSteps
-        .filter((step) => step.booking_id === bookingId)
-        .sort((a, b) => a.order - b.order),
-    [serviceSteps],
-  )
-
-  const getInspectionsByBookingId = useCallback(
-    (bookingId: string) =>
-      inspections
-        .filter((inspection) => inspection.booking_id === bookingId)
-        .sort(
-          (a, b) =>
-            new Date(b.inspected_at).getTime() -
-            new Date(a.inspected_at).getTime(),
-        ),
-    [inspections],
   )
 
   const getWashBayById = useCallback(
@@ -131,104 +253,82 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   )
 
   const getAvailableWashBaysForBooking = useCallback(
-    (bookingId: string) => {
-      const booking = bookings.find((item) => item.id === bookingId)
-      if (!booking) return []
-      return getSelectableWashBays(washBays, booking)
-    },
-    [bookings, washBays],
+    (bookingId: string) => availableBaysByBooking[bookingId] ?? [],
+    [availableBaysByBooking],
   )
 
-  const assignWashBay = useCallback(
-    (bookingId: string, washBayId: string) => {
+  const fetchAvailableWashBaysForBooking = useCallback(
+    async (bookingId: string) => {
       const booking = bookings.find((item) => item.id === bookingId)
-      const bay = washBays.find((item) => item.id === washBayId)
+      if (!booking || !garageId) return []
 
-      if (!booking) {
-        return { success: false, message: 'Không tìm thấy booking.' }
-      }
-
-      if (!bay) {
-        return { success: false, message: 'Không tìm thấy buồng rửa.' }
-      }
-
-      if (booking.status !== 'IN_PROGRESS') {
-        return {
-          success: false,
-          message: 'Chỉ booking IN_PROGRESS mới được gán buồng rửa.',
-        }
-      }
-
-      if (booking.wash_bay_id) {
-        return {
-          success: false,
-          message: 'Booking đã được gán buồng rửa.',
-        }
-      }
-
-      if (!bookingRequiresWashBay(booking)) {
-        return {
-          success: false,
-          message: 'Gói dịch vụ này không yêu cầu buồng rửa.',
-        }
-      }
-
-      if (
-        bay.garage_id !== booking.garage_id ||
-        bay.vehicle_type !== booking.vehicle_type ||
-        !bay.is_active ||
-        bay.status !== 'AVAILABLE'
-      ) {
-        return {
-          success: false,
-          message: 'Buồng rửa không khả dụng hoặc không phù hợp loại xe.',
-        }
-      }
-
-      setBookings((current) =>
-        current.map((item) =>
-          item.id === bookingId ? { ...item, wash_bay_id: washBayId } : item,
-        ),
-      )
-
-      setWashBays((current) =>
-        current.map((item) =>
-          item.id === washBayId
-            ? {
-                ...item,
-                status: 'OCCUPIED',
-                current_booking_id: bookingId,
-              }
-            : item,
-        ),
-      )
-
-      const updatedBooking = { ...booking, wash_bay_id: washBayId }
-      const bookingSteps = serviceSteps.filter(
-        (step) => step.booking_id === bookingId,
-      )
-      const stepToActivate = findStepToActivateAfterBayAssignment(
-        bookingSteps,
-        updatedBooking,
-      )
-
-      if (stepToActivate) {
-        const now = new Date().toISOString().slice(0, 19)
-        setServiceSteps((current) =>
-          current.map((item) =>
-            item.id === stepToActivate.id
-              ? { ...item, status: 'IN_PROGRESS', started_at: now }
-              : item,
-          ),
-        )
-      }
-
-      return {
-        success: true,
-        message: `Đã gán ${bay.name} cho booking ${bookingId.replace('booking-', '#')}.`,
+      try {
+        const bays = await getAvailableWashBaysApi(garageId, booking.vehicle_type)
+        const mapped = bays.map((bay) => mapApiWashBay(bay, garageId))
+        setAvailableBaysByBooking((current) => ({
+          ...current,
+          [bookingId]: mapped,
+        }))
+        return mapped
+      } catch {
+        const fallback = getSelectableWashBays(washBays, booking)
+        setAvailableBaysByBooking((current) => ({
+          ...current,
+          [bookingId]: fallback,
+        }))
+        return fallback
       }
     },
-    [bookings, washBays, serviceSteps],
+    [bookings, garageId, washBays],
+  )
+
+  const getServicePackageNameFn = useCallback(
+    (id: string, fallback?: string) => {
+      return (
+        servicePackages.find((pkg) => pkg.id === id)?.name ??
+        bookings.find((b) => b.service_package_id === id)?.service_package_name ??
+        fallback ??
+        'Gói dịch vụ'
+      )
+    },
+    [servicePackages, bookings],
+  )
+
+  const getServicePackagesByVehicleTypeFn = useCallback(
+    (vehicleType: Booking['vehicle_type']) =>
+      servicePackages.filter(
+        (pkg) => pkg.vehicle_type === vehicleType && pkg.is_active,
+      ),
+    [servicePackages],
+  )
+
+  const fetchServiceSteps = useCallback(async (bookingId: string) => {
+    const steps = (await getBookingServiceStepsApi(bookingId)).map(
+      mapApiServiceStep,
+    )
+    setStepsByBooking((current) => ({ ...current, [bookingId]: steps }))
+    return steps
+  }, [])
+
+  const getServiceStepsByBookingId = useCallback(
+    (bookingId: string) => stepsByBooking[bookingId] ?? [],
+    [stepsByBooking],
+  )
+
+  const fetchInspections = useCallback(async (bookingId: string) => {
+    const items = (await getBookingInspectionsApi(bookingId)).map(mapApiInspection)
+    setInspectionsByBooking((current) => ({ ...current, [bookingId]: items }))
+    return items
+  }, [])
+
+  const getInspectionsByBookingId = useCallback(
+    (bookingId: string) => inspectionsByBooking[bookingId] ?? [],
+    [inspectionsByBooking],
+  )
+
+  const allInspections = useMemo(
+    () => Object.values(inspectionsByBooking).flat(),
+    [inspectionsByBooking],
   )
 
   const searchCheckInCandidates = useCallback(
@@ -238,10 +338,8 @@ export function BookingProvider({ children }: { children: ReactNode }) {
 
       return bookings.filter((booking) => {
         if (booking.status !== 'CONFIRMED') return false
-
         const plate = normalizeSearchText(booking.license_plate)
         const phone = normalizeSearchText(getBookingPhone(booking))
-
         return (
           plate.includes(normalizedQuery) || phone.includes(normalizedQuery)
         )
@@ -250,327 +348,403 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     [bookings],
   )
 
-  const checkInBooking = useCallback((id: string) => {
-    const booking = bookings.find((item) => item.id === id)
+  const checkInMutation = useMutation({
+    mutationFn: (id: string) => checkInBookingApi(id),
+    onSuccess: () => void invalidateBookings(),
+  })
 
-    if (!booking) {
-      return { success: false, message: 'Không tìm thấy booking.' }
-    }
+  const walkInMutation = useMutation({
+    mutationFn: ({
+      garageId,
+      data,
+    }: {
+      garageId: string
+      data: WalkInBookingForm
+    }) =>
+      createWalkInBookingApi(buildWalkInBookingPayload(garageId, data)),
+    onSuccess: () => void invalidateBookings(),
+  })
 
-    if (booking.status !== 'CONFIRMED') {
-      return {
-        success: false,
-        message: 'Chỉ booking ở trạng thái Đã xác nhận mới được check-in.',
-      }
-    }
+  const assignBayMutation = useMutation({
+    mutationFn: ({
+      bookingId,
+      washBayId,
+    }: {
+      bookingId: string
+      washBayId: string
+    }) => assignWashBayApi(bookingId, washBayId),
+    onSuccess: (_, { bookingId }) => {
+      void invalidateBookings()
+      void fetchServiceSteps(bookingId)
+    },
+  })
 
-    setBookings((current) =>
-      current.map((item) =>
-        item.id === id ? { ...item, status: 'CHECKED_IN' } : item,
-      ),
-    )
+  const startServiceMutation = useMutation({
+    mutationFn: (bookingId: string) => startServiceApi(bookingId),
+    onSuccess: async (_, bookingId) => {
+      await invalidateBookings()
+      await fetchServiceSteps(bookingId)
+    },
+  })
 
-    return {
-      success: true,
-      message: `Check-in thành công cho booking ${id.replace('booking-', '#')}.`,
-    }
-  }, [bookings])
+  const completeStepMutation = useMutation({
+    mutationFn: ({
+      bookingId,
+      stepId,
+    }: {
+      bookingId: string
+      stepId: string
+    }) => completeServiceStepApi(bookingId, stepId),
+    onSuccess: async (_, { bookingId }) => {
+      await fetchServiceSteps(bookingId)
+    },
+  })
 
-  const createWalkInBooking = useCallback(
-    (garageId: string, data: WalkInBookingForm) => {
-      const newBooking = buildWalkInBooking(garageId, data)
+  const completeServiceMutation = useMutation({
+    mutationFn: (bookingId: string) => completeServiceApi(bookingId),
+    onSuccess: () => void invalidateBookings(),
+  })
 
-      setBookings((current) => [newBooking, ...current])
+  const markPaidMutation = useMutation({
+    mutationFn: (bookingId: string) => markBookingPaidApi(bookingId),
+    onSuccess: () => void invalidateBookings(),
+  })
 
+  const payosMutation = useMutation({
+    mutationFn: (bookingId: string) =>
+      createPayosPaymentApi(bookingId, {
+        return_url: `${window.location.origin}/bookings/${bookingId}`,
+        cancel_url: `${window.location.origin}/bookings/${bookingId}`,
+      }),
+    onSuccess: () => void invalidateBookings(),
+  })
+
+  const cancelBookingMutation = useMutation({
+    mutationFn: ({
+      bookingId,
+      payload,
+    }: {
+      bookingId: string
+      payload?: CancelBookingApiPayload
+    }) => cancelBookingApi(bookingId, payload),
+    onSuccess: () => void invalidateBookings(),
+  })
+
+  const markNoShowMutation = useMutation({
+    mutationFn: ({
+      bookingId,
+      payload,
+    }: {
+      bookingId: string
+      payload?: MarkNoShowApiPayload
+    }) => markBookingNoShowApi(bookingId, payload),
+    onSuccess: () => void invalidateBookings(),
+  })
+
+  const resolveLateArrivalMutation = useMutation({
+    mutationFn: ({
+      bookingId,
+      payload,
+    }: {
+      bookingId: string
+      payload: ResolveLateArrivalApiPayload
+    }) => resolveLateArrivalApi(bookingId, payload),
+    onSuccess: () => void invalidateBookings(),
+  })
+
+  const createInspectionMutation = useMutation({
+    mutationFn: ({
+      bookingId,
+      payload,
+    }: {
+      bookingId: string
+      payload: CreateInspectionInput
+    }) =>
+      createBookingInspectionApi(bookingId, {
+        type: payload.type,
+        note: payload.note,
+        images: payload.images,
+      }),
+    onSuccess: async (_, { bookingId }) => {
+      await fetchInspections(bookingId)
+    },
+  })
+
+  const wrapMutation = async <T,>(
+    fn: () => Promise<T>,
+    successMessage: string,
+    mapResult?: (data: T) => Partial<ActionResult>,
+  ): Promise<ActionResult> => {
+    try {
+      const data = await fn()
       return {
         success: true,
-        message: `Tạo walk-in ${newBooking.id.replace('booking-', '#')} thành công.`,
-        bookingId: newBooking.id,
+        message: successMessage,
+        ...mapResult?.(data),
       }
+    } catch (error) {
+      return {
+        success: false,
+        message: getApiErrorMessage(error, 'Thao tác thất bại. Vui lòng thử lại.'),
+      }
+    }
+  }
+
+  const findBookingIdByStepId = useCallback(
+    (stepId: string) => {
+      for (const [bookingId, steps] of Object.entries(stepsByBooking)) {
+        if (steps.some((step) => step.id === stepId)) {
+          return bookingId
+        }
+      }
+      return undefined
     },
-    [bookings],
+    [stepsByBooking],
+  )
+
+  const checkInBooking = useCallback(
+    (id: string) =>
+      wrapMutation(
+        () => checkInMutation.mutateAsync(id),
+        'Check-in thành công.',
+      ),
+    [checkInMutation],
+  )
+
+  const createWalkInBooking = useCallback(
+    (data: WalkInBookingForm) => {
+      const resolvedGarageId = getStaffGarageId(session)
+      if (!resolvedGarageId) {
+        return Promise.resolve({
+          success: false,
+          message: 'Không xác định được garage. Vui lòng đăng nhập lại.',
+        })
+      }
+
+      return wrapMutation(
+        async () =>
+          walkInMutation.mutateAsync({ garageId: resolvedGarageId, data }),
+        data.serve_now
+          ? 'Tạo walk-in và check-in thành công.'
+          : 'Tạo walk-in thành công.',
+        (booking) => ({ bookingId: mapApiBooking(booking).id }),
+      )
+    },
+    [walkInMutation, session],
+  )
+
+  const cancelBooking = useCallback(
+    (id: string, payload?: CancelBookingApiPayload) =>
+      wrapMutation(
+        () => cancelBookingMutation.mutateAsync({ bookingId: id, payload }),
+        'Đã hủy booking.',
+      ),
+    [cancelBookingMutation],
+  )
+
+  const markBookingNoShow = useCallback(
+    (id: string, payload?: MarkNoShowApiPayload) =>
+      wrapMutation(
+        () => markNoShowMutation.mutateAsync({ bookingId: id, payload }),
+        'Đã đánh dấu no-show.',
+      ),
+    [markNoShowMutation],
+  )
+
+  const getLateArrivalOptions = useCallback(
+    (bookingId: string, days = 1) => getLateArrivalOptionsApi(bookingId, days),
+    [],
+  )
+
+  const resolveLateArrival = useCallback(
+    (bookingId: string, payload: ResolveLateArrivalApiPayload) =>
+      wrapMutation(
+        () =>
+          resolveLateArrivalMutation.mutateAsync({ bookingId, payload }),
+        'Đã xử lý khách đến trễ.',
+      ),
+    [resolveLateArrivalMutation],
+  )
+
+  const assignWashBay = useCallback(
+    (bookingId: string, washBayId: string) =>
+      wrapMutation(
+        () => assignBayMutation.mutateAsync({ bookingId, washBayId }),
+        'Đã gán buồng rửa thành công.',
+      ),
+    [assignBayMutation],
   )
 
   const startService = useCallback(
-    (bookingId: string) => {
-      const booking = bookings.find((item) => item.id === bookingId)
-
-      if (!booking) {
-        return { success: false, message: 'Không tìm thấy booking.' }
-      }
-
-      if (booking.status !== 'CHECKED_IN') {
-        return {
-          success: false,
-          message: 'Chỉ booking đã check-in mới được bắt đầu dịch vụ.',
-        }
-      }
-
-      const existingSteps = serviceSteps.filter(
-        (step) => step.booking_id === bookingId,
-      )
-
-      if (existingSteps.length === 0) {
-        const newSteps = createDefaultStepsForBooking(booking)
-        setServiceSteps((current) => [...current, ...newSteps])
-      }
-
-      setBookings((current) =>
-        current.map((item) =>
-          item.id === bookingId ? { ...item, status: 'IN_PROGRESS' } : item,
-        ),
-      )
-
-      return {
-        success: true,
-        message: 'Đã bắt đầu dịch vụ và tạo các bước thực hiện.',
-      }
-    },
-    [bookings, serviceSteps],
+    (bookingId: string) =>
+      wrapMutation(
+        () => startServiceMutation.mutateAsync(bookingId),
+        'Đã bắt đầu dịch vụ.',
+      ),
+    [startServiceMutation],
   )
 
   const completeServiceStep = useCallback(
-    (stepId: string, staffProfileId: string) => {
-      const step = serviceSteps.find((item) => item.id === stepId)
-
-      if (!step) {
-        return { success: false, message: 'Không tìm thấy bước dịch vụ.' }
-      }
-
-      const booking = bookings.find((item) => item.id === step.booking_id)
-      const bookingSteps = serviceSteps
-        .filter((item) => item.booking_id === step.booking_id)
-        .sort((a, b) => a.order - b.order)
-
-      if (!canCompleteStep(step, bookingSteps)) {
-        return {
+    (stepId: string, _staffProfileId: string) => {
+      const bookingId = findBookingIdByStepId(stepId)
+      if (!bookingId) {
+        return Promise.resolve({
           success: false,
-          message: 'Hoàn thành các bước trước đó trước khi tiếp tục.',
-        }
+          message: 'Không tìm thấy booking cho bước dịch vụ này.',
+        })
       }
 
-      if (
-        automatedStepRequiresAssignedBay(step, booking) &&
-        !booking?.wash_bay_id
-      ) {
-        return {
-          success: false,
-          message: WASH_BAY_REQUIRED_FOR_AUTOMATED_STEP_MESSAGE,
-        }
-      }
-
-      const now = new Date().toISOString().slice(0, 19)
-      const nextPending = bookingSteps.find(
-        (item) => item.order === step.order + 1 && item.status === 'PENDING',
+      return wrapMutation(
+        () => completeStepMutation.mutateAsync({ bookingId, stepId }),
+        'Đã hoàn thành bước dịch vụ.',
       )
-      const shouldActivateNext =
-        nextPending &&
-        canStartAutomatedWashStep(nextPending, booking, bookingSteps)
-
-      setServiceSteps((current) =>
-        current.map((item) => {
-          if (item.id === stepId) {
-            return {
-              ...item,
-              status: 'DONE',
-              confirmed_by_staff_id: staffProfileId,
-              completed_at: now,
-            }
-          }
-
-          if (shouldActivateNext && item.id === nextPending.id) {
-            return {
-              ...item,
-              status: 'IN_PROGRESS',
-              started_at: now,
-            }
-          }
-
-          return item
-        }),
-      )
-
-      return { success: true, message: `Đã hoàn thành bước "${step.step_name}".` }
     },
-    [bookings, serviceSteps],
+    [completeStepMutation, findBookingIdByStepId],
   )
 
   const completeService = useCallback(
-    (bookingId: string) => {
-      const booking = bookings.find((item) => item.id === bookingId)
-
-      if (!booking) {
-        return { success: false, message: 'Không tìm thấy booking.' }
-      }
-
-      if (booking.status !== 'IN_PROGRESS') {
-        return {
-          success: false,
-          message: 'Chỉ booking đang thực hiện mới hoàn thành được.',
-        }
-      }
-
-      const bookingSteps = serviceSteps.filter(
-        (step) => step.booking_id === bookingId,
-      )
-
-      if (!areAllStepsDone(bookingSteps)) {
-        return {
-          success: false,
-          message: 'Cần hoàn thành tất cả các bước trước khi kết thúc dịch vụ.',
-        }
-      }
-
-      if (bookingRequiresWashBay(booking) && !booking.wash_bay_id) {
-        return {
-          success: false,
-          message: 'Cần gán buồng rửa trước khi hoàn thành dịch vụ.',
-        }
-      }
-
-      setBookings((current) =>
-        current.map((item) =>
-          item.id === bookingId ? { ...item, status: 'COMPLETED' } : item,
-        ),
-      )
-
-      if (booking.wash_bay_id) {
-        setWashBays((current) =>
-          current.map((item) =>
-            item.id === booking.wash_bay_id
-              ? {
-                  ...item,
-                  status: 'AVAILABLE',
-                  current_booking_id: null,
-                }
-              : item,
-          ),
-        )
-      }
-
-      return {
-        success: true,
-        message: 'Đã hoàn thành dịch vụ. Khách có thể thanh toán tại quầy.',
-      }
-    },
-    [bookings, serviceSteps],
+    (bookingId: string) =>
+      wrapMutation(
+        () => completeServiceMutation.mutateAsync(bookingId),
+        'Đã hoàn thành dịch vụ.',
+      ),
+    [completeServiceMutation],
   )
 
   const markBookingPaid = useCallback(
-    (bookingId: string) => {
-      const booking = bookings.find((item) => item.id === bookingId)
+    (bookingId: string) =>
+      wrapMutation(
+        async () => markPaidMutation.mutateAsync(bookingId),
+        'Xác nhận thanh toán thành công.',
+        (booking) => ({
+          earnedPoints: mapApiBooking(booking).earned_points,
+        }),
+      ),
+    [markPaidMutation],
+  )
 
-      if (!booking) {
-        return { success: false, message: 'Không tìm thấy booking.' }
-      }
-
-      if (!canMarkBookingPaid(booking)) {
-        return {
-          success: false,
-          message: 'Chỉ booking COMPLETED và chưa thanh toán mới được thu tiền.',
-        }
-      }
-
-      const earnedPoints = calculateEarnedPoints(booking)
-      const washHistory = buildWashHistory(booking)
-
-      setBookings((current) =>
-        current.map((item) =>
-          item.id === bookingId
-            ? { ...item, payment_status: 'PAID' }
-            : item,
-        ),
-      )
-
-      setWashHistories((current) => [washHistory, ...current])
-
-      const pointsMessage =
-        earnedPoints > 0
-          ? ` Đã cộng ${earnedPoints} điểm loyalty (mock).`
-          : ''
-
-      return {
-        success: true,
-        message: `Xác nhận thanh toán ${booking.id.replace('booking-', '#')} thành công.${pointsMessage}`,
-        earnedPoints,
-        washHistoryId: washHistory.id,
-      }
-    },
-    [bookings],
+  const createPayosPayment = useCallback(
+    (bookingId: string) =>
+      wrapMutation(
+        async () => payosMutation.mutateAsync(bookingId),
+        'Đã tạo link thanh toán PayOS.',
+        (payment) => ({
+          checkoutUrl: payment.checkout_url,
+          paymentId: payment.id,
+        }),
+      ),
+    [payosMutation],
   )
 
   const createInspection = useCallback(
-    (data: CreateInspectionInput, staffProfileId: string) => {
-      const booking = bookings.find((item) => item.id === data.booking_id)
-
-      if (!booking) {
-        return { success: false, message: 'Không tìm thấy booking.' }
-      }
-
-      if (!['CHECKED_IN', 'IN_PROGRESS'].includes(booking.status)) {
-        return {
-          success: false,
-          message:
-            'Chỉ booking CHECKED_IN hoặc IN_PROGRESS mới tạo được biên bản.',
-        }
-      }
-
-      if (data.images.length === 0) {
-        return { success: false, message: 'Cần ít nhất 1 ảnh kiểm tra.' }
-      }
-
-      const newInspection = buildInspection(data, staffProfileId)
-      setInspections((current) => [newInspection, ...current])
-
-      return {
-        success: true,
-        message: `Đã lưu biên bản ${newInspection.type === 'BEFORE_WASH' ? 'trước rửa' : 'sau rửa'}.`,
-        inspectionId: newInspection.id,
-      }
-    },
-    [bookings],
+    (data: CreateInspectionInput, _staffProfileId: string) =>
+      wrapMutation(
+        async () =>
+          createInspectionMutation.mutateAsync({
+            bookingId: data.booking_id,
+            payload: data,
+          }),
+        'Đã lưu biên bản kiểm tra.',
+        (inspection) => ({ inspectionId: inspection.id }),
+      ),
+    [createInspectionMutation],
   )
+
+  const isMutating =
+    checkInMutation.isPending ||
+    walkInMutation.isPending ||
+    assignBayMutation.isPending ||
+    startServiceMutation.isPending ||
+    completeStepMutation.isPending ||
+    completeServiceMutation.isPending ||
+    markPaidMutation.isPending ||
+    payosMutation.isPending ||
+    cancelBookingMutation.isPending ||
+    markNoShowMutation.isPending ||
+    resolveLateArrivalMutation.isPending ||
+    createInspectionMutation.isPending
 
   const value = useMemo(
     () => ({
+      isLoading: bookingsQuery.isLoading,
+      isMutating,
       bookings,
-      inspections,
+      servicePackages,
+      inspections: allInspections,
       washBays,
+      washHistories,
+      isLoadingWashHistories: washHistoriesQuery.isLoading,
+      isWashHistoriesError: washHistoriesQuery.isError,
+      washHistoriesError: washHistoriesQuery.isError
+        ? getApiErrorMessage(
+            washHistoriesQuery.error,
+            'Không thể tải lịch sử rửa.',
+          )
+        : null,
+      refetchWashHistories,
       getBookingById,
       getWashBayById,
       getAvailableWashBaysForBooking,
+      fetchAvailableWashBaysForBooking,
+      getServicePackageName: getServicePackageNameFn,
+      getServicePackagesByVehicleType: getServicePackagesByVehicleTypeFn,
       assignWashBay,
       searchCheckInCandidates,
       checkInBooking,
       createWalkInBooking,
+      cancelBooking,
+      markBookingNoShow,
+      getLateArrivalOptions,
+      resolveLateArrival,
       getServiceStepsByBookingId,
+      fetchServiceSteps,
       startService,
       completeServiceStep,
       completeService,
       markBookingPaid,
-      washHistories,
+      createPayosPayment,
       getInspectionsByBookingId,
+      fetchInspections,
       createInspection,
+      refreshBookings: invalidateBookings,
     }),
     [
+      bookingsQuery.isLoading,
+      isMutating,
       bookings,
-      inspections,
+      servicePackages,
+      allInspections,
       washBays,
+      washHistories,
+      washHistoriesQuery.isLoading,
+      washHistoriesQuery.isError,
+      washHistoriesQuery.error,
+      refetchWashHistories,
       getBookingById,
       getWashBayById,
       getAvailableWashBaysForBooking,
+      fetchAvailableWashBaysForBooking,
+      getServicePackageNameFn,
+      getServicePackagesByVehicleTypeFn,
       assignWashBay,
       searchCheckInCandidates,
       checkInBooking,
       createWalkInBooking,
+      cancelBooking,
+      markBookingNoShow,
+      getLateArrivalOptions,
+      resolveLateArrival,
       getServiceStepsByBookingId,
+      fetchServiceSteps,
       startService,
       completeServiceStep,
       completeService,
       markBookingPaid,
-      washHistories,
+      createPayosPayment,
       getInspectionsByBookingId,
+      fetchInspections,
       createInspection,
+      invalidateBookings,
     ],
   )
 

@@ -1,5 +1,7 @@
 import type { Booking, BookingStatus } from '../types/booking'
+import type { BookingListParams } from '../api/booking.api'
 import { getBookingPhone, normalizeSearchText } from './booking'
+import { toApiDateTimeString } from './walkIn'
 
 export interface BookingFilters {
   status: BookingStatus | 'ALL'
@@ -13,6 +15,39 @@ export const DEFAULT_BOOKING_FILTERS: BookingFilters = {
   date: '',
   licensePlate: '',
   phone: '',
+}
+
+export function toBookingListApiParams(
+  filters: BookingFilters,
+  garageId?: string,
+): BookingListParams {
+  const params: BookingListParams = { limit: 100 }
+
+  if (garageId) {
+    params.garage_id = garageId
+  }
+
+  if (filters.status !== 'ALL') {
+    params.status = filters.status
+  }
+
+  if (filters.date) {
+    const dayStart = new Date(`${filters.date}T00:00:00`)
+    const dayEnd = new Date(`${filters.date}T23:59:59`)
+    params.from = toApiDateTimeString(dayStart)
+    params.to = toApiDateTimeString(dayEnd)
+  }
+
+  const searchParts = [
+    filters.licensePlate.trim(),
+    filters.phone.trim(),
+  ].filter(Boolean)
+
+  if (searchParts.length > 0) {
+    params.search = searchParts.join(' ')
+  }
+
+  return params
 }
 
 export function filterBookings(

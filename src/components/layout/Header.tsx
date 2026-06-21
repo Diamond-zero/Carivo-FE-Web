@@ -14,8 +14,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   const { session, logout } = useAuth()
 
   const handleLogout = () => {
-    logout()
-    navigate('/login')
+    void logout().then(() => navigate('/login'))
   }
 
   if (!session) return null

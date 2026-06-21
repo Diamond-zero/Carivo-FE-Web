@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { ImagePlus, Loader2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { uploadFileApi } from '../../api/upload.api'
 import {
   INSPECTION_TYPE_DESCRIPTIONS,
   INSPECTION_TYPE_LABELS,
@@ -120,10 +121,14 @@ export function InspectionForm({
     }
 
     setImageError(null)
-    await onSubmit(
-      data,
-      imagePreviews.map((preview) => preview.url),
+
+    const uploadedUrls = await Promise.all(
+      imagePreviews.map((preview) =>
+        uploadFileApi(preview.file).then((response) => response.url),
+      ),
     )
+
+    await onSubmit(data, uploadedUrls)
 
     imagePreviews.forEach((preview) => URL.revokeObjectURL(preview.url))
     setImagePreviews([])
@@ -205,7 +210,7 @@ export function InspectionForm({
             Chọn ảnh từ thiết bị
           </span>
           <span className="mt-1 text-xs text-slate-500">
-            JPG, PNG, WEBP — preview local (mock upload)
+            JPG, PNG, WEBP — upload lên server
           </span>
           <input
             type="file"

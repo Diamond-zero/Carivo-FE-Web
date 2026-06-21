@@ -1,5 +1,5 @@
 import { Users } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { CustomerListTable } from '../../components/customer/CustomerListTable'
 import { CustomerSearchPanel } from '../../components/customer/CustomerSearchPanel'
 import { PageHeader } from '../../components/layout/PageHeader'
@@ -11,23 +11,14 @@ import {
 } from '../../components/ui/Card'
 import { DashboardPageSkeleton } from '../../components/ui/Skeleton'
 import { StatCard } from '../../components/ui/StatCard'
-import { useAuth } from '../../contexts/AuthContext'
-import { useBookings } from '../../contexts/BookingContext'
 import { useInitialPageSkeleton } from '../../hooks/useInitialPageSkeleton'
-import { searchCustomersForGarage } from '../../utils/customerLookup'
+import { useStaffCustomers } from '../../hooks/api/staff/useStaffCustomers'
 
 export function CustomerListPage() {
-  const { session } = useAuth()
-  const { bookings } = useBookings()
   const [query, setQuery] = useState('')
   const isLoading = useInitialPageSkeleton(280)
 
-  const garageId = session?.staffProfile.garage_id ?? ''
-
-  const customers = useMemo(
-    () => searchCustomersForGarage(query, bookings, garageId),
-    [query, bookings, garageId],
-  )
+  const { customers } = useStaffCustomers(query)
 
   const hasActiveSearch = query.trim().length > 0
 
@@ -39,7 +30,7 @@ export function CustomerListPage() {
         <>
           <PageHeader
             title="Thông tin khách hàng"
-            description="Tra cứu read-only thông tin khách đã từng đặt lịch tại garage của bạn."
+            description="Tra cứu khách tại garage — ưu tiên GET /admin/customers, fallback từ booking."
           />
 
           <div className="mb-6 max-w-sm">
