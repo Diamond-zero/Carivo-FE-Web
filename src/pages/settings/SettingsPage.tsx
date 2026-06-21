@@ -26,6 +26,8 @@ import { useNavigate } from 'react-router-dom'
 
 import { getApiErrorMessage } from '../../api/client'
 
+import { ChangePasswordForm } from '../../components/settings/ChangePasswordForm'
+import { EditProfileForm } from '../../components/settings/EditProfileForm'
 import { PageHeader } from '../../components/layout/PageHeader'
 
 import { SettingsInfoRow } from '../../components/settings/SettingsInfoRow'
@@ -122,7 +124,7 @@ export function SettingsPage() {
 
         title="Cài đặt"
 
-        description="Xem thông tin tài khoản nhân viên và garage đang làm việc (đồng bộ từ hệ thống)."
+        description="Xem và cập nhật thông tin tài khoản, đổi mật khẩu và garage đang làm việc."
 
         action={
 
@@ -295,6 +297,13 @@ export function SettingsPage() {
               />
 
             </dl>
+
+            <div className="mt-6 border-t border-slate-100 pt-6">
+              <p className="mb-4 text-sm font-medium text-slate-700">
+                Cập nhật hồ sơ
+              </p>
+              <EditProfileForm />
+            </div>
 
           </CardContent>
 
@@ -471,6 +480,24 @@ export function SettingsPage() {
               />
 
             </dl>
+
+          </CardContent>
+
+        </Card>
+
+
+
+        <Card className="lg:col-span-2">
+
+          <CardHeader>
+
+            <CardTitle className="text-base">Đổi mật khẩu</CardTitle>
+
+          </CardHeader>
+
+          <CardContent>
+
+            <ChangePasswordForm />
 
           </CardContent>
 

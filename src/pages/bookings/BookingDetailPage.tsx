@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   ArrowLeft,
   Car,
@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { MarkPaidModal } from '../../components/booking/MarkPaidModal'
+import { BookingExceptionActions } from '../../components/booking/BookingExceptionActions'
 import { GuardedActionButton } from '../../components/booking/GuardedActionButton'
 import { BookingServiceStepSummary } from '../../components/booking/BookingServiceStepSummary'
 import { BookingStatusBadge } from '../../components/booking/BookingStatusBadge'
@@ -33,8 +34,10 @@ import {
   getBookingPhone,
   getBookingListAction,
 } from '../../utils/booking'
-import { getAssignWashBayGuard } from '../../utils/bookingActionGuards'
 import { formatDateTime, formatPrice, formatTime } from '../../utils/format'
+import { getAssignWashBayGuard } from '../../utils/bookingActionGuards'
+import { bookingRequiresWashBay } from '../../utils/washBay'
+import { useStaffBookingDetail } from '../../hooks/api/staff/useStaffBookingDetail'
 
 export function BookingDetailPage() {
   const { id } = useParams()
@@ -45,8 +48,15 @@ export function BookingDetailPage() {
     getBookingById,
     getWashBayById,
     getAvailableWashBaysForBooking,
+    fetchAvailableWashBaysForBooking,
     assignWashBay,
     markBookingPaid,
+    createPayosPayment,
+    cancelBooking,
+    markBookingNoShow,
+    getLateArrivalOptions,
+    resolveLateArrival,
+    refreshBookings,
     getServiceStepsByBookingId,
     fetchServiceSteps,
     getServicePackageName,
@@ -55,7 +65,18 @@ export function BookingDetailPage() {
   const [isMarkPaidModalOpen, setIsMarkPaidModalOpen] = useState(false)
   const [assignFeedback, setAssignFeedback] = useState<string | null>(null)
 
-  const booking = id ? getBookingById(id) : undefined
+  const detailQuery = useStaffBookingDetail(id)
+  const cachedBooking = id ? getBookingById(id) : undefined
+  const booking = detailQuery.data ?? cachedBooking
+
+  const detailSyncedRef = useRef(false)
+
+  useEffect(() => {
+    if (detailQuery.data && !detailSyncedRef.current) {
+      detailSyncedRef.current = true
+      void refreshBookings()
+    }
+  }, [detailQuery.data, refreshBookings])
 
   useEffect(() => {
     if (id && booking && ['IN_PROGRESS', 'CHECKED_IN', 'COMPLETED'].includes(booking.status)) {
@@ -70,6 +91,14 @@ export function BookingDetailPage() {
       window.history.replaceState({}, document.title)
     }
   }, [location.state, booking?.payment_status])
+
+  if (detailQuery.isLoading && !booking) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center text-sm text-slate-500">
+        Đang tải chi tiết booking...
+      </div>
+    )
+  }
 
   if (!booking) {
     return (
@@ -111,6 +140,13 @@ export function BookingDetailPage() {
     return result
   }
 
+  const openAssignModal = () => {
+    if (id) {
+      void fetchAvailableWashBaysForBooking(id)
+    }
+    setIsAssignModalOpen(true)
+  }
+
   const handleMarkPaid = async () => {
     if (!id) {
       return { success: false, message: 'Không xác định được booking.' }
@@ -121,6 +157,22 @@ export function BookingDetailPage() {
       showToast(result.message, 'success')
     }
     return result
+  }
+
+  const handlePayos = async () => {
+    if (!id) {
+      return { success: false, message: 'Không xác định được booking.' }
+    }
+
+    const result = await createPayosPayment(id)
+    if (result.success) {
+      showToast(result.message, 'success')
+    }
+    return {
+      success: result.success,
+      message: result.message,
+      checkoutUrl: result.checkoutUrl,
+    }
   }
 
   return (
@@ -169,6 +221,28 @@ export function BookingDetailPage() {
             Walk-in
           </span>
         ) : null}
+        {!bookingRequiresWashBay(booking) ? (
+          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+            Không cần buồng rửa
+          </span>
+        ) : null}
+      </div>
+
+      <div className="mb-6">
+        <BookingExceptionActions
+          booking={booking}
+          staffGarageId={staffGarageId}
+          onCancel={(reason) => cancelBooking(booking.id, { reason })}
+          onMarkNoShow={(reason) => markBookingNoShow(booking.id, { reason })}
+          onLoadLateOptions={() => getLateArrivalOptions(booking.id)}
+          onResolveLateArrival={(resolution, newStartTime, note) =>
+            resolveLateArrival(booking.id, {
+              resolution,
+              new_start_time: newStartTime ?? null,
+              note,
+            })
+          }
+        />
       </div>
 
       <Card className="mb-6">
@@ -290,7 +364,7 @@ export function BookingDetailPage() {
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <CardTitle>Buồng rửa</CardTitle>
               {assignWashBayGuard.allowed ? (
-                <Button size="sm" onClick={() => setIsAssignModalOpen(true)}>
+                <Button size="sm" onClick={openAssignModal}>
                   <MapPin className="h-4 w-4" />
                   Gán buồng
                 </Button>
@@ -340,12 +414,14 @@ export function BookingDetailPage() {
         />
       ) : null}
 
-      {booking.status === 'COMPLETED' && booking.payment_status === 'UNPAID' ? (
+      {booking.status === 'COMPLETED' &&
+      ['UNPAID', 'PENDING'].includes(booking.payment_status) ? (
         <MarkPaidModal
           open={isMarkPaidModalOpen}
           onClose={() => setIsMarkPaidModalOpen(false)}
           booking={booking}
-          onConfirm={handleMarkPaid}
+          onConfirmCash={handleMarkPaid}
+          onConfirmPayos={handlePayos}
         />
       ) : null}
     </div>

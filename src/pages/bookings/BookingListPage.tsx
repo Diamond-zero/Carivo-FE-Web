@@ -46,7 +46,7 @@ export function BookingListPage() {
 
   const { session } = useAuth()
 
-  const { markBookingPaid } = useBookings()
+  const { markBookingPaid, createPayosPayment } = useBookings()
 
   const { showToast } = useToast()
 
@@ -104,7 +104,22 @@ export function BookingListPage() {
 
   }
 
+  const handlePayos = async () => {
+    if (!markPaidBooking) {
+      return { success: false, message: 'Không xác định được booking.' }
+    }
 
+    const result = await createPayosPayment(markPaidBooking.id)
+    if (result.success) {
+      showToast(result.message, 'success')
+      void refetch()
+    }
+    return {
+      success: result.success,
+      message: result.message,
+      checkoutUrl: result.checkoutUrl,
+    }
+  }
 
   return (
 
@@ -270,7 +285,9 @@ export function BookingListPage() {
 
           booking={markPaidBooking}
 
-          onConfirm={handleMarkPaid}
+          onConfirmCash={handleMarkPaid}
+
+          onConfirmPayos={handlePayos}
 
         />
 

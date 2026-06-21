@@ -260,18 +260,75 @@ export interface ApiVehicleInspection {
   inspected_at: string
 }
 
+export interface ApiWashHistoryCustomer {
+  id: string
+  full_name: string
+  email?: string | null
+  phone?: string | null
+  role?: string
+  is_active?: boolean
+}
+
+export interface ApiWashHistoryVehicle {
+  id: string
+  raw_license_plate: string
+  normalized_license_plate?: string
+  vehicle_type: VehicleType
+  engine_type?: string
+  brand?: string | null
+  model?: string | null
+  color?: string | null
+  is_active?: boolean
+}
+
+export interface ApiWashHistoryServicePackage {
+  id: string
+  name: string
+  vehicle_type?: VehicleType
+  service_type?: string
+  base_price?: number
+  duration_minutes?: number
+  requires_wash_bay?: boolean
+  is_active?: boolean
+}
+
 export interface ApiWashHistory {
   id: string
   booking_id: string
+  booking?: {
+    id: string
+    booking_date?: string
+    start_time?: string
+    end_time?: string
+    status?: string
+    payment_status?: string
+  } | null
+  customer_id?: string | null
+  customer?: ApiWashHistoryCustomer | null
+  vehicle_id?: string | null
+  vehicle?: ApiWashHistoryVehicle | null
   garage_id: string
-  license_plate: string
   service_package_id: string
+  service_package?: ApiWashHistoryServicePackage | null
+  vehicle_type?: VehicleType
+  amount_paid: number
+  original_price?: number
+  discount_amount?: number
+  points_earned: number
+  points_used?: number
+  payment_method: 'CASH' | 'PAYOS'
+  paid_at: string
+  service_started_at?: string | null
+  service_completed_at?: string
+  created_at?: string
+  updated_at?: string
+  /** @deprecated Legacy flat fields — prefer nested customer/vehicle/service_package */
+  license_plate?: string
+  customer_name?: string
   service_package_name?: string
-  customer_name: string
-  final_price: number
-  payment_method: string
-  washed_at: string
-  earned_points: number
+  final_price?: number
+  earned_points?: number
+  washed_at?: string
 }
 
 export interface WalkInBookingApiPayload {
@@ -354,4 +411,66 @@ export interface UploadApiResponse {
   id: string
   url: string
   public_id?: string
+}
+
+export interface ApiWashBay {
+  id: string
+  garage_id: string
+  name: string
+  bay_code: string
+  vehicle_type: VehicleType
+  status: 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE' | 'INACTIVE'
+  current_booking_id?: string | null
+  is_active: boolean
+}
+
+export interface ApiPaymentTransaction {
+  id: string
+  booking_id: string
+  provider: 'PAYOS'
+  method: 'QR'
+  order_code: number
+  payment_link_id: string
+  checkout_url: string
+  qr_code?: string
+  amount: number
+  currency: 'VND'
+  description?: string
+  status:
+    | 'INITIATED'
+    | 'PENDING'
+    | 'CANCELING'
+    | 'PAID'
+    | 'CANCELED'
+    | 'EXPIRED'
+    | 'FAILED'
+  paid_at?: string | null
+  expires_at?: string | null
+  canceled_at?: string | null
+  expired_at?: string | null
+  created_by_staff_id?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ApiStaffCustomerVehicle {
+  id: string
+  /** Swagger AdminCustomerVehicleSuggestion */
+  license_plate?: string | null
+  raw_license_plate?: string
+  normalized_license_plate?: string
+  vehicle_type: VehicleType
+  brand?: string | null
+  model?: string | null
+  color?: string | null
+}
+
+export interface ApiStaffCustomer {
+  customer_id: string
+  full_name: string
+  phone: string
+  email?: string | null
+  vehicles: ApiStaffCustomerVehicle[]
+  last_booking_at?: string | null
+  total_bookings_at_garage?: number
 }

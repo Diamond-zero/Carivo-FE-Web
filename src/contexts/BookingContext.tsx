@@ -25,16 +25,18 @@ import {
   startServiceApi,
 } from '../api/booking.api'
 import { getServicePackagesApi } from '../api/servicePackage.api'
+import { createPayosPaymentApi } from '../api/payment.api'
+import { getAvailableWashBaysApi, getGarageWashBaysApi } from '../api/washBay.api'
 import { getWashHistoriesApi } from '../api/washHistory.api'
 import { getApiErrorMessage } from '../api/client'
 import { useAuth } from './AuthContext'
 import {
   deriveWashBaysFromBookings,
-  deriveWashHistoriesFromBookings,
   mapApiBooking,
   mapApiInspection,
   mapApiServicePackage,
   mapApiServiceStep,
+  mapApiWashBay,
   mapApiWashHistory,
 } from '../lib/mappers/staffMappers'
 import type {
@@ -62,6 +64,8 @@ export interface ActionResult {
   earnedPoints?: number
   washHistoryId?: string
   inspectionId?: string
+  checkoutUrl?: string
+  paymentId?: string
 }
 
 interface BookingContextValue {
@@ -72,9 +76,14 @@ interface BookingContextValue {
   inspections: VehicleInspection[]
   washBays: WashBay[]
   washHistories: WashHistory[]
+  isLoadingWashHistories: boolean
+  isWashHistoriesError: boolean
+  washHistoriesError: string | null
+  refetchWashHistories: () => Promise<void>
   getBookingById: (id: string) => Booking | undefined
   getWashBayById: (id: string) => WashBay | undefined
   getAvailableWashBaysForBooking: (bookingId: string) => WashBay[]
+  fetchAvailableWashBaysForBooking: (bookingId: string) => Promise<WashBay[]>
   getServicePackageName: (id: string, fallback?: string) => string
   getServicePackagesByVehicleType: (
     vehicleType: Booking['vehicle_type'],
@@ -107,6 +116,9 @@ interface BookingContextValue {
   ) => Promise<ActionResult>
   completeService: (bookingId: string) => Promise<ActionResult>
   markBookingPaid: (bookingId: string) => Promise<ActionResult>
+  createPayosPayment: (
+    bookingId: string,
+  ) => Promise<ActionResult & { checkoutUrl?: string; paymentId?: string }>
   getInspectionsByBookingId: (bookingId: string) => VehicleInspection[]
   fetchInspections: (bookingId: string) => Promise<VehicleInspection[]>
   createInspection: (
@@ -129,6 +141,23 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   const [inspectionsByBooking, setInspectionsByBooking] = useState<
     Record<string, VehicleInspection[]>
   >({})
+  const [availableBaysByBooking, setAvailableBaysByBooking] = useState<
+    Record<string, WashBay[]>
+  >({})
+
+  const washBaysQuery = useQuery({
+    queryKey: staffQueryKeys.washBays(garageId),
+    queryFn: async () => {
+      if (!garageId) return [] as WashBay[]
+      try {
+        const bays = await getGarageWashBaysApi(garageId)
+        return bays.map((bay) => mapApiWashBay(bay, garageId))
+      } catch {
+        return []
+      }
+    },
+    enabled: isAuthenticated && Boolean(garageId),
+  })
 
   const bookingsQuery = useQuery({
     queryKey: staffQueryKeys.bookings(garageId),
@@ -157,29 +186,45 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   const washHistoriesQuery = useQuery({
     queryKey: staffQueryKeys.washHistories(garageId),
     queryFn: async () => {
-      try {
-        const histories = await getWashHistoriesApi({ limit: 100 })
-        return histories.map(mapApiWashHistory)
-      } catch {
-        return []
-      }
+      if (!garageId) return [] as WashHistory[]
+
+      const result = await getWashHistoriesApi({
+        garage_id: garageId,
+        limit: 100,
+      })
+      return result.histories.map(mapApiWashHistory)
     },
     enabled: isAuthenticated && Boolean(garageId),
+    staleTime: 30_000,
   })
 
   const bookings = bookingsQuery.data?.mapped ?? []
   const rawBookings: ApiBooking[] = bookingsQuery.data?.raw ?? []
   const servicePackages = servicePackagesQuery.data ?? []
-  const washHistoriesFromApi = washHistoriesQuery.data
-  const washHistories =
-    washHistoriesFromApi && washHistoriesFromApi.length > 0
-      ? washHistoriesFromApi
-      : deriveWashHistoriesFromBookings(bookings)
+  const washHistories = washHistoriesQuery.data ?? []
 
   const washBays = useMemo(() => {
     if (!garageId) return []
-    return deriveWashBaysFromBookings(rawBookings, garageId)
-  }, [rawBookings, garageId])
+
+    const apiBays = washBaysQuery.data ?? []
+    const baseBays =
+      apiBays.length > 0
+        ? apiBays
+        : deriveWashBaysFromBookings(rawBookings, garageId)
+
+    const bayMap = new Map(baseBays.map((bay) => [bay.id, { ...bay }]))
+
+    for (const booking of rawBookings) {
+      if (booking.status !== 'IN_PROGRESS' || !booking.wash_bay_id) continue
+      const bay = bayMap.get(booking.wash_bay_id)
+      if (bay) {
+        bay.status = 'OCCUPIED'
+        bay.current_booking_id = booking.id
+      }
+    }
+
+    return Array.from(bayMap.values())
+  }, [garageId, washBaysQuery.data, rawBookings])
 
   const invalidateBookings = useCallback(async () => {
     await queryClient.invalidateQueries({
@@ -188,7 +233,14 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     await queryClient.invalidateQueries({
       queryKey: staffQueryKeys.washHistories(garageId),
     })
+    await queryClient.invalidateQueries({
+      queryKey: staffQueryKeys.washBays(garageId),
+    })
   }, [garageId, queryClient])
+
+  const refetchWashHistories = useCallback(async () => {
+    await washHistoriesQuery.refetch()
+  }, [washHistoriesQuery])
 
   const getBookingById = useCallback(
     (id: string) => bookings.find((booking) => booking.id === id),
@@ -201,12 +253,33 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   )
 
   const getAvailableWashBaysForBooking = useCallback(
-    (bookingId: string) => {
+    (bookingId: string) => availableBaysByBooking[bookingId] ?? [],
+    [availableBaysByBooking],
+  )
+
+  const fetchAvailableWashBaysForBooking = useCallback(
+    async (bookingId: string) => {
       const booking = bookings.find((item) => item.id === bookingId)
-      if (!booking) return []
-      return getSelectableWashBays(washBays, booking)
+      if (!booking || !garageId) return []
+
+      try {
+        const bays = await getAvailableWashBaysApi(garageId, booking.vehicle_type)
+        const mapped = bays.map((bay) => mapApiWashBay(bay, garageId))
+        setAvailableBaysByBooking((current) => ({
+          ...current,
+          [bookingId]: mapped,
+        }))
+        return mapped
+      } catch {
+        const fallback = getSelectableWashBays(washBays, booking)
+        setAvailableBaysByBooking((current) => ({
+          ...current,
+          [bookingId]: fallback,
+        }))
+        return fallback
+      }
     },
-    [bookings, washBays],
+    [bookings, garageId, washBays],
   )
 
   const getServicePackageNameFn = useCallback(
@@ -334,6 +407,15 @@ export function BookingProvider({ children }: { children: ReactNode }) {
 
   const markPaidMutation = useMutation({
     mutationFn: (bookingId: string) => markBookingPaidApi(bookingId),
+    onSuccess: () => void invalidateBookings(),
+  })
+
+  const payosMutation = useMutation({
+    mutationFn: (bookingId: string) =>
+      createPayosPaymentApi(bookingId, {
+        return_url: `${window.location.origin}/bookings/${bookingId}`,
+        cancel_url: `${window.location.origin}/bookings/${bookingId}`,
+      }),
     onSuccess: () => void invalidateBookings(),
   })
 
@@ -541,6 +623,19 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     [markPaidMutation],
   )
 
+  const createPayosPayment = useCallback(
+    (bookingId: string) =>
+      wrapMutation(
+        async () => payosMutation.mutateAsync(bookingId),
+        'Đã tạo link thanh toán PayOS.',
+        (payment) => ({
+          checkoutUrl: payment.checkout_url,
+          paymentId: payment.id,
+        }),
+      ),
+    [payosMutation],
+  )
+
   const createInspection = useCallback(
     (data: CreateInspectionInput, _staffProfileId: string) =>
       wrapMutation(
@@ -563,6 +658,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     completeStepMutation.isPending ||
     completeServiceMutation.isPending ||
     markPaidMutation.isPending ||
+    payosMutation.isPending ||
     cancelBookingMutation.isPending ||
     markNoShowMutation.isPending ||
     resolveLateArrivalMutation.isPending ||
@@ -577,9 +673,19 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       inspections: allInspections,
       washBays,
       washHistories,
+      isLoadingWashHistories: washHistoriesQuery.isLoading,
+      isWashHistoriesError: washHistoriesQuery.isError,
+      washHistoriesError: washHistoriesQuery.isError
+        ? getApiErrorMessage(
+            washHistoriesQuery.error,
+            'Không thể tải lịch sử rửa.',
+          )
+        : null,
+      refetchWashHistories,
       getBookingById,
       getWashBayById,
       getAvailableWashBaysForBooking,
+      fetchAvailableWashBaysForBooking,
       getServicePackageName: getServicePackageNameFn,
       getServicePackagesByVehicleType: getServicePackagesByVehicleTypeFn,
       assignWashBay,
@@ -596,6 +702,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       completeServiceStep,
       completeService,
       markBookingPaid,
+      createPayosPayment,
       getInspectionsByBookingId,
       fetchInspections,
       createInspection,
@@ -609,9 +716,14 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       allInspections,
       washBays,
       washHistories,
+      washHistoriesQuery.isLoading,
+      washHistoriesQuery.isError,
+      washHistoriesQuery.error,
+      refetchWashHistories,
       getBookingById,
       getWashBayById,
       getAvailableWashBaysForBooking,
+      fetchAvailableWashBaysForBooking,
       getServicePackageNameFn,
       getServicePackagesByVehicleTypeFn,
       assignWashBay,
@@ -628,6 +740,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       completeServiceStep,
       completeService,
       markBookingPaid,
+      createPayosPayment,
       getInspectionsByBookingId,
       fetchInspections,
       createInspection,

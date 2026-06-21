@@ -1,6 +1,7 @@
 import type { Booking, BookingStatus } from '../types/booking'
 import type { BookingListParams } from '../api/booking.api'
 import { getBookingPhone, normalizeSearchText } from './booking'
+import { toApiDateTimeString } from './walkIn'
 
 export interface BookingFilters {
   status: BookingStatus | 'ALL'
@@ -31,8 +32,10 @@ export function toBookingListApiParams(
   }
 
   if (filters.date) {
-    params.from = filters.date
-    params.to = filters.date
+    const dayStart = new Date(`${filters.date}T00:00:00`)
+    const dayEnd = new Date(`${filters.date}T23:59:59`)
+    params.from = toApiDateTimeString(dayStart)
+    params.to = toApiDateTimeString(dayEnd)
   }
 
   const searchParts = [

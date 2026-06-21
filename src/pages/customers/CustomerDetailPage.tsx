@@ -12,30 +12,24 @@ import {
 } from '../../components/ui/Card'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { DashboardPageSkeleton } from '../../components/ui/Skeleton'
-import { useAuth } from '../../contexts/AuthContext'
-import { useBookings } from '../../contexts/BookingContext'
-import { useInitialPageSkeleton } from '../../hooks/useInitialPageSkeleton'
-import {
-  getCustomerById,
-  getCustomerVehicles,
-  getGarageBookingsForCustomer,
-  isCustomerAtGarage,
-} from '../../utils/customerLookup'
+import { useStaffCustomerDetail } from '../../hooks/api/staff/useStaffCustomerDetail'
 
 export function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const { session } = useAuth()
-  const { bookings } = useBookings()
-  const isLoading = useInitialPageSkeleton(280)
-
-  const garageId = session?.staffProfile.garage_id ?? ''
 
   if (!id) {
     return <Navigate to="/customers" replace />
   }
 
-  const user = getCustomerById(id, bookings, garageId)
-  const atGarage = isCustomerAtGarage(id, bookings, garageId)
+  const {
+    profile,
+    garageBookings,
+    vehicles,
+    atGarage,
+    isLoading,
+  } = useStaffCustomerDetail(id)
+
+  const user = profile?.user
 
   if (!isLoading && (!user || !atGarage)) {
     return (
@@ -66,9 +60,6 @@ export function CustomerDetailPage() {
     )
   }
 
-  const vehicles = getCustomerVehicles(id, bookings, garageId)
-  const garageBookings = getGarageBookingsForCustomer(id, bookings, garageId)
-
   return (
     <div>
       {isLoading || !user ? (
@@ -77,7 +68,7 @@ export function CustomerDetailPage() {
         <>
           <PageHeader
             title={user.full_name}
-            description="Thông tin khách hàng từ lịch sử booking tại garage — read-only."
+            description="Thông tin khách từ GET /admin/customers và booking theo customer_id."
             action={
               <Link to="/customers">
                 <Button variant="secondary">
@@ -109,7 +100,7 @@ export function CustomerDetailPage() {
                 <div className="space-y-3 rounded-xl bg-slate-50 p-4 text-sm">
                   <div className="flex items-center gap-2 text-slate-700">
                     <Phone className="h-4 w-4 text-slate-400" />
-                    {user.phone}
+                    {user.phone || '—'}
                   </div>
                   {user.email ? (
                     <div className="flex items-center gap-2 text-slate-700">

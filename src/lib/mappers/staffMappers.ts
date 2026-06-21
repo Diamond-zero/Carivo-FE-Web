@@ -4,12 +4,15 @@ import type { ServicePackage } from '../../types/servicePackage'
 import type { BookingServiceStep, StepStatus, StepType } from '../../types/serviceStep'
 import type { WashBay, WashBayStatus } from '../../types/washBay'
 import type { WashHistory } from '../../types/washHistory'
+import type { StaffCustomerSummary } from '../../utils/customerLookup'
 import { normalizePhoneForDisplay } from '../auth/mapApiTypes'
 import type {
   ApiBooking,
   ApiBookingServiceStep,
   ApiServicePackage,
+  ApiStaffCustomer,
   ApiVehicleInspection,
+  ApiWashBay,
   ApiWashHistory,
 } from '../../types/api/staff'
 
@@ -119,17 +122,89 @@ export function mapApiInspection(inspection: ApiVehicleInspection): VehicleInspe
 }
 
 export function mapApiWashHistory(item: ApiWashHistory): WashHistory {
+  const licensePlate =
+    item.vehicle?.raw_license_plate ??
+    item.license_plate ??
+    ''
+
   return {
     id: item.id,
     booking_id: item.booking_id,
     garage_id: item.garage_id,
-    license_plate: item.license_plate,
+    license_plate: licensePlate,
     service_package_id: item.service_package_id,
-    customer_name: item.customer_name,
-    final_price: item.final_price,
-    payment_method: item.payment_method === 'PAYOS' ? 'CASH' : 'CASH',
-    washed_at: item.washed_at,
-    earned_points: item.earned_points,
+    service_package_name: item.service_package?.name ?? item.service_package_name,
+    customer_name: item.customer?.full_name ?? item.customer_name ?? 'Khách',
+    final_price: item.amount_paid ?? item.final_price ?? 0,
+    payment_method: item.payment_method,
+    washed_at:
+      item.paid_at ??
+      item.service_completed_at ??
+      item.washed_at ??
+      '',
+    earned_points: item.points_earned ?? item.earned_points ?? 0,
+  }
+}
+
+function resolveStaffCustomerVehiclePlate(
+  vehicle: ApiStaffCustomer['vehicles'][number],
+): string {
+  return (
+    vehicle.raw_license_plate ??
+    vehicle.license_plate ??
+    vehicle.normalized_license_plate ??
+    ''
+  )
+}
+
+export function mapApiWashBay(bay: ApiWashBay, garageId?: string): WashBay {
+  return {
+    id: bay.id,
+    garage_id: bay.garage_id ?? garageId ?? '',
+    name: bay.name,
+    bay_code: bay.bay_code,
+    vehicle_type: bay.vehicle_type,
+    status: bay.status as WashBayStatus,
+    current_booking_id: bay.current_booking_id ?? null,
+    is_active: bay.is_active,
+  }
+}
+
+export function mapApiStaffCustomer(
+  customer: ApiStaffCustomer,
+): StaffCustomerSummary {
+  return {
+    user: {
+      id: customer.customer_id,
+      full_name: customer.full_name,
+      email: customer.email ?? null,
+      phone: customer.phone ? normalizePhoneForDisplay(customer.phone) : '',
+      role: 'CUSTOMER',
+      avatar_url: null,
+      is_active: true,
+    },
+    garageBookingCount: customer.total_bookings_at_garage ?? 0,
+    lastVisitAt: customer.last_booking_at ?? null,
+    vehicles: customer.vehicles.map((vehicle) => {
+      const plate = resolveStaffCustomerVehiclePlate(vehicle)
+      return {
+        id: vehicle.id,
+        customer_id: customer.customer_id,
+        raw_license_plate: plate,
+        normalized_license_plate:
+          vehicle.normalized_license_plate ?? plate,
+        vehicle_type: vehicle.vehicle_type,
+        engine_type: 'GASOLINE',
+        motorbike_cc_group: null,
+        car_body_type: null,
+        seat_count: null,
+        brand: vehicle.brand ?? null,
+        model: vehicle.model ?? null,
+        color: vehicle.color ?? null,
+        is_default: false,
+        is_active: true,
+      }
+    }),
   }
 }
 
@@ -164,28 +239,4 @@ export function deriveWashBaysFromBookings(
   }
 
   return Array.from(bayMap.values())
-}
-
-export function deriveWashHistoriesFromBookings(bookings: Booking[]): WashHistory[] {
-  return bookings
-    .filter(
-      (booking) =>
-        booking.status === 'COMPLETED' && booking.payment_status === 'PAID',
-    )
-    .map((booking) => ({
-      id: `history-${booking.id}`,
-      booking_id: booking.id,
-      garage_id: booking.garage_id,
-      license_plate: booking.license_plate,
-      service_package_id: booking.service_package_id,
-      customer_name: booking.customer_name ?? booking.guest_name ?? 'Khách',
-      final_price: booking.final_price,
-      payment_method: 'CASH' as const,
-      washed_at: booking.start_time,
-      earned_points: booking.earned_points ?? 0,
-    }))
-    .sort(
-      (a, b) =>
-        new Date(b.washed_at).getTime() - new Date(a.washed_at).getTime(),
-    )
 }

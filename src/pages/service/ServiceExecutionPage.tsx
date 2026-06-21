@@ -52,6 +52,7 @@ export function ServiceExecutionPage() {
     getBookingById,
     getWashBayById,
     getAvailableWashBaysForBooking,
+    fetchAvailableWashBaysForBooking,
     assignWashBay,
     getServiceStepsByBookingId,
     fetchServiceSteps,
@@ -150,7 +151,7 @@ export function ServiceExecutionPage() {
       !booking.wash_bay_id &&
       bookingRequiresWashBay(booking)
     ) {
-      setIsAssignModalOpen(true)
+      openAssignModal()
     }
   }
 
@@ -201,6 +202,13 @@ export function ServiceExecutionPage() {
 
   const handleRequestAssignFromDrawer = () => {
     setIsDetailDrawerOpen(false)
+    openAssignModal()
+  }
+
+  const openAssignModal = () => {
+    if (selectedBookingId) {
+      void fetchAvailableWashBaysForBooking(selectedBookingId)
+    }
     setIsAssignModalOpen(true)
   }
 
@@ -338,7 +346,7 @@ export function ServiceExecutionPage() {
                       <GuardedActionButton
                         guard={assignWashBayGuard}
                         showHint={false}
-                        onClick={() => setIsAssignModalOpen(true)}
+                        onClick={openAssignModal}
                       >
                         <MapPin className="h-4 w-4" />
                         Gán buồng rửa

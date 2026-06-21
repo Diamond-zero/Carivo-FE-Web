@@ -49,6 +49,7 @@ export function WalkInForm({
   const { getServicePackagesByVehicleType } = useBookings()
   const [timeSlot, setTimeSlot] = useState<WalkInTimeSlotOption>('now')
   const [customTime, setCustomTime] = useState('')
+  const [selectedAddOnIds, setSelectedAddOnIds] = useState<string[]>([])
 
   const {
     register,
@@ -65,6 +66,7 @@ export function WalkInForm({
       license_plate: '',
       vehicle_type: 'CAR',
       service_package_id: '',
+      promotion_code: '',
       note: '',
     },
   })
@@ -73,7 +75,18 @@ export function WalkInForm({
   const servicePackageId = watch('service_package_id')
 
   const packages = useMemo(
-    () => getServicePackagesByVehicleType(vehicleType as VehicleType),
+    () =>
+      getServicePackagesByVehicleType(vehicleType as VehicleType).filter(
+        (pkg) => pkg.service_type !== 'ADDON',
+      ),
+    [getServicePackagesByVehicleType, vehicleType],
+  )
+
+  const addOnPackages = useMemo(
+    () =>
+      getServicePackagesByVehicleType(vehicleType as VehicleType).filter(
+        (pkg) => pkg.service_type === 'ADDON',
+      ),
     [getServicePackagesByVehicleType, vehicleType],
   )
 
@@ -88,7 +101,10 @@ export function WalkInForm({
     ) {
       setValue('service_package_id', '')
     }
-  }, [packages, servicePackageId, setValue])
+    setSelectedAddOnIds((current) =>
+      current.filter((id) => addOnPackages.some((pkg) => pkg.id === id)),
+    )
+  }, [packages, addOnPackages, servicePackageId, setValue])
 
   const previewStartTime = getWalkInStartTime(
     timeSlot,
@@ -121,6 +137,9 @@ export function WalkInForm({
       service_package_id: data.service_package_id,
       serve_now: timeSlot === 'now',
       start_time,
+      promotion_code: data.promotion_code?.trim() || undefined,
+      add_on_service_ids:
+        selectedAddOnIds.length > 0 ? selectedAddOnIds : undefined,
       note: data.note || undefined,
     })
   }
@@ -216,6 +235,57 @@ export function WalkInForm({
             ))}
           </Select>
         </div>
+      </div>
+
+      {addOnPackages.length > 0 ? (
+        <div>
+          <Label>Dịch vụ thêm (tùy chọn)</Label>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            {addOnPackages.map((pkg) => {
+              const checked = selectedAddOnIds.includes(pkg.id)
+              return (
+                <label
+                  key={pkg.id}
+                  className={cn(
+                    'flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 text-sm transition-colors',
+                    checked
+                      ? 'border-brand-400 bg-brand-50'
+                      : 'border-slate-200 bg-white hover:border-brand-200',
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={checked}
+                    onChange={() => {
+                      setSelectedAddOnIds((current) =>
+                        checked
+                          ? current.filter((id) => id !== pkg.id)
+                          : [...current, pkg.id],
+                      )
+                    }}
+                  />
+                  <span>
+                    <span className="font-medium text-slate-900">{pkg.name}</span>
+                    <span className="mt-0.5 block text-slate-500">
+                      {formatPrice(pkg.base_price)}
+                    </span>
+                  </span>
+                </label>
+              )
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      <div>
+        <Label htmlFor="promotion_code">Mã khuyến mãi</Label>
+        <Input
+          id="promotion_code"
+          placeholder="Nhập mã nếu có"
+          error={errors.promotion_code?.message}
+          {...register('promotion_code')}
+        />
       </div>
 
       <div>

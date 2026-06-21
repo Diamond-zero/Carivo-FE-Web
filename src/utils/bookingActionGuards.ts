@@ -203,6 +203,75 @@ export function getCreateInspectionGuard(
   return { allowed: true }
 }
 
+export function getCancelBookingGuard(
+  booking: Booking,
+  staffGarageId?: string,
+): ActionGuardResult {
+  const garage = garageGuard(booking, staffGarageId)
+  if (garage) return garage
+
+  if (['COMPLETED', 'CANCELED', 'NO_SHOW'].includes(booking.status)) {
+    return {
+      allowed: false,
+      reason: 'Booking đã kết thúc, không thể hủy.',
+    }
+  }
+
+  if (booking.status === 'IN_PROGRESS') {
+    return {
+      allowed: false,
+      reason: 'Booking đang thực hiện — liên hệ quản lý nếu cần hủy.',
+    }
+  }
+
+  return { allowed: true }
+}
+
+export function getMarkNoShowGuard(
+  booking: Booking,
+  staffGarageId?: string,
+): ActionGuardResult {
+  const garage = garageGuard(booking, staffGarageId)
+  if (garage) return garage
+
+  if (booking.status !== 'CONFIRMED') {
+    return {
+      allowed: false,
+      reason: 'Chỉ booking CONFIRMED mới đánh dấu no-show.',
+    }
+  }
+
+  return { allowed: true }
+}
+
+export function getLateArrivalGuard(
+  booking: Booking,
+  staffGarageId?: string,
+): ActionGuardResult {
+  const garage = garageGuard(booking, staffGarageId)
+  if (garage) return garage
+
+  const raw = booking.raw
+  const needsResolution =
+    raw?.late_resolution_required === true || raw?.arrival_status === 'LATE'
+
+  if (!needsResolution && booking.status !== 'CONFIRMED') {
+    return {
+      allowed: false,
+      reason: 'Booking không ở trạng thái cần xử lý đến trễ.',
+    }
+  }
+
+  if (!needsResolution) {
+    return {
+      allowed: false,
+      reason: 'Khách chưa được hệ thống đánh dấu đến trễ.',
+    }
+  }
+
+  return { allowed: true }
+}
+
 export function getCompleteStepGuard(
   step: BookingServiceStep,
   steps: BookingServiceStep[],

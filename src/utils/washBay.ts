@@ -1,8 +1,25 @@
 import type { Booking } from '../types/booking'
 import type { WashBay } from '../types/washBay'
 
-export function bookingRequiresWashBay(_booking: Booking): boolean {
-  return true
+export function bookingRequiresWashBay(booking: Booking): boolean {
+  if (booking.requires_wash_bay != null) {
+    return booking.requires_wash_bay
+  }
+
+  const rawRequires = booking.raw?.requires_wash_bay
+  if (rawRequires != null) {
+    return rawRequires
+  }
+
+  if (booking.raw?.service_package?.requires_wash_bay != null) {
+    return booking.raw.service_package.requires_wash_bay
+  }
+
+  if (booking.raw?.booking_items?.length) {
+    return booking.raw.booking_items.some((item) => item.requires_wash_bay)
+  }
+
+  return false
 }
 
 export function canAssignWashBay(
