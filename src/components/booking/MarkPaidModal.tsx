@@ -116,6 +116,13 @@ export function MarkPaidModal({
           ))}
         </div>
 
+        {booking.payment_status === 'PENDING' ? (
+          <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Booking đang có link PayOS chờ thanh toán. Xác nhận tiền mặt sẽ tự động hủy
+            link PayOS hiện tại.
+          </p>
+        ) : null}
+
         {earnedPointsPreview > 0 ? (
           <p className="rounded-xl bg-violet-50 px-4 py-3 text-sm text-violet-800">
             Khách đăng ký có thể được cộng {earnedPointsPreview} điểm sau thanh toán.

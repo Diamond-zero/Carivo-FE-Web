@@ -34,30 +34,26 @@ function subNavLinkClass(active: boolean) {
 
 function navLinkClass(active: boolean, showAccentBar = true) {
   return cn(
-    'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all',
+    'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all',
     active
       ? cn(
-          'carivo-sidebar-nav-active text-white',
+          'bg-navy-800/90 text-white',
           showAccentBar &&
-            'before:absolute before:inset-y-1.5 before:left-0 before:w-[3px] before:rounded-full before:bg-brand-400',
+            'before:absolute before:left-0 before:top-1/2 before:h-6 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-brand-400',
         )
-      : 'text-slate-400 hover:bg-navy-800/70 hover:text-slate-100',
+      : 'text-slate-400 hover:bg-navy-800/60 hover:text-slate-100',
   )
 }
 
 function NavItemContent({ item, active }: { item: StaffNavItem; active: boolean }) {
   return (
     <>
-      <span
+      <item.icon
         className={cn(
-          'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors',
-          active
-            ? 'bg-brand-500/20 text-brand-300'
-            : 'bg-navy-800/80 text-slate-400 group-hover:text-slate-200',
+          'h-[18px] w-[18px] shrink-0 transition-colors',
+          active ? 'text-brand-300' : 'text-slate-400 group-hover:text-slate-200',
         )}
-      >
-        <item.icon className="h-4 w-4" />
-      </span>
+      />
       <span className="flex-1 text-left">{item.label}</span>
     </>
   )
@@ -154,11 +150,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       />
 
       <div className="relative shrink-0 flex h-[4.25rem] items-center gap-3 border-b border-navy-800/80 px-5">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 text-white shadow-lg shadow-brand-900/40">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 text-white shadow-lg shadow-brand-900/40">
           <Droplets className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-bold tracking-tight text-white">
+          <p className="truncate text-[15px] font-bold tracking-tight text-white">
             Carivo Staff
           </p>
           <p className="truncate text-[11px] font-medium uppercase tracking-wider text-brand-300/80">
@@ -238,7 +234,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-[17.5rem] bg-navy-950 shadow-[4px_0_24px_rgba(0,0,0,0.18)] transition-transform duration-300 lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 w-[240px] bg-navy-950 shadow-[4px_0_24px_rgba(0,0,0,0.18)] transition-transform duration-300 lg:translate-x-0',
           open ? 'translate-x-0' : '-translate-x-full',
         )}
       >

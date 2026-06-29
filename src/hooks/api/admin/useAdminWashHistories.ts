@@ -1,21 +1,35 @@
 import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import {
   getWashHistoriesApi,
   type WashHistoryListParams,
 } from '../../../api/washHistory.api'
 import { useAdminAuth } from '../../../contexts/AdminAuthContext'
-import { mapApiWashHistory } from '../../../lib/mappers/staffMappers'
+import { mapWashHistoriesWithBookingFallback } from '../../../utils/washHistoryEnrichment'
 import { adminQueryKeys } from './queryKeys'
 
-export function useAdminWashHistories(params?: WashHistoryListParams) {
+export interface AdminWashHistoryFilters {
+  garageId?: string
+}
+
+export function useAdminWashHistories(filters: AdminWashHistoryFilters = {}) {
   const { isAuthenticated } = useAdminAuth()
 
+  const apiParams = useMemo((): WashHistoryListParams => {
+    const params: WashHistoryListParams = { limit: 100 }
+    if (filters.garageId && filters.garageId !== 'ALL') {
+      params.garage_id = filters.garageId
+    }
+    return params
+  }, [filters.garageId])
+
   return useQuery({
-    queryKey: adminQueryKeys.washHistories(params),
+    queryKey: adminQueryKeys.washHistories(apiParams),
     queryFn: async () => {
-      const result = await getWashHistoriesApi({ limit: 100, ...params })
+      const result = await getWashHistoriesApi(apiParams)
+      const histories = await mapWashHistoriesWithBookingFallback(result.histories)
       return {
-        histories: result.histories.map(mapApiWashHistory),
+        histories,
         meta: result.meta,
       }
     },

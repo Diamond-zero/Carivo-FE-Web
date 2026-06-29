@@ -91,20 +91,23 @@ export function InspectionPage() {
   }
 
   return (
-    <div>
-      <div className="mb-4">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <Link
           to="/bookings"
-          className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800"
         >
           <ArrowLeft className="h-4 w-4" />
           Quay lại danh sách
         </Link>
+        <span className="text-xs text-slate-500">
+          {inspectableBookings.length} booking khả dụng
+        </span>
       </div>
 
       <PageHeader
         title="Kiểm tra xe"
-        description="Tạo biên bản BEFORE_WASH / AFTER_WASH và upload ảnh minh chứng."
+        description="Tạo biên bản trước khi rửa / sau khi rửa và upload ảnh minh chứng."
       />
 
       {feedback ? (
@@ -123,7 +126,7 @@ export function InspectionPage() {
       ) : null}
 
       {inspectableBookings.length === 0 ? (
-        <Card>
+        <Card className="border-slate-200 shadow-sm">
           <CardContent>
             <EmptyState
               icon={Camera}
@@ -139,7 +142,7 @@ export function InspectionPage() {
         </Card>
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">
-          <Card>
+          <Card className="border-slate-200 shadow-sm">
             <CardHeader>
               <CardTitle>Biên bản mới</CardTitle>
               <CardDescription>
@@ -158,7 +161,7 @@ export function InspectionPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-slate-200 shadow-sm">
             <CardHeader>
               <CardTitle>Lịch sử kiểm tra</CardTitle>
               <CardDescription>

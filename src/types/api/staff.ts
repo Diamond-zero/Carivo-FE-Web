@@ -217,6 +217,23 @@ export interface ApiPaginatedBookings {
   meta: ApiBookingListMeta
 }
 
+/**
+ * BE có thể trả `included_service_ids` dưới 2 dạng (tùy service-package endpoint):
+ *  - string[]: danh sách ObjectId thuần
+ *  - IncludedServiceDto[]: object { id, name, ... } (combo expanded)
+ * FE normalize về string[] để so sánh & render ổn định.
+ */
+export type IncludedServiceRef = string | IncludedServiceDto
+
+export interface IncludedServiceDto {
+  id: string
+  name?: string
+  vehicle_type?: VehicleType
+  service_type?: string
+  base_price?: number
+  duration_minutes?: number
+}
+
 export interface ApiServicePackage {
   id: string
   name: string
@@ -229,7 +246,7 @@ export interface ApiServicePackage {
   points_earned: number
   requires_wash_bay: boolean
   requires_care_staff?: boolean
-  included_service_ids?: string[]
+  included_service_ids?: IncludedServiceRef[]
   steps_template?: unknown[]
   is_active: boolean
 }
@@ -271,7 +288,8 @@ export interface ApiWashHistoryCustomer {
 
 export interface ApiWashHistoryVehicle {
   id: string
-  raw_license_plate: string
+  raw_license_plate?: string
+  license_plate?: string
   normalized_license_plate?: string
   vehicle_type: VehicleType
   engine_type?: string

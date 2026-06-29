@@ -94,6 +94,28 @@ export function WalkInForm({
     ? packages.find((pkg) => pkg.id === servicePackageId)
     : undefined
 
+  /**
+   * ID các dịch vụ đã có sẵn trong gói chính — dùng để disable add-on trùng.
+   *  - Gói COMBO: lấy từ included_service_ids
+   *  - Gói thường: chính gói đó (vì nếu add-on trùng gói chính cũng là duplicate)
+   *  BE có thể trả string[] hoặc object[] { id, name } — luôn chuẩn hóa về string.
+   */
+  const includedInPrimaryPackage = useMemo(() => {
+    if (!selectedPackage) return new Set<string>()
+    if (selectedPackage.service_type === 'COMBO') {
+      return new Set(
+        (selectedPackage.included_service_ids ?? []).map((entry) => {
+          if (typeof entry === 'string') return entry
+          if (entry && typeof entry === 'object' && 'id' in entry) {
+            return String((entry as { id: string }).id)
+          }
+          return ''
+        }).filter(Boolean),
+      )
+    }
+    return new Set([selectedPackage.id])
+  }, [selectedPackage])
+
   useEffect(() => {
     if (
       servicePackageId &&
@@ -102,9 +124,26 @@ export function WalkInForm({
       setValue('service_package_id', '')
     }
     setSelectedAddOnIds((current) =>
-      current.filter((id) => addOnPackages.some((pkg) => pkg.id === id)),
+      current.filter(
+        (id) =>
+          addOnPackages.some((pkg) => pkg.id === id) &&
+          !includedInPrimaryPackage.has(id),
+      ),
     )
-  }, [packages, addOnPackages, servicePackageId, setValue])
+  }, [packages, addOnPackages, servicePackageId, setValue, includedInPrimaryPackage])
+
+  /**
+   * So khớp ID an toàn: chấp nhận cả string lẫn ObjectId (BE có thể trả ObjectId,
+   * FE lưu string). Nếu DB chứa ObjectId, `===` thường sẽ miss → dùng `.toString()`.
+   */
+  const isAddOnConflictingWithPrimary = (addonId: string): boolean => {
+    if (includedInPrimaryPackage.size === 0) return false
+    if (includedInPrimaryPackage.has(addonId)) return true
+    for (const included of includedInPrimaryPackage) {
+      if (String(included) === String(addonId)) return true
+    }
+    return false
+  }
 
   const previewStartTime = getWalkInStartTime(
     timeSlot,
@@ -128,6 +167,12 @@ export function WalkInForm({
       return
     }
 
+    // Defensive: loại bỏ add-on trùng với service đã có trong gói combo primary
+    // trước khi gửi payload — tránh trường hợp BE trả lỗi DUPLICATE_SERVICE_ITEM.
+    const safeAddOnIds = selectedAddOnIds.filter(
+      (id) => !isAddOnConflictingWithPrimary(id),
+    )
+
     await onSubmit({
       guest_name: data.guest_name,
       guest_phone: data.guest_phone,
@@ -139,7 +184,7 @@ export function WalkInForm({
       start_time,
       promotion_code: data.promotion_code?.trim() || undefined,
       add_on_service_ids:
-        selectedAddOnIds.length > 0 ? selectedAddOnIds : undefined,
+        safeAddOnIds.length > 0 ? safeAddOnIds : undefined,
       note: data.note || undefined,
     })
   }
@@ -243,6 +288,8 @@ export function WalkInForm({
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             {addOnPackages.map((pkg) => {
               const checked = selectedAddOnIds.includes(pkg.id)
+              const isIncludedInPrimary = isAddOnConflictingWithPrimary(pkg.id)
+              const disabled = isIncludedInPrimary
               return (
                 <label
                   key={pkg.id}
@@ -251,13 +298,21 @@ export function WalkInForm({
                     checked
                       ? 'border-brand-400 bg-brand-50'
                       : 'border-slate-200 bg-white hover:border-brand-200',
+                    disabled && 'cursor-not-allowed opacity-60',
                   )}
+                  title={
+                    disabled
+                      ? 'Dịch vụ này đã có sẵn trong gói đã chọn'
+                      : undefined
+                  }
                 >
                   <input
                     type="checkbox"
                     className="mt-0.5"
                     checked={checked}
+                    disabled={disabled}
                     onChange={() => {
+                      if (disabled) return
                       setSelectedAddOnIds((current) =>
                         checked
                           ? current.filter((id) => id !== pkg.id)
@@ -266,7 +321,14 @@ export function WalkInForm({
                     }}
                   />
                   <span>
-                    <span className="font-medium text-slate-900">{pkg.name}</span>
+                    <span className="font-medium text-slate-900">
+                      {pkg.name}
+                      {disabled ? (
+                        <span className="ml-2 inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600">
+                          Đã có trong gói
+                        </span>
+                      ) : null}
+                    </span>
                     <span className="mt-0.5 block text-slate-500">
                       {formatPrice(pkg.base_price)}
                     </span>
@@ -275,6 +337,13 @@ export function WalkInForm({
               )
             })}
           </div>
+          {selectedPackage?.service_type === 'COMBO' &&
+          includedInPrimaryPackage.size > 0 ? (
+            <p className="mt-2 text-xs text-slate-500">
+              Các dịch vụ đã có sẵn trong combo được tự động ẩn để tránh tạo
+              booking trùng dịch vụ.
+            </p>
+          ) : null}
         </div>
       ) : null}
 

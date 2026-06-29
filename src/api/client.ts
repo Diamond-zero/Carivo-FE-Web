@@ -22,6 +22,27 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
+const API_ERROR_MESSAGES: Record<string, string> = {
+  FORBIDDEN:
+    'Tài khoản không có quyền thực hiện thao tác này. Vui lòng đăng xuất và đăng nhập lại bằng tài khoản nhân viên.',
+  STAFF_GARAGE_ACCESS_DENIED:
+    'Bạn không thể thao tác booking thuộc garage khác.',
+  BOOKING_PENDING_PAYOS_PAYMENT:
+    'Booking đang có link PayOS chờ thanh toán. Vui lòng hủy PayOS trước khi thu tiền mặt.',
+  BOOKING_NOT_COMPLETED:
+    'Chỉ booking đã hoàn thành dịch vụ mới được thanh toán.',
+  BOOKING_ALREADY_PAID: 'Booking đã được thanh toán.',
+}
+
+export function getApiErrorCode(error: unknown): string | undefined {
+  if (!axios.isAxiosError(error)) {
+    return undefined
+  }
+
+  const data = error.response?.data as ApiValidationError | undefined
+  return data?.error_code
+}
+
 export function getApiErrorMessage(error: unknown, fallback: string): string {
   if (!axios.isAxiosError(error)) {
     return fallback
@@ -29,6 +50,10 @@ export function getApiErrorMessage(error: unknown, fallback: string): string {
 
   const axiosError = error as AxiosError<ApiValidationError>
   const data = axiosError.response?.data
+
+  if (data?.error_code && API_ERROR_MESSAGES[data.error_code]) {
+    return API_ERROR_MESSAGES[data.error_code]
+  }
 
   if (data?.errors?.length) {
     return data.errors.map((item) => item.message).join('. ')

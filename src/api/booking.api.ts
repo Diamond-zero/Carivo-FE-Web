@@ -138,10 +138,18 @@ export async function assignWashBayApi(bookingId: string, washBayId: string) {
   return data.data
 }
 
-export async function startServiceApi(bookingId: string) {
+export interface StartServiceApiPayload {
+  note?: string
+  allow_early_start?: boolean
+}
+
+export async function startServiceApi(
+  bookingId: string,
+  payload: StartServiceApiPayload = {},
+) {
   const { data } = await apiClient.patch<ApiResponse<ApiBooking>>(
     `/admin/bookings/${bookingId}/start-service`,
-    {},
+    payload,
   )
   return data.data
 }
@@ -166,10 +174,18 @@ export async function completeServiceStepApi(
   return data.data
 }
 
-export async function markBookingPaidApi(bookingId: string) {
+export async function markBookingPaidApi(bookingId: string, note?: string) {
   const { data } = await apiClient.patch<ApiResponse<ApiBooking>>(
     `/admin/bookings/${bookingId}/mark-paid`,
-    {},
+    note?.trim() ? { note: note.trim() } : {},
+  )
+  return data.data
+}
+
+export async function reopenBookingServiceApi(bookingId: string, note?: string) {
+  const { data } = await apiClient.patch<ApiResponse<ApiBooking>>(
+    `/admin/bookings/${bookingId}/reopen-service`,
+    { note: note ?? '' },
   )
   return data.data
 }

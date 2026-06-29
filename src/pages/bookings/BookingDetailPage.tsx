@@ -86,7 +86,10 @@ export function BookingDetailPage() {
 
   useEffect(() => {
     const state = location.state as { openMarkPaid?: boolean } | null
-    if (state?.openMarkPaid && booking?.payment_status === 'UNPAID') {
+    if (
+      state?.openMarkPaid &&
+      (booking?.payment_status === 'UNPAID' || booking?.payment_status === 'PENDING')
+    ) {
       setIsMarkPaidModalOpen(true)
       window.history.replaceState({}, document.title)
     }

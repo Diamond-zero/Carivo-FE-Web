@@ -4,10 +4,13 @@ import {
   cancelBookingApi,
   getStaffBookingByIdApi,
   getStaffBookingsApi,
-  markBookingPaidApi,
+  reopenBookingServiceApi,
   type BookingListParams,
 } from '../../../api/booking.api'
-import { createPayosPaymentApi } from '../../../api/payment.api'
+import {
+  createPayosPaymentApi,
+  markBookingPaidWithCashApi,
+} from '../../../api/payment.api'
 import { useAdminAuth } from '../../../contexts/AdminAuthContext'
 import { mapApiBooking } from '../../../lib/mappers/staffMappers'
 import type { AdminBookingFilters } from '../../../utils/adminBookingLookup'
@@ -132,7 +135,7 @@ export function useAdminBookingMutations(bookingId?: string) {
   })
 
   const markPaidMutation = useMutation({
-    mutationFn: () => markBookingPaidApi(bookingId!),
+    mutationFn: () => markBookingPaidWithCashApi(bookingId!),
     onSuccess: () => void invalidate(),
   })
 
@@ -141,9 +144,15 @@ export function useAdminBookingMutations(bookingId?: string) {
     onSuccess: () => void invalidate(),
   })
 
+  const reopenServiceMutation = useMutation({
+    mutationFn: (note?: string) => reopenBookingServiceApi(bookingId!, note),
+    onSuccess: () => void invalidate(),
+  })
+
   return {
     cancelMutation,
     markPaidMutation,
     payosMutation,
+    reopenServiceMutation,
   }
 }

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HydroFlow Ops | Cài đặt nhân viên</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f6f9ff;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid #e2e8f0;
+        }
+        .profile-gradient {
+            background: linear-gradient(135deg, #131b2e 0%, #3f465c 100%);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-container": "#54647a",
+                        "tertiary": "#000000",
+                        "inverse-on-surface": "#ebf1f9",
+                        "surface-tint": "#565e74",
+                        "on-error-container": "#93000a",
+                        "on-primary-container": "#7c839b",
+                        "on-tertiary-fixed": "#191c1e",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed": "#0b1c30",
+                        "outline-variant": "#c6c6cd",
+                        "on-surface": "#161c22",
+                        "on-primary-fixed": "#131b2e",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "primary-container": "#131b2e",
+                        "on-secondary": "#ffffff",
+                        "surface-dim": "#d4dbe2",
+                        "on-tertiary-fixed-variant": "#444749",
+                        "on-tertiary-container": "#818486",
+                        "background": "#f6f9ff",
+                        "secondary": "#505f76",
+                        "outline": "#76777d",
+                        "primary-fixed": "#dae2fd",
+                        "error": "#ba1a1a",
+                        "surface-container-low": "#eef4fc",
+                        "on-secondary-fixed-variant": "#38485d",
+                        "primary": "#000000",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#e3e9f1",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container": "#e8eef6",
+                        "surface-variant": "#dde3eb",
+                        "tertiary-container": "#191c1e",
+                        "surface": "#f6f9ff",
+                        "surface-bright": "#f6f9ff",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed": "#e0e3e5",
+                        "secondary-fixed": "#d3e4fe",
+                        "on-background": "#161c22",
+                        "tertiary-fixed-dim": "#c4c7c9",
+                        "surface-container-highest": "#dde3eb",
+                        "on-error": "#ffffff",
+                        "secondary-fixed-dim": "#b7c8e1",
+                        "inverse-primary": "#bec6e0",
+                        "secondary-container": "#d0e1fb",
+                        "inverse-surface": "#2b3137",
+                        "primary-fixed-dim": "#bec6e0",
+                        "on-surface-variant": "#45464d"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-desktop": "2rem",
+                        "stack-sm": "0.5rem",
+                        "margin-mobile": "1rem",
+                        "stack-xs": "0.25rem",
+                        "gutter": "1rem",
+                        "container-max": "1440px",
+                        "stack-md": "1rem",
+                        "stack-lg": "1.5rem"
+                    },
+                    "fontFamily": {
+                        "title-lg": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "label-xs": ["Inter"]
+                    },
+                    "fontSize": {
+                        "title-lg": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                        "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                        "display-lg": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-xs": ["11px", {"lineHeight": "14px", "letterSpacing": "0.03em", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface">
+<!-- Sidebar Navigation Shell -->
+<aside class="fixed left-0 top-0 h-full w-[240px] bg-primary-container flex flex-col p-stack-md z-50">
+<div class="mb-stack-lg px-2">
+<h1 class="font-headline-sm text-headline-sm text-on-primary-container">Trạm 04</h1>
+<p class="font-label-md text-label-md text-on-primary-container/70">Ca trực: Sáng</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Bảng điều khiển
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+                Đặt lịch
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">build</span>
+                Thực hiện dịch vụ
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">directions_car</span>
+                Kiểm tra xe
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">history</span>
+                Lịch sử rửa xe
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">group</span>
+                Dữ liệu khách hàng
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 bg-on-primary-fixed-variant text-on-primary font-bold rounded-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Cài đặt
+            </a>
+</nav>
+<div class="mt-auto pt-stack-md border-t border-on-primary-fixed-variant/30 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">contact_support</span>
+                Hỗ trợ
+            </a>
+<button class="w-full flex items-center gap-3 px-3 py-2 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg">
+<span class="material-symbols-outlined">logout</span>
+                Đăng xuất
+            </button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-[240px] min-h-screen">
+<!-- Top Nav Bar -->
+<header class="flex justify-between items-center w-full px-margin-desktop h-16 bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-40">
+<div class="flex items-center gap-4">
+<h2 class="font-headline-md text-headline-md text-primary tracking-tight">HydroFlow Ops</h2>
+</div>
+<div class="flex items-center gap-stack-lg">
+<div class="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full text-secondary font-label-md">
+<span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    Trạng thái ca trực
+                </div>
+<div class="flex items-center gap-stack-md">
+<button class="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full transition-colors cursor-pointer active:scale-95">notifications</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full transition-colors cursor-pointer active:scale-95">help</button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a service technician wearing a clean dark navy uniform, looking friendly and capable. The background is a brightly lit, modern industrial workspace with minimalist white and grey tones, creating an authoritative yet approachable professional atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBNRJ7HQL0DcxRZ4Nm9-2kkL7cZkNInoXQ_LdshOucxet6g161lRalyvCVx9PVn7LtzWov2-z84lul6eHq1lN2B3B40qJBAGGhwCcCRDXGcYJ5s_4z-WfP5ICdnyLOMjjiK7MvJMMV14yoq6iGjycaFXwbDtQbP_lbFvTAHKrfPg4qIKgtT3QRHlR5e-TwUIwEvcUcxKGoRBUtjT_6MEWkHLCSFF4k2oHaYLXELvNR0K6j0220e2NYf"/>
+</div>
+</div>
+</div>
+</header>
+<div class="p-margin-desktop max-w-[900px] mx-auto">
+<!-- Breadcrumbs -->
+<nav class="flex items-center gap-2 mb-stack-lg text-on-secondary-container font-label-md">
+<a class="hover:text-primary" href="#">Cài đặt</a>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-primary font-bold">Hồ sơ nhân viên</span>
+</nav>
+<!-- Bento Layout Profile Header -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter mb-gutter">
+<!-- User Identity Card -->
+<div class="md:col-span-2 glass-card rounded-xl p-8 flex flex-col md:flex-row items-center md:items-start gap-8">
+<div class="relative">
+<div class="w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg">
+<img class="w-full h-full object-cover" data-alt="A high-quality, professional avatar of a male staff member in his 30s. He has a clean-cut appearance and is wearing a sleek, modern corporate staff shirt. The lighting is crisp and clear, reflecting a high-end SaaS platform aesthetic with a neutral, professional studio background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAewGlu9ol2Ud5MCf7uVeahRFq9zRXiyLzHXew_1NTFVlj7O9Q50Pztr2iqb43CEqff1YigTuhLMAEXeR-rdABVHzmpfX1_P51VcbkrnzfzipwGfB4c6RBKXTCAYhfMfPBjCPFlLzCNYRR-sQp2NJY9Tddv-CgnBfs3u99I1O1XTt9M2q4VCBbQspI74xKoct0jYRGwxBZLpLpzaZNYPbfoBIjWSiaLjD8kPHTYSfmQ95BDzbCJt65H"/>
+</div>
+<div class="absolute bottom-1 right-1 w-8 h-8 bg-green-500 border-4 border-white rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-xs" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+</div>
+<div class="flex-1 text-center md:text-left">
+<div class="mb-stack-sm">
+<h3 class="font-display-lg text-display-lg text-primary">Nguyễn Minh Quân</h3>
+<p class="font-title-lg text-title-lg text-on-secondary-container">Trưởng nhóm dịch vụ cao cấp</p>
+</div>
+<div class="flex flex-wrap justify-center md:justify-start gap-2 mb-stack-md">
+<span class="px-3 py-1 bg-surface-container rounded-full text-on-surface-variant font-label-md flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">badge</span>
+                                Mã nhân viên: #HF-9904
+                            </span>
+<span class="px-3 py-1 bg-surface-container rounded-full text-on-surface-variant font-label-md flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">event_available</span>
+                                Ngày gia nhập: Th010 2023
+                            </span>
+</div>
+<button class="bg-primary text-on-primary px-6 py-2 rounded-lg font-title-lg hover:opacity-90 transition-opacity active:scale-95">Chỉnh sửa hồ sơ</button>
+</div>
+</div>
+<!-- Stats/Shift Overview -->
+<div class="glass-card rounded-xl p-6 flex flex-col justify-between">
+<div>
+<h4 class="font-label-md text-label-md text-on-secondary-container uppercase mb-stack-sm">Hiệu suất hàng ngày</h4>
+<div class="space-y-4">
+<div class="flex justify-between items-end">
+<span class="text-on-surface font-body-md">Công việc hoàn thành</span>
+<span class="text-primary font-headline-sm">12</span>
+</div>
+<div class="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[80%]"></div>
+</div>
+<div class="flex justify-between items-end">
+<span class="text-on-surface font-body-md">Tỷ lệ hiệu quả</span>
+<span class="text-primary font-headline-sm">98%</span>
+</div>
+</div>
+</div>
+<div class="mt-stack-lg pt-stack-md border-t border-outline-variant">
+<div class="flex items-center gap-2 text-on-secondary-container font-label-md">
+<span class="material-symbols-outlined text-green-600" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+                            Tuân thủ quy trình an toàn
+                        </div>
+</div>
+</div>
+</div>
+<!-- Detailed Settings Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+<!-- Location & Garage -->
+<div class="glass-card rounded-xl p-6">
+<div class="flex items-center gap-3 mb-stack-lg">
+<div class="p-2 bg-primary-container rounded-lg text-white">
+<span class="material-symbols-outlined">garage</span>
+</div>
+<h4 class="font-title-lg text-title-lg text-primary">Hoạt động tại Garage nào</h4>
+</div>
+<div class="space-y-4">
+<div class="p-4 bg-surface-container-low rounded-lg border border-outline-variant/30">
+<div class="flex justify-between items-start mb-2">
+<span class="font-title-lg text-title-lg">Garage Quận 07</span>
+<span class="px-2 py-0.5 bg-green-100 text-green-800 text-[10px] font-bold uppercase rounded">Chính</span>
+</div>
+<p class="font-body-md text-on-secondary-container mb-3">123 Nguyễn Văn Linh, Tân Phong, Quận 7, TP.HCM</p>
+<div class="w-full h-32 rounded-lg bg-surface-variant overflow-hidden">
+<div class="w-full h-full bg-cover bg-center grayscale opacity-80 hover:grayscale-0 transition-all cursor-crosshair" data-location="District 7, Ho Chi Minh City" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBe0ckwNZWqhoIGxPhWOlVHjxsBDZJwBUW7XyI6O_-COVpxNSrtWUiDywamDieFawMsJQYehnxMQax1N3TgaVKCQN65-VwHdosLUzhpKDRGV66lbMP-JBpinkiBGEeMexfKHkN0GaHMB7o1N3MaDh3tcV_JfQugKMhY2umjLeZf-H9p2lRpZHdSySRkNa9mTrr8u6N2QBA-_Nux9GHX9BbuYI6YxsSdu_vBdkx8cW5JEm3PEFx8XgEm')"></div>
+</div>
+</div>
+<button class="w-full py-2 border border-dashed border-outline text-on-secondary-container font-label-md rounded-lg hover:bg-white transition-colors">
+                            Yêu cầu chuyển trạm
+                        </button>
+</div>
+</div>
+<!-- Shift Schedule -->
+<div class="glass-card rounded-xl p-6">
+<div class="flex items-center gap-3 mb-stack-lg">
+<div class="p-2 bg-primary-container rounded-lg text-white">
+<span class="material-symbols-outlined">schedule</span>
+</div>
+<h4 class="font-title-lg text-title-lg text-primary">Giờ hoạt động</h4>
+</div>
+<div class="space-y-3">
+<div class="flex items-center justify-between p-3 bg-surface-container-low rounded-lg">
+<span class="font-body-md text-primary font-medium w-16">Th2 - Th6</span>
+<div class="flex items-center gap-2">
+<span class="px-2 py-1 bg-white border border-outline-variant rounded font-label-md">08:00</span>
+<span class="text-on-secondary-container">—</span>
+<span class="px-2 py-1 bg-white border border-outline-variant rounded font-label-md">17:00</span>
+</div>
+<span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded uppercase">Sáng</span>
+</div>
+<div class="flex items-center justify-between p-3 bg-surface-container-low rounded-lg">
+<span class="font-body-md text-primary font-medium w-16">Thứ Bảy</span>
+<div class="flex items-center gap-2">
+<span class="px-2 py-1 bg-white border border-outline-variant rounded font-label-md">08:00</span>
+<span class="text-on-secondary-container">—</span>
+<span class="px-2 py-1 bg-white border border-outline-variant rounded font-label-md">12:00</span>
+</div>
+<span class="text-[10px] font-bold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded uppercase">Nửa ngày</span>
+</div>
+<div class="flex items-center justify-between p-3 bg-surface-container-low rounded-lg opacity-60">
+<span class="font-body-md text-on-secondary-container font-medium w-16">Chủ Nhật</span>
+<span class="text-error font-label-md">Ngày nghỉ</span>
+</div>
+<div class="mt-stack-lg p-4 bg-primary-fixed border border-primary-fixed-dim rounded-lg">
+<p class="font-label-md text-primary mb-1 uppercase">Tăng ca tiếp theo</p>
+<p class="font-body-sm text-on-primary-fixed-variant">Không có lịch tăng ca trong tuần này. Xem các ngày nghỉ sắp tới trong lịch hệ thống.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Danger Zone / Logout Section -->
+<div class="mt-gutter pt-gutter border-t border-outline-variant">
+<div class="glass-card rounded-xl p-6 bg-red-50/30 border-red-100">
+<div class="flex flex-col md:flex-row items-center justify-between gap-gutter">
+<div>
+<h4 class="font-title-lg text-title-lg text-primary">Quản lý phiên đăng nhập</h4>
+<p class="font-body-md text-on-secondary-container">Bạn đang đăng nhập trên thiết bị: Mobile Web - iOS 17.0</p>
+</div>
+<button class="flex items-center gap-2 px-8 py-3 bg-white border border-error text-error font-bold rounded-lg hover:bg-error hover:text-white transition-all active:scale-95 group">
+<span class="material-symbols-outlined transition-transform group-hover:-translate-x-1">logout</span>
+                            Đăng xuất
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Micro-interaction Script -->
+<script>
+        // Simple hover effect for garage image
+        const garageMap = document.querySelector('[data-location]');
+        if (garageMap) {
+            garageMap.addEventListener('mouseenter', () => {
+                garageMap.style.transform = 'scale(1.05)';
+                garageMap.style.transition = 'transform 0.4s ease';
+            });
+            garageMap.addEventListener('mouseleave', () => {
+                garageMap.style.transform = 'scale(1)';
+            });
+        }
+
+        // Logic for logout button simulation
+        const logoutBtn = document.querySelector('button.group');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                if(confirm('Bạn có chắc chắn muốn đăng xuất không?')) {
+                    alert('Đang đăng xuất...');
+                }
+            });
+        }
+    </script>
+</body></html>

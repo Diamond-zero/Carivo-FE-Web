@@ -20,13 +20,15 @@ import {
   getLateArrivalOptionsApi,
   getStaffBookingsApi,
   markBookingNoShowApi,
-  markBookingPaidApi,
   resolveLateArrivalApi,
   startServiceApi,
 } from '../api/booking.api'
 import { getServicePackagesApi } from '../api/servicePackage.api'
-import { createPayosPaymentApi } from '../api/payment.api'
-import { getAvailableWashBaysApi, getGarageWashBaysApi } from '../api/washBay.api'
+import {
+  createPayosPaymentApi,
+  markBookingPaidWithCashApi,
+} from '../api/payment.api'
+import { getAvailableWashBaysApi } from '../api/washBay.api'
 import { getWashHistoriesApi } from '../api/washHistory.api'
 import { getApiErrorMessage } from '../api/client'
 import { useAuth } from './AuthContext'
@@ -37,7 +39,6 @@ import {
   mapApiServicePackage,
   mapApiServiceStep,
   mapApiWashBay,
-  mapApiWashHistory,
 } from '../lib/mappers/staffMappers'
 import type {
   ApiBooking,
@@ -56,6 +57,7 @@ import type { CreateInspectionInput } from '../utils/inspection'
 import { getSelectableWashBays } from '../utils/washBay'
 import { buildWalkInBookingPayload, getStaffGarageId } from '../utils/walkIn'
 import { staffQueryKeys } from '../hooks/api/staff/queryKeys'
+import { mapWashHistoriesWithBookingFallback } from '../utils/washHistoryEnrichment'
 
 export interface ActionResult {
   success: boolean
@@ -66,6 +68,9 @@ export interface ActionResult {
   inspectionId?: string
   checkoutUrl?: string
   paymentId?: string
+  /** BE báo khách đến muộn — cần resolve late arrival trước khi status được set CHECKED_IN */
+  lateResolutionRequired?: boolean
+  lateMinutes?: number
 }
 
 interface BookingContextValue {
@@ -109,7 +114,10 @@ interface BookingContextValue {
   ) => Promise<ActionResult>
   getServiceStepsByBookingId: (bookingId: string) => BookingServiceStep[]
   fetchServiceSteps: (bookingId: string) => Promise<BookingServiceStep[]>
-  startService: (bookingId: string) => Promise<ActionResult>
+  startService: (
+    bookingId: string,
+    options?: { allowEarlyStart?: boolean },
+  ) => Promise<ActionResult>
   completeServiceStep: (
     stepId: string,
     staffProfileId: string,
@@ -145,18 +153,11 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     Record<string, WashBay[]>
   >({})
 
+  // Staff không có quyền GET /admin/garages/:id/wash-bays — suy buồng rửa từ bookings.
   const washBaysQuery = useQuery({
     queryKey: staffQueryKeys.washBays(garageId),
-    queryFn: async () => {
-      if (!garageId) return [] as WashBay[]
-      try {
-        const bays = await getGarageWashBaysApi(garageId)
-        return bays.map((bay) => mapApiWashBay(bay, garageId))
-      } catch {
-        return []
-      }
-    },
-    enabled: isAuthenticated && Boolean(garageId),
+    queryFn: async () => [] as WashBay[],
+    enabled: false,
   })
 
   const bookingsQuery = useQuery({
@@ -186,13 +187,13 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   const washHistoriesQuery = useQuery({
     queryKey: staffQueryKeys.washHistories(garageId),
     queryFn: async () => {
-      if (!garageId) return [] as WashHistory[]
-
-      const result = await getWashHistoriesApi({
-        garage_id: garageId,
-        limit: 100,
-      })
-      return result.histories.map(mapApiWashHistory)
+      // STAFF: BE tự giới hạn theo StaffProfile.garage_id — không gửi garage_id
+      const result = await getWashHistoriesApi({ limit: 100 })
+      const cachedBookings =
+        queryClient.getQueryData<{ raw: ApiBooking[] }>(
+          staffQueryKeys.bookings(garageId),
+        )?.raw ?? []
+      return mapWashHistoriesWithBookingFallback(result.histories, cachedBookings)
     },
     enabled: isAuthenticated && Boolean(garageId),
     staleTime: 30_000,
@@ -380,8 +381,17 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   })
 
   const startServiceMutation = useMutation({
-    mutationFn: (bookingId: string) => startServiceApi(bookingId),
-    onSuccess: async (_, bookingId) => {
+    mutationFn: ({
+      bookingId,
+      options,
+    }: {
+      bookingId: string
+      options?: { allowEarlyStart?: boolean }
+    }) =>
+      startServiceApi(bookingId, {
+        allow_early_start: options?.allowEarlyStart,
+      }),
+    onSuccess: async (_, { bookingId }) => {
       await invalidateBookings()
       await fetchServiceSteps(bookingId)
     },
@@ -406,7 +416,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   })
 
   const markPaidMutation = useMutation({
-    mutationFn: (bookingId: string) => markBookingPaidApi(bookingId),
+    mutationFn: (bookingId: string) => markBookingPaidWithCashApi(bookingId),
     onSuccess: () => void invalidateBookings(),
   })
 
@@ -507,6 +517,28 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       wrapMutation(
         () => checkInMutation.mutateAsync(id),
         'Check-in thành công.',
+        (booking) => {
+          // BE chỉ set status=CHECKED_IN khi khách đến ON_TIME/EARLY. Khi LATE, status
+          // vẫn là CONFIRMED và phải gọi resolveLateArrival trước. Nếu hiển thị
+          // "thành công" thì user tưởng xong nhưng reload sẽ thấy vẫn CONFIRMED.
+          if (booking.late_resolution_required) {
+            return {
+              success: false,
+              message:
+                booking.late_minutes && booking.late_minutes > 0
+                  ? `Khách đến muộn ${booking.late_minutes} phút. Vui lòng xử lý đến trễ trước khi check-in hoàn tất.`
+                  : 'Khách đến muộn ngoài khung giờ cho phép. Vui lòng xử lý đến trễ trước khi check-in hoàn tất.',
+              bookingId: booking.id,
+              lateResolutionRequired: true,
+              lateMinutes: booking.late_minutes ?? 0,
+            }
+          }
+          return {
+            success: true,
+            message: 'Check-in thành công.',
+            bookingId: booking.id,
+          }
+        },
       ),
     [checkInMutation],
   )
@@ -576,9 +608,12 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   )
 
   const startService = useCallback(
-    (bookingId: string) =>
+    (
+      bookingId: string,
+      options?: { allowEarlyStart?: boolean },
+    ) =>
       wrapMutation(
-        () => startServiceMutation.mutateAsync(bookingId),
+        () => startServiceMutation.mutateAsync({ bookingId, options }),
         'Đã bắt đầu dịch vụ.',
       ),
     [startServiceMutation],
