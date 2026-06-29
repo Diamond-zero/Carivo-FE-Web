@@ -145,13 +145,6 @@ export function getMarkPaidGuard(
     }
   }
 
-  if (booking.payment_status === 'PENDING') {
-    return {
-      allowed: false,
-      reason: 'Booking đang chờ thanh toán online.',
-    }
-  }
-
   return { allowed: true }
 }
 
@@ -332,9 +325,12 @@ export function getBookingListAction(
     }
   }
 
-  if (booking.status === 'COMPLETED' && booking.payment_status === 'UNPAID') {
+  if (
+    booking.status === 'COMPLETED' &&
+    (booking.payment_status === 'UNPAID' || booking.payment_status === 'PENDING')
+  ) {
     return {
-      label: 'Thanh toán',
+      label: booking.payment_status === 'PENDING' ? 'Thu tiền mặt' : 'Thanh toán',
       type: 'mark_paid',
       guard: getMarkPaidGuard(booking, staffGarageId),
     }

@@ -36,7 +36,8 @@ export function AdminBookingDetailPage() {
   const { bookingId } = useParams<{ bookingId: string }>()
   const { showToast } = useToast()
   const { data: booking, isLoading, isError, error } = useAdminBookingDetail(bookingId)
-  const { cancelMutation, markPaidMutation, payosMutation } = useAdminBookingMutations(bookingId)
+  const { cancelMutation, markPaidMutation, payosMutation, reopenServiceMutation } =
+    useAdminBookingMutations(bookingId)
 
   useEffect(() => {
     if (isError) {
@@ -117,6 +118,26 @@ export function AdminBookingDetailPage() {
     }
   }
 
+  const handleReopenService = async () => {
+    if (!bookingId) {
+      return { ok: false, message: 'Không xác định được booking.' }
+    }
+
+    try {
+      await reopenServiceMutation.mutateAsync(undefined)
+      showToast('Đã mở lại dịch vụ cho booking.', 'success')
+      return { ok: true, message: '' }
+    } catch (mutationError) {
+      return {
+        ok: false,
+        message: getApiErrorMessage(
+          mutationError,
+          'Không thể mở lại dịch vụ. Booking có thể đã thanh toán hoặc đã cộng điểm.',
+        ),
+      }
+    }
+  }
+
   const handleCancel = async () => {
     if (!bookingId) {
       return { ok: false, message: 'Không xác định được booking.' }
@@ -176,6 +197,7 @@ export function AdminBookingDetailPage() {
                   onUpdateStatus={handleUpdateStatus}
                   onMarkPaid={handleMarkPaid}
                   onMarkPaidPayos={handleMarkPaidPayos}
+                  onReopenService={handleReopenService}
                   onCancel={handleCancel}
                 />
               </CardContent>

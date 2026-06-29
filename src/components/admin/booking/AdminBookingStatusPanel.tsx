@@ -1,7 +1,8 @@
-import { Ban, CircleDollarSign, Loader2, ShieldAlert } from 'lucide-react'
+import { Ban, CircleDollarSign, Loader2, RotateCcw, ShieldAlert } from 'lucide-react'
 import { useState } from 'react'
 import { BOOKING_STATUS_LABELS } from '../../../constants/bookingStatus'
 import type { Booking, BookingStatus } from '../../../types/booking'
+import { canAdminReopenBooking } from '../../../utils/adminBooking'
 import { Button } from '../../ui/Button'
 import { Label } from '../../ui/Label'
 import { Modal } from '../../ui/Modal'
@@ -12,6 +13,7 @@ interface AdminBookingStatusPanelProps {
   onUpdateStatus: (status: BookingStatus) => Promise<{ ok: boolean; message: string }>
   onMarkPaid: () => Promise<{ ok: boolean; message: string }>
   onMarkPaidPayos?: () => Promise<{ ok: boolean; message: string; checkoutUrl?: string }>
+  onReopenService?: () => Promise<{ ok: boolean; message: string }>
   onCancel: () => Promise<{ ok: boolean; message: string }>
 }
 
@@ -30,17 +32,21 @@ export function AdminBookingStatusPanel({
   onUpdateStatus,
   onMarkPaid,
   onMarkPaidPayos,
+  onReopenService,
   onCancel,
 }: AdminBookingStatusPanelProps) {
   const [selectedStatus, setSelectedStatus] = useState<BookingStatus>(booking.status)
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
   const [isMarkingPaid, setIsMarkingPaid] = useState(false)
+  const [isReopening, setIsReopening] = useState(false)
+  const [isReopenOpen, setIsReopenOpen] = useState(false)
   const [isCancelOpen, setIsCancelOpen] = useState(false)
   const [isCanceling, setIsCanceling] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const canMarkPaid =
     booking.status === 'COMPLETED' && booking.payment_status === 'UNPAID'
+  const canReopen = Boolean(onReopenService) && canAdminReopenBooking(booking)
   const canCancel = !['COMPLETED', 'CANCELED', 'NO_SHOW'].includes(booking.status)
   const statusChanged = selectedStatus !== booking.status
 
@@ -82,6 +88,22 @@ export function AdminBookingStatusPanel({
     setError(result.message)
   }
 
+  const handleReopen = async () => {
+    if (!onReopenService) return
+
+    setIsReopening(true)
+    setError(null)
+    const result = await onReopenService()
+    setIsReopening(false)
+
+    if (result.ok) {
+      setIsReopenOpen(false)
+      return
+    }
+
+    setError(result.message)
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-3 rounded-xl border border-violet-200/80 bg-violet-50/60 p-4">
@@ -89,7 +111,8 @@ export function AdminBookingStatusPanel({
         <div className="text-sm text-violet-900">
           <p className="font-semibold">Can thiệp quản trị</p>
           <p className="mt-1 text-violet-800/90">
-            Hủy booking hoặc đánh dấu thanh toán (tiền mặt / PayOS) qua API backend.
+            Hủy booking, đánh dấu thanh toán hoặc mở lại dịch vụ (khi staff hoàn thành nhầm).
+            Không mở lại được nếu booking đã thanh toán hoặc đã cộng điểm loyalty.
           </p>
         </div>
       </div>
@@ -177,6 +200,18 @@ export function AdminBookingStatusPanel({
           </Button>
         ) : null}
 
+        {onReopenService ? (
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={!canReopen || isReopening}
+            onClick={() => setIsReopenOpen(true)}
+          >
+            <RotateCcw className="h-4 w-4" />
+            Mở lại dịch vụ
+          </Button>
+        ) : null}
+
         <Button
           type="button"
           variant="danger"
@@ -210,6 +245,33 @@ export function AdminBookingStatusPanel({
               </>
             ) : (
               'Xác nhận hủy'
+            )}
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={isReopenOpen}
+        onClose={() => !isReopening && setIsReopenOpen(false)}
+        title="Mở lại dịch vụ?"
+        description="Hoàn tác trạng thái hoàn thành để staff tiếp tục xử lý. Chỉ áp dụng khi chưa thanh toán và chưa cộng điểm."
+      >
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => setIsReopenOpen(false)}
+            disabled={isReopening}
+          >
+            Hủy
+          </Button>
+          <Button onClick={() => void handleReopen()} disabled={isReopening}>
+            {isReopening ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Đang xử lý...
+              </>
+            ) : (
+              'Xác nhận mở lại'
             )}
           </Button>
         </div>

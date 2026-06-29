@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HydroFlow Ops - Dashboard Điều Phối</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f6f9ff;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed": "#0b1c30",
+                        "surface-bright": "#f6f9ff",
+                        "on-tertiary-fixed": "#191c1e",
+                        "primary-fixed": "#dae2fd",
+                        "outline-variant": "#c6c6cd",
+                        "tertiary-fixed-dim": "#c4c7c9",
+                        "on-background": "#161c22",
+                        "outline": "#76777d",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-fixed-variant": "#38485d",
+                        "tertiary-container": "#191c1e",
+                        "on-secondary-container": "#54647a",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#161c22",
+                        "tertiary": "#000000",
+                        "tertiary-fixed": "#e0e3e5",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "error": "#ba1a1a",
+                        "on-surface-variant": "#45464d",
+                        "on-primary-fixed": "#131b2e",
+                        "surface": "#f6f9ff",
+                        "on-primary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "primary-container": "#131b2e",
+                        "secondary-fixed-dim": "#b7c8e1",
+                        "surface-container-highest": "#dde3eb",
+                        "surface-tint": "#565e74",
+                        "secondary-fixed": "#d3e4fe",
+                        "primary-fixed-dim": "#bec6e0",
+                        "on-secondary": "#ffffff",
+                        "on-primary-container": "#7c839b",
+                        "on-tertiary-fixed-variant": "#444749",
+                        "secondary": "#505f76",
+                        "on-error": "#ffffff",
+                        "surface-container-high": "#e3e9f1",
+                        "surface-container-low": "#eef4fc",
+                        "surface-dim": "#d4dbe2",
+                        "on-tertiary-container": "#818486",
+                        "inverse-primary": "#bec6e0",
+                        "inverse-surface": "#2b3137",
+                        "on-error-container": "#93000a",
+                        "inverse-on-surface": "#ebf1f9",
+                        "surface-container": "#e8eef6",
+                        "surface-variant": "#dde3eb",
+                        "secondary-container": "#d0e1fb",
+                        "background": "#f6f9ff",
+                        "primary": "#000000"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-sm": "0.5rem",
+                        "stack-lg": "1.5rem",
+                        "margin-desktop": "2rem",
+                        "stack-md": "1rem",
+                        "margin-mobile": "1rem",
+                        "stack-xs": "0.25rem",
+                        "gutter": "1rem",
+                        "container-max": "1440px"
+                    },
+                    "fontFamily": {
+                        "headline-sm": ["Inter"],
+                        "title-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "label-xs": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "title-lg": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "display-lg": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-xs": ["11px", {"lineHeight": "14px", "letterSpacing": "0.03em", "fontWeight": "600"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface">
+<!-- Sidebar Navigation -->
+<aside class="fixed left-0 top-0 h-full w-[240px] bg-primary-container flex flex-col p-stack-md z-50">
+<div class="mb-stack-lg px-2">
+<h1 class="font-headline-sm text-headline-sm text-on-primary">Station 04</h1>
+<p class="font-label-md text-label-md text-on-primary-container/70">Ca làm việc: Sáng</p>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 bg-on-primary-fixed-variant text-on-primary font-bold rounded-lg transition-transform duration-200 ease-in-out active:scale-95" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+<span class="font-label-md text-label-md">Lịch đặt chỗ</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">build</span>
+<span class="font-label-md text-label-md">Thực hiện dịch vụ</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">directions_car</span>
+<span class="font-label-md text-label-md">Kiểm tra xe</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="font-label-md text-label-md">Lịch sử rửa xe</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-label-md text-label-md">Khách hàng</span>
+</a>
+</nav>
+<div class="mt-auto border-t border-on-primary-container/10 pt-4 space-y-2">
+<button class="w-full bg-on-primary text-primary-container font-bold py-3 rounded-lg flex items-center justify-center gap-2 mb-4 transition-all hover:opacity-90 active:scale-95">
+<span class="material-symbols-outlined">add</span>
+                Check-in mới
+            </button>
+<a class="flex items-center gap-3 px-4 py-2 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">contact_support</span>
+<span class="font-label-md text-label-md">Hỗ trợ</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-label-md text-label-md">Đăng xuất</span>
+</a>
+</div>
+</aside>
+<!-- Main Workspace -->
+<main class="ml-[240px] flex-1 min-h-screen">
+<!-- Top Navigation Bar -->
+<header class="h-16 bg-surface-container-lowest flex justify-between items-center px-margin-desktop border-b border-outline-variant sticky top-0 z-40">
+<div class="flex items-center gap-4">
+<h2 class="font-headline-md text-headline-md text-primary tracking-tight">HydroFlow Ops</h2>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2 bg-surface-container-low px-4 py-1.5 rounded-full border border-outline-variant/50">
+<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+<span class="font-label-md text-on-surface-variant">Trạng thái: Hoạt động</span>
+</div>
+<div class="flex items-center gap-3">
+<button class="material-symbols-outlined text-secondary hover:bg-surface-container-low p-2 rounded-full transition-colors">notifications</button>
+<button class="material-symbols-outlined text-secondary hover:bg-surface-container-low p-2 rounded-full transition-colors">help</button>
+<div class="h-8 w-8 rounded-full bg-primary-container flex items-center justify-center text-white font-bold text-xs">AD</div>
+</div>
+</div>
+</header>
+<div class="p-margin-desktop space-y-stack-lg">
+<!-- 1. Stats Grid -->
+<section class="grid grid-cols-1 md:grid-cols-4 gap-gutter">
+<div class="bg-surface-container-lowest p-stack-md rounded-lg border border-outline-variant hover:border-primary transition-colors flex flex-col gap-1">
+<div class="flex justify-between items-start">
+<span class="text-secondary font-label-md">Booking Hôm Nay</span>
+<span class="material-symbols-outlined text-primary">event_available</span>
+</div>
+<div class="font-display-lg text-display-lg text-primary">42</div>
+<div class="flex items-center gap-1 text-green-700 font-label-xs">
+<span class="material-symbols-outlined text-xs">trending_up</span>
+                        +12% so với hôm qua
+                    </div>
+</div>
+<div class="bg-surface-container-lowest p-stack-md rounded-lg border border-outline-variant hover:border-primary transition-colors flex flex-col gap-1">
+<div class="flex justify-between items-start">
+<span class="text-secondary font-label-md">Xe Đang Rửa</span>
+<span class="material-symbols-outlined text-primary">local_car_wash</span>
+</div>
+<div class="font-display-lg text-display-lg text-primary">03</div>
+<div class="flex items-center gap-1 text-secondary font-label-xs">
+                        Tất cả buồng đang đầy
+                    </div>
+</div>
+<div class="bg-surface-container-lowest p-stack-md rounded-lg border border-outline-variant hover:border-primary transition-colors flex flex-col gap-1">
+<div class="flex justify-between items-start">
+<span class="text-secondary font-label-md">Doanh Thu Dự Tính</span>
+<span class="material-symbols-outlined text-primary">payments</span>
+</div>
+<div class="font-display-lg text-display-lg text-primary">8.4M</div>
+<div class="flex items-center gap-1 text-green-700 font-label-xs">
+<span class="material-symbols-outlined text-xs">trending_up</span>
+                        VND (Ước tính ca sáng)
+                    </div>
+</div>
+<div class="bg-surface-container-lowest p-stack-md rounded-lg border border-outline-variant hover:border-primary transition-colors flex flex-col gap-1">
+<div class="flex justify-between items-start">
+<span class="text-secondary font-label-md">Tỷ Lệ Hoàn Thành</span>
+<span class="material-symbols-outlined text-primary">task_alt</span>
+</div>
+<div class="font-display-lg text-display-lg text-primary">94%</div>
+<div class="w-full bg-surface-container-low h-1 rounded-full mt-1">
+<div class="bg-primary h-full rounded-full" style="width: 94%"></div>
+</div>
+</div>
+</section>
+<!-- 2. Wash Bays Status (Bento Grid Style) -->
+<section class="space-y-stack-md">
+<h3 class="font-title-lg text-title-lg text-primary">Trạng Thái Buồng Rửa (Wash Bays)</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
+<!-- Bay 1 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-stack-md flex flex-col gap-3 relative overflow-hidden">
+<div class="absolute top-0 right-0 p-2">
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 uppercase">Premium</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="bg-primary-container text-white p-2 rounded-lg">
+<span class="material-symbols-outlined">garage</span>
+</div>
+<div>
+<h4 class="font-label-md text-primary">Buồng 01</h4>
+<p class="text-label-xs text-secondary uppercase">Đang thực hiện</p>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-end">
+<span class="font-headline-sm text-headline-sm">29A-888.88</span>
+<span class="text-primary font-bold">75%</span>
+</div>
+<div class="w-full bg-surface-container-low h-2 rounded-full overflow-hidden">
+<div class="bg-blue-600 h-full rounded-full" style="width: 75%"></div>
+</div>
+<div class="flex items-center gap-2 pt-2 border-t border-outline-variant/30">
+<div class="w-6 h-6 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="Staff member avatar showing a professional automotive service technician in a clean uniform." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8-veUd05dp7Tcph2LIlBjvvzBpSqAt5OTaItQuZa74JP10AvRHTD0XmnZW46xTSX6wBMRZYv5PHtiMPdKsuxX15NPQEPRRJvtQQ-mCHQ9KcwrK-mKXr_IOBFQ73dSzUjKUGSCJanfu7NwhSQoAui5DUURfLMayUR41FvxokD2HO8nOmM_EihTF6zteY5eVHGF9cJemPxqijXatwqdESSnBfzOrQQXnoT2jtNg9vkM9RTZ8IluWHpn"/>
+</div>
+<span class="text-label-md text-secondary">NV: Nguyễn Văn An</span>
+</div>
+</div>
+</div>
+<!-- Bay 2 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-stack-md flex flex-col gap-3 relative overflow-hidden">
+<div class="flex items-center gap-3">
+<div class="bg-primary-container text-white p-2 rounded-lg">
+<span class="material-symbols-outlined">garage</span>
+</div>
+<div>
+<h4 class="font-label-md text-primary">Buồng 02</h4>
+<p class="text-label-xs text-secondary uppercase">Đang thực hiện</p>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-end">
+<span class="font-headline-sm text-headline-sm">30F-123.45</span>
+<span class="text-primary font-bold">30%</span>
+</div>
+<div class="w-full bg-surface-container-low h-2 rounded-full overflow-hidden">
+<div class="bg-blue-600 h-full rounded-full" style="width: 30%"></div>
+</div>
+<div class="flex items-center gap-2 pt-2 border-t border-outline-variant/30">
+<div class="w-6 h-6 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="Staff member avatar showing a focused automotive technician wearing specialized cleaning gear." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdxHhzQhAn7UfrdHFizRCf8XhTAN05xLZrfGGDnsEJzaX8x6Qkjjhmif0CzoO8yBdaRwA8T3GJGVZf15npsRJJ05TqfxHShQwejdwjdRwrUdViTwoGbTxwhpZIfjQRguXzKd0zAH3Met673qDjKSTR1kvpodJwjqFTPFDVw71N0C5sFEJy16V2mlPnx2JMi4zLcLVXEKvyD8uPsisWLX3pIV-wm13lMQAEAjfuU1S8-HhIadL68r5C"/>
+</div>
+<span class="text-label-md text-secondary">NV: Trần Minh Tâm</span>
+</div>
+</div>
+</div>
+<!-- Bay 3 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-stack-md flex flex-col gap-3">
+<div class="flex items-center gap-3">
+<div class="bg-primary-container text-white p-2 rounded-lg">
+<span class="material-symbols-outlined">garage</span>
+</div>
+<div>
+<h4 class="font-label-md text-primary">Buồng 03</h4>
+<p class="text-label-xs text-secondary uppercase">Đang thực hiện</p>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-end">
+<span class="font-headline-sm text-headline-sm">51H-999.01</span>
+<span class="text-primary font-bold">95%</span>
+</div>
+<div class="w-full bg-surface-container-low h-2 rounded-full overflow-hidden">
+<div class="bg-green-600 h-full rounded-full" style="width: 95%"></div>
+</div>
+<div class="flex items-center gap-2 pt-2 border-t border-outline-variant/30">
+<div class="w-6 h-6 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="Staff member avatar for a technician working at a high-end car wash station." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlN937C-6a9tipZOoczPDWVFduQKs1plIWk9sOYEq86rY9YNujo7sbuFKjw1WxbKc5Uh3YfPagTWGDqyOL0Z6TJRIyROsiqv-e8wSIf8Vn0f8Rh73Qaqk584o8Pje-i2ZVzHxIOjset3r0dYCXwIxkElWVMuCwriO-vnjfN9F5qCa_7hC2lMbZC6_lqqLqxYe0IdzfnuNgYvX8w8DLL6kI7XQdSLzXKPn1F3BV4PTXzb3FMXpWzely"/>
+</div>
+<span class="text-label-md text-secondary">NV: Lê Quốc Việt</span>
+</div>
+</div>
+</div>
+<!-- Bay 4 -->
+<div class="bg-surface-container-low border-2 border-dashed border-outline-variant rounded-lg p-stack-md flex flex-col items-center justify-center text-center gap-2">
+<span class="material-symbols-outlined text-4xl text-outline">sensor_occupied</span>
+<div>
+<h4 class="font-label-md text-secondary">Buồng 04</h4>
+<p class="font-bold text-green-600 uppercase text-[10px]">Đang Trống</p>
+</div>
+<button class="mt-2 bg-primary text-white text-xs font-bold py-2 px-4 rounded-full hover:scale-105 transition-transform active:scale-95">
+                            Điều phối ngay
+                        </button>
+</div>
+</div>
+</section>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+<!-- 3. Hàng Đợi Check-in -->
+<section class="lg:col-span-1 space-y-stack-md">
+<div class="flex justify-between items-center">
+<h3 class="font-title-lg text-title-lg text-primary">Hàng Đợi Chờ (5)</h3>
+<button class="text-primary font-label-md flex items-center gap-1 hover:underline">
+                            Xem tất cả <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden flex flex-col max-h-[400px]">
+<div class="divide-y divide-outline-variant overflow-y-auto custom-scrollbar">
+<div class="p-stack-md flex items-center gap-4 hover:bg-surface-container-low transition-colors cursor-pointer">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center font-bold text-primary">SUV</div>
+<div class="flex-1">
+<h5 class="font-label-md text-primary">30K-456.78</h5>
+<p class="text-label-xs text-secondary">Hút bụi + Rửa thân vỏ</p>
+</div>
+<div class="text-right">
+<span class="block text-label-xs text-secondary">Chờ 12p</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 uppercase">Ưu tiên</span>
+</div>
+</div>
+<div class="p-stack-md flex items-center gap-4 hover:bg-surface-container-low transition-colors cursor-pointer">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center font-bold text-primary">SED</div>
+<div class="flex-1">
+<h5 class="font-label-md text-primary">15A-332.11</h5>
+<p class="text-label-xs text-secondary">Gói Phổ thông</p>
+</div>
+<div class="text-right">
+<span class="block text-label-xs text-secondary">Chờ 5p</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-800 uppercase">Tiêu chuẩn</span>
+</div>
+</div>
+<div class="p-stack-md flex items-center gap-4 hover:bg-surface-container-low transition-colors cursor-pointer">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center font-bold text-primary">MPV</div>
+<div class="flex-1">
+<h5 class="font-label-md text-primary">29B-008.21</h5>
+<p class="text-label-xs text-secondary">Rửa khoang máy</p>
+</div>
+<div class="text-right">
+<span class="block text-label-xs text-secondary">Vừa vào</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-800 uppercase">Tiêu chuẩn</span>
+</div>
+</div>
+<div class="p-stack-md flex items-center gap-4 hover:bg-surface-container-low transition-colors cursor-pointer">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center font-bold text-primary">SED</div>
+<div class="flex-1">
+<h5 class="font-label-md text-primary">30A-111.44</h5>
+<p class="text-label-xs text-secondary">Gói Premium</p>
+</div>
+<div class="text-right">
+<span class="block text-label-xs text-secondary">Chờ 20p</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 uppercase">Quá hạn</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 4. Biểu Đồ Tần Suất (Chart Placeholder with CSS) -->
+<section class="lg:col-span-2 space-y-stack-md">
+<div class="flex justify-between items-center">
+<h3 class="font-title-lg text-title-lg text-primary">Tần Suất Rửa Xe Theo Giờ</h3>
+<div class="flex gap-2">
+<span class="flex items-center gap-1 text-label-xs text-secondary">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span> Thực tế
+                            </span>
+<span class="flex items-center gap-1 text-label-xs text-secondary">
+<span class="w-2 h-2 rounded-full bg-outline"></span> Dự kiến
+                            </span>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-stack-lg h-[400px] flex flex-col">
+<div class="flex-1 flex items-end gap-4 px-4 pb-2">
+<!-- 08:00 -->
+<div class="flex-1 flex flex-col items-center gap-2 group">
+<div class="w-full bg-primary-container/20 h-12 rounded-t-sm relative">
+<div class="absolute bottom-0 w-full bg-primary-container h-[60%] rounded-t-sm transition-all group-hover:bg-primary"></div>
+</div>
+<span class="text-label-xs text-secondary">08h</span>
+</div>
+<!-- 09:00 -->
+<div class="flex-1 flex flex-col items-center gap-2 group">
+<div class="w-full bg-primary-container/20 h-24 rounded-t-sm relative">
+<div class="absolute bottom-0 w-full bg-primary-container h-[85%] rounded-t-sm transition-all group-hover:bg-primary"></div>
+</div>
+<span class="text-label-xs text-secondary">09h</span>
+</div>
+<!-- 10:00 -->
+<div class="flex-1 flex flex-col items-center gap-2 group">
+<div class="w-full bg-primary-container/20 h-48 rounded-t-sm relative">
+<div class="absolute bottom-0 w-full bg-primary-container h-[92%] rounded-t-sm transition-all group-hover:bg-primary"></div>
+</div>
+<span class="text-label-xs text-secondary">10h</span>
+</div>
+<!-- 11:00 -->
+<div class="flex-1 flex flex-col items-center gap-2 group">
+<div class="w-full bg-primary-container/20 h-64 rounded-t-sm relative">
+<div class="absolute bottom-0 w-full bg-primary-container h-[70%] rounded-t-sm transition-all group-hover:bg-primary"></div>
+</div>
+<span class="text-label-xs text-secondary">11h</span>
+</div>
+<!-- 12:00 (Peak) -->
+<div class="flex-1 flex flex-col items-center gap-2 group">
+<div class="w-full bg-primary-container/20 h-56 rounded-t-sm relative">
+<div class="absolute bottom-0 w-full bg-primary h-[10%] rounded-t-sm border-t-2 border-primary-container border-dashed"></div>
+<div class="absolute bottom-0 w-full bg-primary-container h-[5%] rounded-t-sm"></div>
+</div>
+<span class="text-label-xs text-secondary font-bold text-primary">12h</span>
+</div>
+<!-- 13:00 -->
+<div class="flex-1 flex flex-col items-center gap-2 group">
+<div class="w-full bg-primary-container/20 h-32 rounded-t-sm relative"></div>
+<span class="text-label-xs text-secondary">13h</span>
+</div>
+<!-- 14:00 -->
+<div class="flex-1 flex flex-col items-center gap-2 group">
+<div class="w-full bg-primary-container/20 h-40 rounded-t-sm relative"></div>
+<span class="text-label-xs text-secondary">14h</span>
+</div>
+<!-- 15:00 -->
+<div class="flex-1 flex flex-col items-center gap-2 group">
+<div class="w-full bg-primary-container/20 h-52 rounded-t-sm relative"></div>
+<span class="text-label-xs text-secondary">15h</span>
+</div>
+</div>
+<div class="mt-4 pt-4 border-t border-outline-variant flex justify-between">
+<div class="text-label-xs text-secondary">
+<span class="font-bold text-primary">Ghi chú:</span> Cao điểm từ 10h - 12h hàng ngày.
+                            </div>
+<div class="text-label-xs text-secondary">
+                                Dữ liệu cập nhật: 11:24 SA
+                            </div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+<!-- Floating Action Button (FAB) for quick check-in -->
+<button class="fixed bottom-8 right-8 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50 group">
+<span class="material-symbols-outlined text-3xl">add_photo_alternate</span>
+<span class="absolute right-16 bg-primary-container text-white px-4 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Scan biển số / Check-in</span>
+</button>
+<script>
+        // Simple micro-interaction for progress simulation
+        document.querySelectorAll('.bg-blue-600, .bg-green-600').forEach(bar => {
+            setInterval(() => {
+                let currentWidth = parseInt(bar.style.width);
+                if (currentWidth < 98) {
+                    let increment = Math.random() > 0.8 ? 1 : 0;
+                    bar.style.width = (currentWidth + increment) + '%';
+                    let label = bar.closest('.space-y-2').querySelector('.font-bold');
+                    if (label) label.innerText = (currentWidth + increment) + '%';
+                }
+            }, 5000);
+        });
+    </script>
+</body></html>

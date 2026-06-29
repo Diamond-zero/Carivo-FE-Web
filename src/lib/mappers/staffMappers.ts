@@ -85,10 +85,30 @@ export function mapApiServicePackage(pkg: ApiServicePackage): ServicePackage {
     points_earned: pkg.points_earned,
     requires_wash_bay: pkg.requires_wash_bay,
     requires_care_staff: pkg.requires_care_staff ?? false,
-    included_service_ids: pkg.included_service_ids ?? [],
+    included_service_ids: normalizeIncludedServiceIds(pkg.included_service_ids),
     steps_template: [],
     is_active: pkg.is_active,
   }
+}
+
+/**
+ * BE có thể trả `included_service_ids` dạng string[] hoặc object[] (DTO đã expand).
+ * Chuẩn hóa về string[] để so sánh ID ổn định trong UI.
+ */
+function normalizeIncludedServiceIds(
+  raw: ApiServicePackage['included_service_ids'],
+): string[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .map((entry) => {
+      if (entry == null) return null
+      if (typeof entry === 'string') return entry
+      if (typeof entry === 'object' && 'id' in entry && entry.id) {
+        return String(entry.id)
+      }
+      return null
+    })
+    .filter((id): id is string => Boolean(id))
 }
 
 export function mapApiServiceStep(step: ApiBookingServiceStep): BookingServiceStep {
@@ -121,20 +141,63 @@ export function mapApiInspection(inspection: ApiVehicleInspection): VehicleInspe
   }
 }
 
-export function mapApiWashHistory(item: ApiWashHistory): WashHistory {
-  const licensePlate =
-    item.vehicle?.raw_license_plate ??
-    item.license_plate ??
-    ''
+type WashHistoryBookingFallback = Pick<
+  ApiBooking,
+  'license_plate' | 'normalized_license_plate' | 'vehicle' | 'guest_name' | 'customer'
+>
 
+function resolveBookingLicensePlate(
+  booking?: WashHistoryBookingFallback | null,
+): string {
+  if (!booking) return ''
+
+  return (
+    booking.license_plate ??
+    booking.vehicle?.raw_license_plate ??
+    booking.normalized_license_plate ??
+    booking.vehicle?.normalized_license_plate ??
+    ''
+  )
+}
+
+export function resolveWashHistoryLicensePlate(
+  item: ApiWashHistory,
+  booking?: WashHistoryBookingFallback | null,
+): string {
+  return (
+    item.vehicle?.raw_license_plate ??
+    item.vehicle?.license_plate ??
+    item.vehicle?.normalized_license_plate ??
+    item.license_plate ??
+    resolveBookingLicensePlate(booking)
+  )
+}
+
+export function resolveWashHistoryCustomerName(
+  item: ApiWashHistory,
+  booking?: WashHistoryBookingFallback | null,
+): string {
+  return (
+    item.customer?.full_name ??
+    item.customer_name ??
+    booking?.customer?.full_name ??
+    booking?.guest_name ??
+    'Khách'
+  )
+}
+
+export function mapApiWashHistory(
+  item: ApiWashHistory,
+  booking?: WashHistoryBookingFallback | null,
+): WashHistory {
   return {
     id: item.id,
     booking_id: item.booking_id,
     garage_id: item.garage_id,
-    license_plate: licensePlate,
+    license_plate: resolveWashHistoryLicensePlate(item, booking),
     service_package_id: item.service_package_id,
     service_package_name: item.service_package?.name ?? item.service_package_name,
-    customer_name: item.customer?.full_name ?? item.customer_name ?? 'Khách',
+    customer_name: resolveWashHistoryCustomerName(item, booking),
     final_price: item.amount_paid ?? item.final_price ?? 0,
     payment_method: item.payment_method,
     washed_at:

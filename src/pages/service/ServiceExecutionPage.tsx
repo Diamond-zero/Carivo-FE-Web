@@ -1,15 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import {
-  ArrowLeft,
-  CheckCircle2,
-  Info,
-  Loader2,
-  MapPin,
-  Play,
-  Wrench,
-} from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Info, Loader2, MapPin, Play, Wrench } from 'lucide-react'
 import { AssignWashBayModal } from '../../components/wash-bay/AssignWashBayModal'
+import { ArrivalStatusBadge } from '../../components/booking/ArrivalStatusBadge'
 import { CompleteServiceModal } from '../../components/booking/CompleteServiceModal'
 import { GuardedActionButton } from '../../components/booking/GuardedActionButton'
 import { BookingExecutionDrawer } from '../../components/service/BookingExecutionDrawer'
@@ -68,6 +61,7 @@ export function ServiceExecutionPage() {
   } | null>(null)
   const [completingStepId, setCompletingStepId] = useState<string | null>(null)
   const [isStarting, setIsStarting] = useState(false)
+  const [allowEarlyStart, setAllowEarlyStart] = useState(false)
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false)
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false)
@@ -138,8 +132,9 @@ export function ServiceExecutionPage() {
 
     setIsStarting(true)
     setFeedback(null)
-    const result = await startService(selectedBookingId)
+    const result = await startService(selectedBookingId, { allowEarlyStart })
     setIsStarting(false)
+    setAllowEarlyStart(false)
     setFeedback({
       type: result.success ? 'success' : 'error',
       message: result.message,
@@ -213,15 +208,18 @@ export function ServiceExecutionPage() {
   }
 
   return (
-    <div>
-      <div className="mb-4">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <Link
           to="/bookings"
-          className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800"
         >
           <ArrowLeft className="h-4 w-4" />
           Quay lại danh sách
         </Link>
+        <span className="text-xs text-slate-500">
+          Bước tiến hành · {executableBookings.length} booking đang chờ
+        </span>
       </div>
 
       <PageHeader
@@ -299,12 +297,21 @@ export function ServiceExecutionPage() {
               <Card className="border-brand-200 bg-brand-50/50">
                 <CardContent className="flex flex-col gap-4 py-6 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="font-medium text-slate-900">
-                      Booking đã check-in — sẵn sàng bắt đầu
-                    </p>
-                    <p className="mt-1 text-sm text-slate-600">
-                      Bấm bắt đầu để tạo các bước dịch vụ và chuyển sang IN_PROGRESS.
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-slate-900">
+                        Booking đã check-in — sẵn sàng bắt đầu
+                      </p>
+                      <ArrivalStatusBadge status={booking.raw?.arrival_status} />
+                    </div>
+                    {booking.raw?.arrival_status === 'EARLY' ? (
+                      <p className="mt-1 text-sm text-blue-600">
+                        Khách đến sớm hơn lịch. Bạn có thể bắt đầu ngay hoặc đợi đến giờ đã đặt.
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-sm text-slate-600">
+                        Bấm bắt đầu để tạo các bước dịch vụ và chuyển sang IN_PROGRESS.
+                      </p>
+                    )}
                   </div>
                   <GuardedActionButton
                     guard={startServiceGuard}
@@ -325,6 +332,33 @@ export function ServiceExecutionPage() {
                     )}
                   </GuardedActionButton>
                 </CardContent>
+
+                {booking.raw?.arrival_status === 'EARLY' && !allowEarlyStart ? (
+                  <CardContent className="-mt-2 border-t border-brand-100 pt-4">
+                    <button
+                      type="button"
+                      className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                      onClick={() => setAllowEarlyStart(true)}
+                    >
+                      Chuyển sang bắt đầu ngay (thay đổi lịch về hiện tại)
+                    </button>
+                  </CardContent>
+                ) : null}
+
+                {booking.raw?.arrival_status === 'EARLY' && allowEarlyStart ? (
+                  <CardContent className="-mt-2 border-t border-blue-200 bg-blue-50 pt-4">
+                    <p className="text-sm font-medium text-blue-700">
+                      Chế độ bắt đầu sớm đang bật — lịch booking sẽ được chuyển về giờ hiện tại.
+                    </p>
+                    <button
+                      type="button"
+                      className="mt-1 text-sm text-blue-500 hover:text-blue-600 hover:underline"
+                      onClick={() => setAllowEarlyStart(false)}
+                    >
+                      Hủy bỏ
+                    </button>
+                  </CardContent>
+                ) : null}
               </Card>
             ) : null}
 

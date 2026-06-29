@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Kiểm tra xe | HydroFlow Ops</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f6f9ff;
+        }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1rem;
+        }
+        .inspection-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+        }
+        .inspection-card:hover {
+            border-color: #0f172a;
+        }
+        .zebra-row:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-secondary-container": "#54647a",
+                      "tertiary": "#000000",
+                      "inverse-on-surface": "#ebf1f9",
+                      "surface-tint": "#565e74",
+                      "on-error-container": "#93000a",
+                      "on-primary-container": "#7c839b",
+                      "on-tertiary-fixed": "#191c1e",
+                      "on-tertiary": "#ffffff",
+                      "on-secondary-fixed": "#0b1c30",
+                      "outline-variant": "#c6c6cd",
+                      "on-surface": "#161c22",
+                      "on-primary-fixed": "#131b2e",
+                      "on-primary-fixed-variant": "#3f465c",
+                      "primary-container": "#131b2e",
+                      "on-secondary": "#ffffff",
+                      "surface-dim": "#d4dbe2",
+                      "on-tertiary-fixed-variant": "#444749",
+                      "on-tertiary-container": "#818486",
+                      "background": "#f6f9ff",
+                      "secondary": "#505f76",
+                      "outline": "#76777d",
+                      "primary-fixed": "#dae2fd",
+                      "error": "#ba1a1a",
+                      "surface-container-low": "#eef4fc",
+                      "on-secondary-fixed-variant": "#38485d",
+                      "primary": "#000000",
+                      "on-primary": "#ffffff",
+                      "surface-container-high": "#e3e9f1",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-container": "#e8eef6",
+                      "surface-variant": "#dde3eb",
+                      "tertiary-container": "#191c1e",
+                      "surface": "#f6f9ff",
+                      "surface-bright": "#f6f9ff",
+                      "error-container": "#ffdad6",
+                      "tertiary-fixed": "#e0e3e5",
+                      "secondary-fixed": "#d3e4fe",
+                      "on-background": "#161c22",
+                      "tertiary-fixed-dim": "#c4c7c9",
+                      "surface-container-highest": "#dde3eb",
+                      "on-error": "#ffffff",
+                      "secondary-fixed-dim": "#b7c8e1",
+                      "inverse-primary": "#bec6e0",
+                      "secondary-container": "#d0e1fb",
+                      "inverse-surface": "#2b3137",
+                      "primary-fixed-dim": "#bec6e0",
+                      "on-surface-variant": "#45464d"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-desktop": "2rem",
+                      "stack-sm": "0.5rem",
+                      "margin-mobile": "1rem",
+                      "stack-xs": "0.25rem",
+                      "gutter": "1rem",
+                      "container-max": "1440px",
+                      "stack-md": "1rem",
+                      "stack-lg": "1.5rem"
+              },
+              "fontFamily": {
+                      "title-lg": ["Inter"],
+                      "headline-sm": ["Inter"],
+                      "body-md": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "label-md": ["Inter"],
+                      "body-sm": ["Inter"],
+                      "display-lg": ["Inter"],
+                      "label-xs": ["Inter"]
+              },
+              "fontSize": {
+                      "title-lg": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                      "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                      "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                      "display-lg": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "label-xs": ["11px", {"lineHeight": "14px", "letterSpacing": "0.03em", "fontWeight": "600"}]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="flex min-h-screen">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-full w-[240px] bg-primary-container flex flex-col p-stack-md z-50">
+<div class="mb-stack-lg">
+<h1 class="font-headline-sm text-headline-sm text-on-primary-container">Trạm 04</h1>
+<p class="font-label-md text-label-md text-on-primary-container/70">Ca hiện tại: Sáng</p>
+</div>
+<nav class="flex-1 space-y-stack-sm overflow-y-auto custom-scrollbar">
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Bảng điều khiển</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+<span>Đặt lịch</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">build</span>
+<span>Thực hiện dịch vụ</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-on-primary-fixed-variant text-on-primary font-bold rounded-lg transition-transform duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">directions_car</span>
+<span>Kiểm tra xe</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">history</span>
+<span>Lịch sử rửa xe</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">group</span>
+<span>Cơ sở dữ liệu khách hàng</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>Cài đặt</span>
+</a>
+</nav>
+<div class="mt-auto pt-stack-md border-t border-on-primary-container/20">
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">contact_support</span>
+<span>Hỗ trợ</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary-container/70 font-body-md hover:bg-on-primary-fixed-variant/50 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span>Đăng xuất</span>
+</a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 ml-[240px]">
+<!-- TopAppBar -->
+<header class="sticky top-0 z-40 bg-surface-container-lowest flex justify-between items-center w-full px-margin-desktop h-16 border-b border-outline-variant">
+<div class="flex items-center gap-4">
+<span class="font-headline-md text-headline-md text-primary tracking-tight">HydroFlow Ops</span>
+<div class="h-8 w-px bg-outline-variant hidden md:block"></div>
+<div class="hidden md:flex items-center gap-2 px-3 py-1 bg-surface-container-low rounded-full">
+<span class="material-symbols-outlined text-primary scale-75">info</span>
+<span class="font-label-md text-label-md text-primary">Trạng thái ca: Đang hoạt động</span>
+</div>
+</div>
+<div class="flex items-center gap-stack-lg">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-lg text-body-md focus:ring-2 focus:ring-primary w-64" placeholder="Tìm ID xe..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full transition-colors">notifications</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full transition-colors">help</button>
+<div class="h-8 w-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary text-label-md">JD</div>
+</div>
+</div>
+</header>
+<div class="p-margin-desktop max-w-container-max mx-auto">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row md:items-center justify-between mb-stack-lg gap-4">
+<div>
+<h2 class="font-display-lg text-display-lg text-on-surface">Kiểm tra xe #HF-9023</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Kỹ thuật viên: Marcus V. • BMW M4 Competition (Đen) • 18-05-2024</p>
+</div>
+<div class="flex items-center gap-stack-md">
+<button class="px-6 py-2 border border-outline text-on-surface font-body-md rounded-lg hover:bg-surface-container-low transition-colors">Lưu nháp</button>
+<button class="px-6 py-2 bg-primary text-on-primary font-body-md rounded-lg hover:bg-opacity-90 transition-transform active:scale-95 shadow-sm">Hoàn thành kiểm tra</button>
+</div>
+</div>
+<!-- Bento Layout Container -->
+<div class="bento-grid">
+<!-- Main Comparison Area -->
+<div class="col-span-12 lg:col-span-8 space-y-stack-md">
+<!-- Before/After Split Card -->
+<div class="inspection-card rounded-xl overflow-hidden shadow-sm">
+<div class="flex border-b border-outline-variant bg-surface-container-low">
+<button class="flex-1 py-3 px-6 text-center font-title-lg text-title-lg border-b-2 border-primary bg-surface-container-lowest">So sánh tình trạng</button>
+<button class="flex-1 py-3 px-6 text-center font-body-md text-on-surface-variant hover:bg-surface-container-high transition-colors">Ghi chú nổi bật</button>
+</div>
+<div class="p-stack-md grid grid-cols-1 md:grid-cols-2 gap-stack-md">
+<!-- Before Photo Area -->
+<div class="space-y-stack-sm">
+<div class="flex items-center justify-between">
+<span class="px-3 py-1 bg-warning-container text-amber-800 bg-amber-50 rounded-full font-label-xs text-label-xs uppercase">Trạng thái ban đầu (Trước)</span>
+<span class="text-label-md text-on-surface-variant">Chụp lúc: 09:14 AM</span>
+</div>
+<div class="aspect-video rounded-lg overflow-hidden relative group cursor-zoom-in">
+<div class="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-white">zoom_in</span>
+</div>
+<img class="w-full h-full object-cover" data-alt="A professional high-resolution automotive photograph showing the front three-quarter view of a black luxury BMW sports car in a modern, well-lit vehicle detailing bay. The car appears dirty with road grime and dust on the hood and wheels. The lighting is bright and even, highlighting the textures of the dirt against the sleek metallic finish of the car. Professional commercial photography style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBmwiWylaofU7U_crhsZ7hOy0TFFl2eRyPgihW3use4Jy4OBAyn5HG5ZhtOK4lNtymtbBSvVleCGz7kxgUMShXGdCM1edVgm9w39tpjcx9GLb2kQm_d185-gK5T_GUI1V3Dyr1mnZsFtRTiOFiA0oCKW0qM1lj2GCQxGKDn-O9o5dYdH-tFnlhJHhxEf6r0VPjiiTtXmAnBIEUE-q9c1-C8zTFvqid1YlI2bQwHr_DuWEGBQxjNVVbO"/>
+</div>
+<div class="grid grid-cols-4 gap-2">
+<div class="aspect-square rounded border border-primary ring-2 ring-primary ring-offset-2 overflow-hidden cursor-pointer">
+<img class="w-full h-full object-cover" data-alt="Close up detailed shot of a car wheel covered in dark brake dust and road dirt. The lighting is harsh to emphasize the grit and texture of the contamination on the alloy rim." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCnLs3kMIN4-aanEBYl_NyJcZ_VKhUcV1UeqZ4ZQDaIe0USymu3OBkMg5OOtT239k49kbKfcQl0Flq5m0BOc_mQdj-ZXcMqfTq1iMlg6jU2qa3R_W6ER9m87x4jEfScDaJUuRfp2_V9HZvKYw6DpPwkeEbReYHzj0Qxoo5Mn-nSd1dM0ACKOXIO8-c0tcn_lS__1Hs9HjA_vmq2jCEstDdUlcqYlCUOlahqAndFsgtDOHQfOUxn7_4n"/>
+</div>
+<div class="aspect-square rounded border border-outline-variant overflow-hidden cursor-pointer opacity-70 hover:opacity-100">
+<img class="w-full h-full object-cover" data-alt="A macro photograph showing light scratches and swirl marks on a black car door panel. The light reflects sharply to reveal surface imperfections." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSfQ2Cmd4dKHNe9JF0XvttAq6xFzgOjSXOpjeF-nSKFWHvjacuedQoGxtSpNc-9WDwwHMNP3R-OHSyJqkfax8slBGqT1qoTVtkfwPsF2PySBsJmDSNF34lWeZPnOLmioo2qWLwoUNjQvoSuK9wJ_sX8MaWcVS0KWvuGVH2NNMv4RJLE0zMRl_D0bPXhrvrMPvyUnaxvwJwLzTxwMZBX7aruxN0o7Q-z3_iBOIcyEO5x5aBydrOdpGS"/>
+</div>
+<div class="aspect-square rounded border border-outline-variant flex items-center justify-center bg-surface-container-low cursor-pointer hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant">add_a_photo</span>
+</div>
+<div class="aspect-square rounded border border-outline-variant flex items-center justify-center bg-surface-container-low cursor-pointer hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant">more_horiz</span>
+</div>
+</div>
+</div>
+<!-- After Photo Area -->
+<div class="space-y-stack-sm">
+<div class="flex items-center justify-between">
+<span class="px-3 py-1 bg-green-50 text-green-800 rounded-full font-label-xs text-label-xs uppercase">Sau dịch vụ (Sau)</span>
+<span class="text-label-md text-on-surface-variant">Sẵn sàng xem lại</span>
+</div>
+<div class="aspect-video rounded-lg overflow-hidden relative group bg-surface-container border border-dashed border-outline-variant flex flex-col items-center justify-center">
+<span class="material-symbols-outlined text-4xl text-on-surface-variant mb-2">upload_file</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Tải ảnh sau dịch vụ</p>
+<button class="mt-4 px-4 py-1.5 bg-primary text-on-primary rounded text-body-sm">Mở máy ảnh</button>
+</div>
+<div class="grid grid-cols-4 gap-2">
+<div class="aspect-square rounded border-2 border-dashed border-outline-variant flex items-center justify-center bg-surface-container-lowest">
+<span class="material-symbols-outlined text-on-surface-variant opacity-40">image</span>
+</div>
+<div class="aspect-square rounded border-2 border-dashed border-outline-variant flex items-center justify-center bg-surface-container-lowest">
+<span class="material-symbols-outlined text-on-surface-variant opacity-40">image</span>
+</div>
+<div class="aspect-square rounded border-2 border-dashed border-outline-variant flex items-center justify-center bg-surface-container-lowest">
+<span class="material-symbols-outlined text-on-surface-variant opacity-40">image</span>
+</div>
+<div class="aspect-square rounded border-2 border-dashed border-outline-variant flex items-center justify-center bg-surface-container-lowest">
+<span class="material-symbols-outlined text-on-surface-variant opacity-40">image</span>
+</div>
+</div>
+</div>
+</div>
+<div class="px-stack-md py-stack-sm bg-surface-container-lowest border-t border-outline-variant flex justify-between items-center">
+<p class="font-body-sm text-body-sm text-on-surface-variant">Kéo thanh trượt để so sánh chi tiết trước và sau khi tải ảnh.</p>
+<button class="text-primary font-label-md text-label-md flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">fullscreen</span>
+<span>Chế độ song song</span>
+</button>
+</div>
+</div>
+<!-- Condition Checklist -->
+<div class="inspection-card rounded-xl shadow-sm">
+<div class="p-stack-md border-b border-outline-variant flex justify-between items-center">
+<h3 class="font-title-lg text-title-lg">Danh sách kiểm tra</h3>
+<div class="flex gap-2">
+<span class="flex items-center gap-1 text-label-xs font-label-xs text-on-surface-variant uppercase tracking-wider">
+<span class="w-2 h-2 rounded-full bg-amber-400"></span> Ban đầu
+                                </span>
+<span class="flex items-center gap-1 text-label-xs font-label-xs text-on-surface-variant uppercase tracking-wider">
+<span class="w-2 h-2 rounded-full bg-green-500"></span> Cuối cùng
+                                </span>
+</div>
+</div>
+<div class="overflow-hidden">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low">
+<th class="px-stack-md py-3 font-label-xs text-label-xs uppercase text-on-surface-variant">Hạng mục kiểm tra</th>
+<th class="px-stack-md py-3 font-label-xs text-label-xs uppercase text-on-surface-variant text-center">Trước</th>
+<th class="px-stack-md py-3 font-label-xs text-label-xs uppercase text-on-surface-variant text-center">Sau</th>
+<th class="px-stack-md py-3 font-label-xs text-label-xs uppercase text-on-surface-variant">Ghi chú / Hư hại</th>
+</tr>
+</thead>
+<tbody>
+<tr class="zebra-row border-b border-outline-variant">
+<td class="px-stack-md py-4 font-body-md">Sơn ngoại thất &amp; Thân xe</td>
+<td class="px-stack-md py-4 text-center">
+<input checked="" class="rounded border-outline-variant text-primary focus:ring-primary h-5 w-5" type="checkbox"/>
+</td>
+<td class="px-stack-md py-4 text-center">
+<input class="rounded border-outline-variant text-primary focus:ring-primary h-5 w-5" type="checkbox"/>
+</td>
+<td class="px-stack-md py-4">
+<div class="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-800 rounded-lg text-body-sm max-w-xs">
+<span class="material-symbols-outlined scale-75">warning</span>
+                                                Vết trầy nhẹ ở chắn bùn trước bên trái
+                                            </div>
+</td>
+</tr>
+<tr class="zebra-row border-b border-outline-variant">
+<td class="px-stack-md py-4 font-body-md">Mâm xe &amp; Lốp</td>
+<td class="px-stack-md py-4 text-center">
+<input checked="" class="rounded border-outline-variant text-primary focus:ring-primary h-5 w-5" type="checkbox"/>
+</td>
+<td class="px-stack-md py-4 text-center">
+<input class="rounded border-outline-variant text-primary focus:ring-primary h-5 w-5" type="checkbox"/>
+</td>
+<td class="px-stack-md py-4 text-body-sm text-on-surface-variant">Không ghi nhận hư hại</td>
+</tr>
+<tr class="zebra-row border-b border-outline-variant">
+<td class="px-stack-md py-4 font-body-md">Kính &amp; Gương</td>
+<td class="px-stack-md py-4 text-center">
+<input checked="" class="rounded border-outline-variant text-primary focus:ring-primary h-5 w-5" type="checkbox"/>
+</td>
+<td class="px-stack-md py-4 text-center">
+<input class="rounded border-outline-variant text-primary focus:ring-primary h-5 w-5" type="checkbox"/>
+</td>
+<td class="px-stack-md py-4 text-body-sm text-on-surface-variant">Kính chắn gió bị mẻ (đã có từ trước)</td>
+</tr>
+<tr class="zebra-row">
+<td class="px-stack-md py-4 font-body-md">Nội thất &amp; Bọc ghế</td>
+<td class="px-stack-md py-4 text-center">
+<input checked="" class="rounded border-outline-variant text-primary focus:ring-primary h-5 w-5" type="checkbox"/>
+</td>
+<td class="px-stack-md py-4 text-center">
+<input class="rounded border-outline-variant text-primary focus:ring-primary h-5 w-5" type="checkbox"/>
+</td>
+<td class="px-stack-md py-4 text-body-sm text-on-surface-variant">Tình trạng hoàn hảo</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-stack-md bg-surface-container-low flex justify-end">
+<button class="flex items-center gap-2 text-primary font-label-md">
+<span class="material-symbols-outlined">add_circle</span>
+                                Thêm hạng mục kiểm tra tùy chỉnh
+                            </button>
+</div>
+</div>
+</div>
+<!-- Side Panel Info & Controls -->
+<div class="col-span-12 lg:col-span-4 space-y-stack-md">
+<!-- Damage Map Card -->
+<div class="inspection-card rounded-xl p-stack-md shadow-sm">
+<h3 class="font-title-lg text-title-lg mb-stack-md">Sơ đồ hư hại xe</h3>
+<div class="aspect-square relative bg-surface-container-low rounded-lg overflow-hidden border border-outline-variant flex items-center justify-center">
+<!-- SVG Drawing Overlay Simulation -->
+<img class="w-4/5 h-auto opacity-40" data-alt="A clean, minimalist vector blueprint or line drawing of a passenger car viewed from above (top-down view). The lines are sharp and professional. Transparent background style. Several translucent red circular markers highlight specific areas of the car body like the front fender and rear bumper to indicate damage locations." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDyEoX1Gd5YehRsIgB4irPKhffVKK5JZjcCuyf9XAKdZVSwQHuzz4lFQpcxtgCwh5OP4ScKfaaKsvaK7vvCx_rgySuN2UU2VGaOOJ2hsUgK4E4e8NXCNTzZHSCkOwo-diCi77DeFdYfPw24tCz_jBhh49IZgnQ6k-7uyiJ211gTUEoX2qBloJYCE9w-zK11OHmBzNxFsGqbdTi32rh9e1EpjwcuLgjRNIBktpqsVp06OVC--72hBorj"/>
+<!-- Interactive Hotspots -->
+<div class="absolute top-[30%] left-[25%] w-6 h-6 bg-red-500/80 rounded-full border-2 border-white flex items-center justify-center text-[10px] text-white font-bold animate-pulse">1</div>
+<div class="absolute top-[15%] left-[60%] w-6 h-6 bg-red-500/80 rounded-full border-2 border-white flex items-center justify-center text-[10px] text-white font-bold">2</div>
+</div>
+<div class="mt-stack-md space-y-2">
+<div class="flex items-start gap-3 p-3 rounded-lg bg-surface-container-lowest border border-outline-variant">
+<span class="flex-shrink-0 w-5 h-5 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">1</span>
+<div>
+<p class="font-label-md text-label-md text-on-surface">Trầy nhẹ - Chắn bùn trước</p>
+<p class="text-[11px] text-on-surface-variant">Phát hiện khi kiểm tra trước. Dài 2cm.</p>
+</div>
+</div>
+</div>
+<button class="w-full mt-4 py-2 border border-outline rounded-lg text-body-sm hover:bg-surface-container-low transition-colors">Chỉnh sửa sơ đồ hư hại</button>
+</div>
+<!-- Client Digital Signature -->
+<div class="inspection-card rounded-xl p-stack-md shadow-sm">
+<h3 class="font-title-lg text-title-lg mb-stack-md">Xác nhận của khách hàng</h3>
+<div class="space-y-stack-md">
+<div class="bg-surface-container-low rounded-lg p-3">
+<p class="text-body-sm text-on-surface-variant mb-3">Tôi xác nhận tình trạng xe trước dịch vụ được ghi lại ở trên là chính xác.</p>
+<div class="h-24 bg-white border border-outline-variant rounded flex items-center justify-center relative group">
+<span class="font-label-md text-on-surface-variant opacity-40 italic">Đã ghi nhận chữ ký</span>
+<button class="absolute top-2 right-2 material-symbols-outlined text-sm text-on-surface-variant hover:text-primary">refresh</button>
+</div>
+<div class="mt-2 flex justify-between items-center">
+<span class="text-label-xs font-label-xs text-on-surface-variant uppercase">Ký bởi: Alex Rivera</span>
+<span class="text-label-xs font-label-xs text-on-surface-variant uppercase">09:18 AM</span>
+</div>
+</div>
+<div class="border-t border-outline-variant pt-stack-md">
+<label class="block text-label-md font-label-md text-on-surface mb-2">Chữ ký bàn giao cuối cùng</label>
+<div class="h-32 bg-surface-container border-2 border-dashed border-outline-variant rounded flex flex-col items-center justify-center">
+<span class="material-symbols-outlined text-3xl text-on-surface-variant mb-1">edit</span>
+<p class="text-[11px] text-on-surface-variant">Đang chờ hoàn tất dịch vụ</p>
+</div>
+<button class="w-full mt-3 py-2 bg-primary/20 text-on-primary-container font-body-md rounded-lg cursor-not-allowed" disabled="">Yêu cầu chữ ký</button>
+</div>
+</div>
+</div>
+<!-- Report Export -->
+<div class="bg-primary text-on-primary rounded-xl p-stack-md shadow-lg">
+<h3 class="font-title-lg text-title-lg mb-2">Báo cáo dịch vụ</h3>
+<p class="text-body-sm text-on-primary/70 mb-4">Tạo báo cáo PDF chuyên nghiệp với tất cả ảnh trước/sau và nhật ký tình trạng.</p>
+<div class="grid grid-cols-2 gap-2">
+<button class="flex items-center justify-center gap-2 py-2.5 bg-white/10 hover:bg-white/20 rounded-lg text-body-sm transition-colors border border-white/20">
+<span class="material-symbols-outlined text-sm">mail</span>
+<span>Gửi email</span>
+</button>
+<button class="flex items-center justify-center gap-2 py-2.5 bg-white/10 hover:bg-white/20 rounded-lg text-body-sm transition-colors border border-white/20">
+<span class="material-symbols-outlined text-sm">download</span>
+<span>Lưu PDF</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Contextual FAB (Only relevant for primary action) -->
+<button class="fixed bottom-8 right-8 w-14 h-14 bg-primary text-on-primary rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50 group">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">add_a_photo</span>
+<span class="absolute right-16 bg-on-surface text-on-primary px-3 py-1.5 rounded-lg text-body-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-xl">Tải ảnh nhanh</span>
+</button>
+<script>
+        // Micro-interaction for checklist rows
+        document.querySelectorAll('.zebra-row').forEach(row => {
+            row.addEventListener('click', (e) => {
+                if(e.target.type !== 'checkbox') {
+                    const cb = row.querySelector('input[type="checkbox"]');
+                    if(cb) cb.checked = !cb.checked;
+                }
+            });
+        });
+
+        // Simple scale interaction for gallery images
+        document.querySelectorAll('.aspect-square').forEach(thumb => {
+            thumb.addEventListener('mouseenter', () => {
+                thumb.style.transform = 'translateY(-2px)';
+            });
+            thumb.addEventListener('mouseleave', () => {
+                thumb.style.transform = 'translateY(0)';
+            });
+        });
+    </script>
+</body></html>

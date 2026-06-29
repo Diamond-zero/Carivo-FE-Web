@@ -25,6 +25,10 @@ export interface WashHistoryListResult {
   }
 }
 
+/**
+ * GET /admin/wash-histories — ADMIN xem toàn bộ (có thể filter garage_id),
+ * STAFF bị giới hạn theo StaffProfile.garage_id (không cần gửi garage_id).
+ */
 export async function getWashHistoriesApi(
   params?: WashHistoryListParams,
 ): Promise<WashHistoryListResult> {

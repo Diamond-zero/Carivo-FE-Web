@@ -7,9 +7,12 @@ import { WashHistoryTable } from '../../../components/history/WashHistoryTable'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
+import { Label } from '../../../components/ui/Label'
+import { Select } from '../../../components/ui/Select'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { StatCard } from '../../../components/ui/StatCard'
 import { useToast } from '../../../contexts/ToastContext'
+import { useAdminGarages } from '../../../hooks/api/admin/useAdminGarages'
 import { useAdminWashHistories } from '../../../hooks/api/admin/useAdminWashHistories'
 import type { WashHistory } from '../../../types/washHistory'
 import { formatPrice } from '../../../utils/format'
@@ -23,9 +26,13 @@ import {
 export function AdminWashHistoryPage() {
   const { showToast } = useToast()
   const [filters, setFilters] = useState<WashHistoryFilters>(DEFAULT_WASH_HISTORY_FILTERS)
+  const [garageFilter, setGarageFilter] = useState<string>('ALL')
   const [selectedHistory, setSelectedHistory] = useState<WashHistory | null>(null)
 
-  const { data, isLoading, isError, error, refetch, isFetching } = useAdminWashHistories()
+  const { allGarages } = useAdminGarages({})
+  const { data, isLoading, isError, error, refetch, isFetching } = useAdminWashHistories({
+    garageId: garageFilter,
+  })
 
   const histories = data?.histories ?? []
 
@@ -59,7 +66,7 @@ export function AdminWashHistoryPage() {
           <PageHeader
             eyebrow="Carivo Quản trị"
             title="Lịch sử rửa"
-            description="Xem toàn bộ lịch sử rửa trên hệ thống."
+            description="Xem toàn bộ lịch sử rửa — có thể lọc theo chi nhánh garage."
             action={
               <Button
                 variant="secondary"
@@ -93,7 +100,22 @@ export function AdminWashHistoryPage() {
             />
           </div>
 
-          <div className="mb-6">
+          <div className="mb-6 space-y-4">
+            <div className="carivo-panel max-w-xs p-4">
+              <Label htmlFor="admin-wash-history-garage">Chi nhánh garage</Label>
+              <Select
+                id="admin-wash-history-garage"
+                value={garageFilter}
+                onChange={(event) => setGarageFilter(event.target.value)}
+              >
+                <option value="ALL">Tất cả garage</option>
+                {allGarages.map((garage) => (
+                  <option key={garage.id} value={garage.id}>
+                    {garage.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
             <WashHistoryFiltersPanel
               filters={filters}
               onChange={setFilters}

@@ -1,6 +1,8 @@
+import axios from 'axios'
 import type { ApiResponse } from '../types/api'
-import type { ApiPaymentTransaction } from '../types/api/staff'
-import { apiClient } from './client'
+import type { ApiBooking, ApiPaymentTransaction } from '../types/api/staff'
+import { markBookingPaidApi } from './booking.api'
+import { apiClient, getApiErrorCode } from './client'
 
 export interface CreatePayosPaymentPayload {
   return_url?: string
@@ -11,15 +13,43 @@ export interface CancelPaymentPayload {
   reason?: string
 }
 
+export interface CreatePayosPaymentResult {
+  booking?: ApiBooking
+  payment: ApiPaymentTransaction
+  reused?: boolean
+}
+
 export async function createPayosPaymentApi(
   bookingId: string,
   payload?: CreatePayosPaymentPayload,
 ) {
-  const { data } = await apiClient.post<ApiResponse<ApiPaymentTransaction>>(
+  const { data } = await apiClient.post<ApiResponse<CreatePayosPaymentResult>>(
     `/admin/payments/bookings/${bookingId}/payos`,
     payload ?? {},
   )
-  return data.data
+  return data.data.payment
+}
+
+export async function markBookingPaidWithCashApi(
+  bookingId: string,
+  note?: string,
+) {
+  try {
+    return await markBookingPaidApi(bookingId, note)
+  } catch (error) {
+    if (
+      !axios.isAxiosError(error) ||
+      getApiErrorCode(error) !== 'BOOKING_PENDING_PAYOS_PAYMENT'
+    ) {
+      throw error
+    }
+
+    const payment = await createPayosPaymentApi(bookingId)
+    await cancelPaymentApi(payment.id, {
+      reason: note?.trim() || 'Staff confirmed cash payment',
+    })
+    return await markBookingPaidApi(bookingId, note)
+  }
 }
 
 export async function getPaymentApi(paymentId: string) {
