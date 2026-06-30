@@ -153,7 +153,7 @@ export function AdminStepsTemplateEditor({
       <div className="space-y-3">
         {steps.map((step, index) => (
           <div
-            key={`${step.step_code}-${index}`}
+            key={`step-${index}`}
             draggable
             onDragStart={() => handleDragStart(index)}
             onDragOver={(event) => handleDragOver(event, index)}

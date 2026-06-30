@@ -228,9 +228,10 @@ export function mapApiLoyaltyDetail(record: ApiLoyaltyCustomerDetail) {
 
 export function mapApiAdminServicePackage(pkg: ApiServicePackage): ServicePackage {
   const mapped = mapApiServicePackage(pkg)
+  const stepsTemplate = (pkg.steps_template ?? []) as ServiceStepTemplate[]
   return {
     ...mapped,
-    steps_template: (pkg.steps_template ?? []) as ServiceStepTemplate[],
+    steps_template: stepsTemplate,
   }
 }
 

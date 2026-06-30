@@ -77,7 +77,7 @@ export async function updateAdminServicePackageStepsApi(
   packageId: string,
   steps: ServiceStepTemplate[],
 ) {
-  const { data } = await apiClient.put<ApiResponse<ApiServicePackage>>(
+  const { data } = await apiClient.patch<ApiResponse<ApiServicePackage>>(
     `/admin/service-packages/${packageId}/steps-template`,
     { steps_template: steps },
   )

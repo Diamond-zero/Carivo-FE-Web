@@ -1,4 +1,5 @@
 import { ArrowLeft, ListOrdered, Package } from 'lucide-react'
+import { useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getApiErrorMessage } from '../../../api/client'
 import { AdminStepsTemplateEditor } from '../../../components/admin/servicePackage/AdminStepsTemplateEditor'
@@ -12,6 +13,8 @@ import {
   useAdminServicePackage,
   useUpdateAdminServicePackageSteps,
 } from '../../../hooks/api/admin/useAdminServicePackages'
+import { adminQueryKeys } from '../../../hooks/api/admin/queryKeys'
+import { useQueryClient } from '@tanstack/react-query'
 import type { ServiceStepTemplate } from '../../../types/servicePackage'
 
 function getPackageSlug(packageId: string, packageName: string) {
@@ -29,9 +32,17 @@ function getPackageSlug(packageId: string, packageName: string) {
 export function AdminServicePackageStepsPage() {
   const { packageId } = useParams<{ packageId: string }>()
   const { showToast } = useToast()
+  const queryClient = useQueryClient()
 
   const packageQuery = useAdminServicePackage(packageId)
   const updateStepsMutation = useUpdateAdminServicePackageSteps()
+
+  // Always refetch the latest steps_template when entering this page so we
+  // don't render a stale (empty) steps array from a previously-cached fetch.
+  useEffect(() => {
+    if (!packageId) return
+    void queryClient.invalidateQueries({ queryKey: adminQueryKeys.servicePackage(packageId) })
+  }, [packageId, queryClient])
 
   const pkg = packageQuery.data
   const isSubmitting = updateStepsMutation.isPending
