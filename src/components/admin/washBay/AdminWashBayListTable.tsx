@@ -1,5 +1,5 @@
 import { createColumnHelper } from '@tanstack/react-table'
-import { Droplets } from 'lucide-react'
+import { Droplets, Trash2, Wrench } from 'lucide-react'
 import { useMemo } from 'react'
 import { VEHICLE_TYPE_LABELS } from '../../../constants/washBayStatus'
 import { cn } from '../../../lib/utils'
@@ -13,14 +13,16 @@ interface AdminWashBayListTableProps {
   washBays: AdminWashBaySummary[]
   hasActiveFilter?: boolean
   onEdit: (bayId: string) => void
-  onToggleActive: (bayId: string) => void
+  onChangeStatus: (bayId: string) => void
+  onDelete: (bayId: string) => void
 }
 
 export function AdminWashBayListTable({
   washBays,
   hasActiveFilter = false,
   onEdit,
-  onToggleActive,
+  onChangeStatus,
+  onDelete,
 }: AdminWashBayListTableProps) {
   const columns = useMemo(
     () => [
@@ -77,28 +79,59 @@ export function AdminWashBayListTable({
       columnHelper.display({
         id: 'actions',
         header: '',
-        cell: ({ row }) => (
-          <div className="flex items-center justify-end gap-3">
-            <button
-              type="button"
-              className="text-sm font-medium text-slate-600 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={row.original.status === 'OCCUPIED'}
-              onClick={() => onToggleActive(row.original.id)}
-            >
-              {row.original.is_active ? 'Tắt' : 'Bật'}
-            </button>
-            <button
-              type="button"
-              className="carivo-link text-sm"
-              onClick={() => onEdit(row.original.id)}
-            >
-              Sửa
-            </button>
-          </div>
-        ),
+        cell: ({ row }) => {
+          const canDelete = row.original.status !== 'OCCUPIED'
+          const canToggleStatus =
+            row.original.status === 'AVAILABLE' || row.original.status === 'MAINTENANCE'
+          const nextStatusLabel =
+            row.original.status === 'MAINTENANCE' ? 'Mở lại' : 'Bảo trì'
+          const nextStatusTitle =
+            row.original.status === 'MAINTENANCE'
+              ? 'Chuyển buồng rửa về trạng thái trống'
+              : 'Chuyển buồng rửa sang trạng thái bảo trì'
+          return (
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 text-sm font-medium text-amber-700 hover:text-amber-800 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!canToggleStatus}
+                title={
+                  canToggleStatus
+                    ? nextStatusTitle
+                    : 'Chỉ chuyển được khi buồng đang trống hoặc đang bảo trì.'
+                }
+                onClick={() => onChangeStatus(row.original.id)}
+              >
+                <Wrench className="h-3.5 w-3.5" />
+                {nextStatusLabel}
+              </button>
+              <button
+                type="button"
+                className="carivo-link text-sm"
+                onClick={() => onEdit(row.original.id)}
+              >
+                Sửa
+              </button>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 text-sm font-medium text-red-600 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!canDelete}
+                title={
+                  canDelete
+                    ? 'Xóa buồng rửa'
+                    : 'Buồng đang có booking — không thể xóa.'
+                }
+                onClick={() => onDelete(row.original.id)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Xóa
+              </button>
+            </div>
+          )
+        },
       }),
     ],
-    [onEdit, onToggleActive],
+    [onEdit, onChangeStatus, onDelete],
   )
 
   return (

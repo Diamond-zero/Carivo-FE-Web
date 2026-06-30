@@ -3,7 +3,9 @@ import type {
   ApiBooking,
   ApiBookingServiceStep,
   ApiLateArrivalOptions,
+  ApiMarkPaidResult,
   ApiPaginatedBookings,
+  ApiStartServiceResult,
   ApiVehicleInspection,
   CancelBookingApiPayload,
   CreateInspectionApiPayload,
@@ -147,7 +149,7 @@ export async function startServiceApi(
   bookingId: string,
   payload: StartServiceApiPayload = {},
 ) {
-  const { data } = await apiClient.patch<ApiResponse<ApiBooking>>(
+  const { data } = await apiClient.patch<ApiResponse<ApiStartServiceResult>>(
     `/admin/bookings/${bookingId}/start-service`,
     payload,
   )
@@ -175,7 +177,7 @@ export async function completeServiceStepApi(
 }
 
 export async function markBookingPaidApi(bookingId: string, note?: string) {
-  const { data } = await apiClient.patch<ApiResponse<ApiBooking>>(
+  const { data } = await apiClient.patch<ApiResponse<ApiMarkPaidResult>>(
     `/admin/bookings/${bookingId}/mark-paid`,
     note?.trim() ? { note: note.trim() } : {},
   )

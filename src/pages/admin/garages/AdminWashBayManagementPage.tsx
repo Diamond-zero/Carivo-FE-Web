@@ -25,8 +25,9 @@ import {
   useAdminWashBay,
   useAdminWashBays,
   useCreateAdminWashBay,
-  useToggleAdminWashBayStatus,
+  useDeleteAdminWashBay,
   useUpdateAdminWashBay,
+  useUpdateAdminWashBayStatus,
 } from '../../../hooks/api/admin/useAdminWashBays'
 import type {
   AdminWashBayCreateValues,
@@ -44,7 +45,11 @@ export function AdminWashBayManagementPage() {
   const [statusFilter, setStatusFilter] = useState<WashBayStatus | 'ALL'>('ALL')
   const [formMode, setFormMode] = useState<FormMode>(null)
   const [editingBayId, setEditingBayId] = useState<string | null>(null)
-  const [confirmBayId, setConfirmBayId] = useState<string | null>(null)
+  const [statusTarget, setStatusTarget] = useState<{
+    bayId: string
+    status: 'AVAILABLE' | 'MAINTENANCE' | 'INACTIVE'
+  } | null>(null)
+  const [deleteBayId, setDeleteBayId] = useState<string | null>(null)
 
   const { allGarages: garages } = useAdminGarages()
   const { washBays, allWashBays, isLoading, isError, error } = useAdminWashBays({
@@ -53,10 +58,11 @@ export function AdminWashBayManagementPage() {
     vehicleTypeFilter,
     statusFilter,
   })
-  const editingBayQuery = useAdminWashBay(formMode === 'edit' ? editingBayId ?? undefined : undefined)
+  const editingBayQuery = useAdminWashBay(editingBayId ?? undefined)
   const createMutation = useCreateAdminWashBay()
   const updateMutation = useUpdateAdminWashBay()
-  const toggleMutation = useToggleAdminWashBayStatus()
+  const statusMutation = useUpdateAdminWashBayStatus()
+  const deleteMutation = useDeleteAdminWashBay()
 
   const availableCount = allWashBays.filter((bay) => bay.status === 'AVAILABLE').length
   const occupiedCount = allWashBays.filter((bay) => bay.status === 'OCCUPIED').length
@@ -68,8 +74,11 @@ export function AdminWashBayManagementPage() {
     statusFilter !== 'ALL'
 
   const editingBay = editingBayQuery.data
-  const pendingBay = confirmBayId
-    ? allWashBays.find((bay) => bay.id === confirmBayId)
+  const pendingStatusBay = statusTarget
+    ? allWashBays.find((bay) => bay.id === statusTarget.bayId)
+    : undefined
+  const pendingDeleteBay = deleteBayId
+    ? allWashBays.find((bay) => bay.id === deleteBayId)
     : undefined
   const isSubmitting = createMutation.isPending || updateMutation.isPending
 
@@ -93,7 +102,7 @@ export function AdminWashBayManagementPage() {
   ) => {
     if (formMode === 'create') {
       const createValues = values as AdminWashBayCreateValues
-      createMutation.mutate(createValues, {
+      createMutation.mutate({ ...createValues, bay_code: createValues.bay_code.trim() }, {
         onSuccess: (bay) => {
           showToast(`Đã tạo buồng rửa ${bay.name}.`, 'success')
           closeForm()
@@ -116,9 +125,8 @@ export function AdminWashBayManagementPage() {
         washBayId: editingBayId,
         payload: {
           name: editValues.name,
-          bay_code: editValues.bay_code,
+          bay_code: editValues.bay_code.trim(),
           vehicle_type: editValues.vehicle_type,
-          status: editingBay.status === 'OCCUPIED' ? 'OCCUPIED' : editValues.status,
           is_active:
             editingBay.status === 'OCCUPIED' ? editingBay.is_active : editValues.is_active,
         },
@@ -138,29 +146,58 @@ export function AdminWashBayManagementPage() {
     )
   }
 
-  const handleConfirmToggle = () => {
-    if (!confirmBayId || !pendingBay) return
+  const handleConfirmStatus = () => {
+    if (!statusTarget) return
 
-    toggleMutation.mutate(
-      { washBayId: confirmBayId, isActive: !pendingBay.is_active },
+    statusMutation.mutate(
+      { washBayId: statusTarget.bayId, status: statusTarget.status },
       {
         onSuccess: (bay) => {
-          setConfirmBayId(null)
+          setStatusTarget(null)
           showToast(
-            bay.is_active
-              ? `Đã bật buồng rửa ${bay.name}.`
-              : `Đã tắt buồng rửa ${bay.name}.`,
+            `Đã chuyển ${bay.name} sang trạng thái ${WASH_BAY_STATUS_LABELS[bay.status]}.`,
             'success',
           )
         },
         onError: (mutationError) => {
           showToast(
-            getApiErrorMessage(mutationError, 'Không thể thay đổi trạng thái buồng rửa.'),
+            getApiErrorMessage(mutationError, 'Không thể cập nhật trạng thái vận hành.'),
             'error',
           )
         },
       },
     )
+  }
+
+  const handleRequestStatusChange = (bayId: string) => {
+    const bay = allWashBays.find((item) => item.id === bayId)
+    if (!bay) return
+    const nextStatus: WashBayStatus =
+      bay.status === 'MAINTENANCE' ? 'AVAILABLE' : 'MAINTENANCE'
+    setStatusTarget({ bayId, status: nextStatus })
+  }
+
+  const handleConfirmDelete = () => {
+    if (!deleteBayId || !pendingDeleteBay) return
+
+    deleteMutation.mutate(deleteBayId, {
+      onSuccess: () => {
+        setDeleteBayId(null)
+        showToast(
+          `Đã xóa vĩnh viễn buồng rửa ${pendingDeleteBay.name} khỏi hệ thống.`,
+          'success',
+        )
+      },
+      onError: (mutationError) => {
+        showToast(
+          getApiErrorMessage(
+            mutationError,
+            'Không thể xóa buồng rửa. Vui lòng tắt hoạt động và đảm bảo không còn booking đang hoạt động.',
+          ),
+          'error',
+        )
+      },
+    })
   }
 
   if (isLoading) {
@@ -299,7 +336,8 @@ export function AdminWashBayManagementPage() {
             washBays={washBays}
             hasActiveFilter={hasActiveFilter}
             onEdit={openEdit}
-            onToggleActive={setConfirmBayId}
+            onChangeStatus={handleRequestStatusChange}
+            onDelete={setDeleteBayId}
           />
         </CardContent>
       </Card>
@@ -314,26 +352,56 @@ export function AdminWashBayManagementPage() {
       />
 
       <Modal
-        open={Boolean(confirmBayId && pendingBay)}
-        onClose={() => setConfirmBayId(null)}
-        title={pendingBay?.is_active ? 'Tắt buồng rửa?' : 'Bật buồng rửa?'}
+        open={Boolean(statusTarget)}
+        onClose={() => setStatusTarget(null)}
+        title="Đổi trạng thái vận hành buồng rửa"
         description={
-          pendingBay
-            ? `${pendingBay.name} (${pendingBay.bay_code}) tại ${pendingBay.garage_name}.`
+          statusTarget && pendingStatusBay
+            ? `${pendingStatusBay.name} (${pendingStatusBay.bay_code}) sẽ chuyển sang trạng thái "${WASH_BAY_STATUS_LABELS[statusTarget.status]}".`
             : undefined
         }
       >
         <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={() => setConfirmBayId(null)}>
+          <Button variant="secondary" onClick={() => setStatusTarget(null)}>
             Hủy
           </Button>
           <Button
-            variant={pendingBay?.is_active ? 'danger' : 'primary'}
-            onClick={handleConfirmToggle}
-            disabled={toggleMutation.isPending}
+            onClick={handleConfirmStatus}
+            disabled={statusMutation.isPending}
           >
-            Xác nhận
+            {statusMutation.isPending ? 'Đang cập nhật...' : 'Xác nhận'}
           </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(deleteBayId && pendingDeleteBay)}
+        onClose={() => setDeleteBayId(null)}
+        title="Xóa buồng rửa?"
+        description={
+          pendingDeleteBay
+            ? `${pendingDeleteBay.name} (${pendingDeleteBay.bay_code}) tại ${pendingDeleteBay.garage_name} sẽ bị xóa vĩnh viễn khỏi hệ thống.`
+            : undefined
+        }
+      >
+        <div className="space-y-3">
+          <div className="rounded-xl border border-red-200 bg-red-50/70 px-4 py-3 text-sm text-red-800">
+            <strong>Xóa vĩnh viễn:</strong> buồng rửa sẽ bị xoá khỏi cơ sở dữ liệu và không
+            còn xuất hiện trong danh sách. Nếu chỉ muốn ngưng sử dụng tạm thời, hãy dùng thao
+            tác <em>Tắt</em>.
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setDeleteBayId(null)}>
+              Hủy
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleConfirmDelete}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? 'Đang xóa...' : 'Xóa buồng rửa'}
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>

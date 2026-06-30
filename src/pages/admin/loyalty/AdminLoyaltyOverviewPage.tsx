@@ -30,9 +30,10 @@ export function AdminLoyaltyOverviewPage() {
 
   const handleExpireJob = async () => {
     try {
-      const result = await expireMutation.mutateAsync()
+      const result = await expireMutation.mutateAsync(undefined)
+      const count = result?.expired_points ?? result?.source_transactions_processed
       showToast(
-        `Đã chạy job hết hạn điểm${result.expired_count != null ? ` (${result.expired_count} giao dịch)` : ''}.`,
+        `Đã chạy job hết hạn điểm${count != null ? ` (${count} giao dịch)` : ''}.`,
         'success',
       )
       void refetch()

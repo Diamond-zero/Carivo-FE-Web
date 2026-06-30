@@ -23,7 +23,7 @@ export interface WashBayCreatePayload {
   is_active?: boolean
 }
 
-export type WashBayUpdatePayload = Partial<Omit<WashBayCreatePayload, 'garage_id'>>
+export type WashBayUpdatePayload = Partial<Omit<WashBayCreatePayload, 'garage_id' | 'status'>>
 
 export async function getGarageWashBaysApi(garageId: string) {
   const { data } = await apiClient.get<ApiResponse<ApiWashBay[]>>(
@@ -77,13 +77,20 @@ export async function updateAdminWashBayApi(
   return data.data
 }
 
-export async function toggleAdminWashBayStatusApi(
+export async function updateAdminWashBayStatusApi(
   washBayId: string,
-  isActive: boolean,
+  status: 'AVAILABLE' | 'MAINTENANCE' | 'INACTIVE',
 ) {
   const { data } = await apiClient.patch<ApiResponse<ApiWashBay>>(
     `/admin/wash-bays/${washBayId}/status`,
-    { is_active: isActive },
+    { status },
+  )
+  return data.data
+}
+
+export async function deleteAdminWashBayApi(washBayId: string) {
+  const { data } = await apiClient.delete<ApiResponse<ApiWashBay>>(
+    `/admin/wash-bays/${washBayId}`,
   )
   return data.data
 }

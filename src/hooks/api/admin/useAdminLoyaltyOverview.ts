@@ -3,7 +3,9 @@ import {
   expireAdminLoyaltyPointsApi,
   getAdminExpiringPointsApi,
   getAdminLoyaltyTransactionsListApi,
+  type ExpirePointsPayload,
   type ExpiringPointsParams,
+  type LoyaltyTransactionsParams,
 } from '../../../api/loyalty.api'
 import { useAdminAuth } from '../../../contexts/AdminAuthContext'
 import { adminQueryKeys } from './queryKeys'
@@ -19,11 +21,7 @@ export function useAdminExpiringPoints(params?: ExpiringPointsParams) {
   })
 }
 
-export function useAdminLoyaltyTransactions(params?: {
-  page?: number
-  limit?: number
-  customer_id?: string
-}) {
+export function useAdminLoyaltyTransactions(params?: LoyaltyTransactionsParams) {
   const { isAuthenticated } = useAdminAuth()
 
   return useQuery({
@@ -38,7 +36,7 @@ export function useExpireLoyaltyPoints() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: () => expireAdminLoyaltyPointsApi(),
+    mutationFn: (payload?: ExpirePointsPayload) => expireAdminLoyaltyPointsApi(payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.expiringPoints() })
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.loyaltyTransactions() })

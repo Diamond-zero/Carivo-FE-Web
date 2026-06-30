@@ -33,7 +33,7 @@ export interface LoyaltyPointRecord {
   id: string
   customer_id: string
   points: number
-  type: 'EARNED' | 'REDEEMED' | 'EXPIRED'
+  type: 'EARN' | 'REDEEM' | 'REFUND' | 'EXPIRE' | 'ADJUST'
   description: string
   related_booking_id: string | null
   created_at: string

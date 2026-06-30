@@ -32,6 +32,42 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   BOOKING_NOT_COMPLETED:
     'Chỉ booking đã hoàn thành dịch vụ mới được thanh toán.',
   BOOKING_ALREADY_PAID: 'Booking đã được thanh toán.',
+  BOOKING_REOPEN_NOT_ALLOWED:
+    'Booking đã được thu tiền hoặc đã cộng điểm — không thể reopen.',
+  BOOKING_SERVICE_START_TOO_EARLY:
+    'Chưa đến giờ bắt đầu dịch vụ. Vui lòng dùng "Chuyển sang bắt đầu ngay" nếu muốn làm sớm.',
+  BOOKING_EARLY_START_NOT_ALLOWED:
+    'Booking chưa check-in sớm — không thể bắt đầu sớm.',
+  BOOKING_OUTSIDE_BUSINESS_HOURS:
+    'Thời gian phục vụ vượt quá giờ hoạt động của garage.',
+  WASH_BAY_NOT_AVAILABLE: 'Buồng rửa không khả dụng.',
+  WASH_BAY_ALREADY_OCCUPIED: 'Buồng rửa đang bận.',
+  LATE_RESOLUTION_NOT_ALLOWED:
+    'Booking chưa được đánh dấu đến muộn — không thể xử lý đến trễ.',
+  VEHICLE_BOOKING_OVERLAP:
+    'Xe đã có booking khác trùng khung giờ này.',
+  WASH_BAY_CAPACITY_FULL:
+    'Không còn buồng rửa trống trong khung giờ này.',
+  CARE_STAFF_CAPACITY_FULL:
+    'Không đủ nhân viên chăm sóc trong khung giờ này.',
+  SERVICE_PACKAGE_NOT_AVAILABLE:
+    'Gói dịch vụ hiện không khả dụng.',
+  PROMOTION_NOT_APPLICABLE:
+    'Mã khuyến mãi không áp dụng được cho booking này.',
+  PROMOTION_PHONE_REQUIRED:
+    'Khuyến mãi yêu cầu nhập số điện thoại để xác minh.',
+  POINTS_NOT_ENOUGH: 'Không đủ điểm để áp dụng.',
+  RATE_LIMIT_EXCEEDED:
+    'Bạn thao tác quá nhanh. Vui lòng đợi vài phút rồi thử lại.',
+  USER_NOT_FOUND: 'Không tìm thấy người dùng này trên hệ thống.',
+  EMAIL_OR_PHONE_EXISTS:
+    'Email hoặc số điện thoại đã được sử dụng bởi tài khoản khác.',
+  INVALID_ROLE:
+    'Vai trò được chọn không hợp lệ. Vui lòng liên hệ quản trị viên.',
+  CANNOT_DEACTIVATE_SELF:
+    'Bạn không thể tự khóa tài khoản đang đăng nhập.',
+  CANNOT_DELETE_SELF:
+    'Bạn không thể tự xóa tài khoản đang đăng nhập.',
 }
 
 export function getApiErrorCode(error: unknown): string | undefined {

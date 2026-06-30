@@ -1,10 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   closeAdminSurveyApi,
+  createAdminSurveyApi,
+  deleteAdminSurveyApi,
   getAdminSurveyResponsesApi,
   getAdminSurveysApi,
   publishAdminSurveyApi,
+  updateAdminSurveyApi,
+  type SurveyCreatePayload,
   type SurveyListParams,
+  type SurveyUpdatePayload,
 } from '../../../api/survey.api'
 import { useAdminAuth } from '../../../contexts/AdminAuthContext'
 import { mapApiSurveyResponse } from '../../../lib/mappers/adminMappers'
@@ -50,6 +55,27 @@ export function useAdminSurveyMutations() {
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: adminQueryKeys.surveys() })
 
+  const createMutation = useMutation({
+    mutationFn: (payload: SurveyCreatePayload) => createAdminSurveyApi(payload),
+    onSuccess: () => void invalidate(),
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: async ({
+      surveyId,
+      payload,
+    }: {
+      surveyId: string
+      payload: SurveyUpdatePayload
+    }) => updateAdminSurveyApi(surveyId, payload),
+    onSuccess: () => void invalidate(),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (surveyId: string) => deleteAdminSurveyApi(surveyId),
+    onSuccess: () => void invalidate(),
+  })
+
   const publishMutation = useMutation({
     mutationFn: (surveyId: string) => publishAdminSurveyApi(surveyId),
     onSuccess: () => void invalidate(),
@@ -60,7 +86,13 @@ export function useAdminSurveyMutations() {
     onSuccess: () => void invalidate(),
   })
 
-  return { publishMutation, closeMutation }
+  return {
+    createMutation,
+    updateMutation,
+    deleteMutation,
+    publishMutation,
+    closeMutation,
+  }
 }
 
 export const SURVEY_STATUS_LABELS: Record<string, string> = {

@@ -3,14 +3,15 @@ import { useMemo } from 'react'
 import { getAdminGaragesApi } from '../../../api/garage.api'
 import {
   createStaffProfileApi,
+  deleteStaffProfileApi,
   getStaffProfileByIdApi,
   getStaffProfilesApi,
-  getUsersApi,
   toggleStaffProfileStatusApi,
   updateStaffProfileApi,
   type StaffProfileCreatePayload,
   type StaffProfileUpdatePayload,
 } from '../../../api/staffProfile.api'
+import { getAdminUsersApi } from '../../../api/user.api'
 import { useAdminAuth } from '../../../contexts/AdminAuthContext'
 import { mapApiStaffRecord } from '../../../lib/mappers/adminMappers'
 import { mapApiUser } from '../../../lib/auth/mapApiTypes'
@@ -124,7 +125,7 @@ export function useAdminStaffUsersWithoutProfile() {
     queryKey: [...adminQueryKeys.staff(), 'users-without-profile'],
     queryFn: async () => {
       const [{ users }, { profiles }] = await Promise.all([
-        getUsersApi({ role: 'STAFF' }),
+        getAdminUsersApi({ role: 'STAFF' }),
         getStaffProfilesApi(),
       ])
       const profileUserIds = new Set(
@@ -213,6 +214,21 @@ export function useToggleAdminStaffStatus() {
       void queryClient.invalidateQueries({
         queryKey: adminQueryKeys.staffProfile(variables.profileId),
       })
+    },
+  })
+}
+
+export function useDeleteAdminStaff() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (profileId: string) => {
+      await deleteStaffProfileApi(profileId)
+      return profileId
+    },
+    onSuccess: (_data, profileId) => {
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.staff() })
+      void queryClient.removeQueries({ queryKey: adminQueryKeys.staffProfile(profileId) })
     },
   })
 }

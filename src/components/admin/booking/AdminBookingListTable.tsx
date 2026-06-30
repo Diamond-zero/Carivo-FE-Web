@@ -4,8 +4,9 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { getAdminGarageName, getAdminServicePackageName } from '../../../mocks/admin'
 import type { Booking } from '../../../types/booking'
-import { getAdminBookingCustomerName } from '../../../utils/adminBooking'
+import { getAdminBookingCustomerName, getAdminBookingExceptionReason } from '../../../utils/adminBooking'
 import { formatTime, formatPrice } from '../../../utils/format'
+import { ArrivalStatusBadge } from '../../booking/ArrivalStatusBadge'
 import { BookingStatusBadge } from '../../booking/BookingStatusBadge'
 import { PaymentStatusBadge } from '../../booking/PaymentStatusBadge'
 import { DataTable } from '../../ui/DataTable'
@@ -71,6 +72,23 @@ export function AdminBookingListTable({
           </div>
         ),
       }),
+      columnHelper.display({
+        id: 'arrival',
+        header: 'Đến',
+        cell: ({ row }) => {
+          const status = row.original.raw?.arrival_status ?? null
+          const late = row.original.raw?.late_minutes ?? 0
+          if (!status) return <span className="text-xs text-slate-400">—</span>
+          return (
+            <div className="flex flex-col items-start gap-0.5">
+              <ArrivalStatusBadge status={status} />
+              {late > 0 ? (
+                <span className="text-[11px] text-orange-600">trễ {late}p</span>
+              ) : null}
+            </div>
+          )
+        },
+      }),
       columnHelper.accessor('final_price', {
         header: 'Thành tiền',
         cell: (info) => formatPrice(info.getValue()),
@@ -82,6 +100,19 @@ export function AdminBookingListTable({
       columnHelper.accessor('payment_status', {
         header: 'Thanh toán',
         cell: (info) => <PaymentStatusBadge status={info.getValue()} />,
+      }),
+      columnHelper.display({
+        id: 'reason',
+        header: 'Lý do',
+        cell: ({ row }) => {
+          const reason = getAdminBookingExceptionReason(row.original)
+          if (!reason) return <span className="text-xs text-slate-400">—</span>
+          return (
+            <p className="line-clamp-2 max-w-[180px] text-xs text-slate-700" title={reason}>
+              {reason}
+            </p>
+          )
+        },
       }),
       columnHelper.display({
         id: 'actions',

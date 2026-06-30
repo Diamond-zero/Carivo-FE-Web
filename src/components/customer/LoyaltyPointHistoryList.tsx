@@ -8,15 +8,19 @@ interface LoyaltyPointHistoryListProps {
 }
 
 const POINT_TYPE_LABELS: Record<LoyaltyPointRecord['type'], string> = {
-  EARNED: 'Tích điểm',
-  REDEEMED: 'Đổi điểm',
-  EXPIRED: 'Hết hạn',
+  EARN: 'Tích điểm',
+  REDEEM: 'Đổi điểm',
+  REFUND: 'Hoàn điểm',
+  EXPIRE: 'Hết hạn',
+  ADJUST: 'Điều chỉnh',
 }
 
 const POINT_TYPE_COLORS: Record<LoyaltyPointRecord['type'], string> = {
-  EARNED: 'bg-emerald-50 text-emerald-600',
-  REDEEMED: 'bg-brand-50 text-brand-700',
-  EXPIRED: 'bg-slate-100 text-slate-500',
+  EARN: 'bg-emerald-50 text-emerald-600',
+  REDEEM: 'bg-brand-50 text-brand-700',
+  REFUND: 'bg-sky-50 text-sky-700',
+  EXPIRE: 'bg-slate-100 text-slate-500',
+  ADJUST: 'bg-amber-50 text-amber-700',
 }
 
 export function LoyaltyPointHistoryList({ records }: LoyaltyPointHistoryListProps) {
@@ -34,7 +38,7 @@ export function LoyaltyPointHistoryList({ records }: LoyaltyPointHistoryListProp
   return (
     <ul className="divide-y divide-slate-100">
       {records.map((record) => {
-        const isPositive = record.type === 'EARNED'
+        const isPositive = record.type === 'EARN' || record.type === 'REFUND'
         const Icon = isPositive ? Plus : Minus
 
         return (

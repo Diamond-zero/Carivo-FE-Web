@@ -2,7 +2,14 @@ import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { cn } from '../../lib/utils'
 
-type StatAccent = 'brand' | 'indigo' | 'amber' | 'emerald' | 'violet'
+type StatAccent =
+  | 'brand'
+  | 'indigo'
+  | 'amber'
+  | 'emerald'
+  | 'violet'
+  | 'rose'
+  | 'red'
 
 const accentStyles: Record<
   StatAccent,
@@ -33,6 +40,16 @@ const accentStyles: Record<
     value: 'text-slate-900',
     hint: 'text-slate-500',
   },
+  rose: {
+    icon: 'bg-rose-50 text-rose-700 ring-rose-100',
+    value: 'text-slate-900',
+    hint: 'text-slate-500',
+  },
+  red: {
+    icon: 'bg-red-50 text-red-700 ring-red-100',
+    value: 'text-slate-900',
+    hint: 'text-slate-500',
+  },
 }
 
 interface StatCardProps {
@@ -52,7 +69,7 @@ export function StatCard({
   hint,
   className,
 }: StatCardProps) {
-  const styles = accentStyles[accent]
+  const styles = accentStyles[accent] ?? accentStyles.brand
 
   return (
     <div

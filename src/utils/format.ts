@@ -30,5 +30,13 @@ export function formatDateTime(value: string) {
   })
 }
 
+export function formatDate(value: string) {
+  return new Date(value).toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
+
 /** @deprecated Dùng getTodayDateString() */
 export const MOCK_TODAY = getTodayDateString()

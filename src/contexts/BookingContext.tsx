@@ -663,9 +663,9 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       wrapMutation(
         async () => payosMutation.mutateAsync(bookingId),
         'Đã tạo link thanh toán PayOS.',
-        (payment) => ({
-          checkoutUrl: payment.checkout_url,
-          paymentId: payment.id,
+        (result) => ({
+          checkoutUrl: result.payment.checkout_url,
+          paymentId: result.payment.id,
         }),
       ),
     [payosMutation],

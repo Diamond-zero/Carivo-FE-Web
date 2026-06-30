@@ -9,8 +9,8 @@ export type BookingStatus =
   | 'CANCELED'
   | 'NO_SHOW'
 
-export type PaymentStatus = 'UNPAID' | 'PENDING' | 'PAID'
-export type PaymentMethod = 'CASH' | 'PAYOS'
+export type PaymentStatus = 'UNPAID' | 'PENDING' | 'PAID' | 'PARTIAL' | 'REFUNDED' | string
+export type PaymentMethod = 'CASH' | 'PAYOS' | string
 
 export interface Booking {
   id: string

@@ -1,6 +1,7 @@
-import { Eye, Loader2, MessageSquare } from 'lucide-react'
+import { Eye, Loader2, MessageSquare, Pencil, Plus, Send, StopCircle, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { getApiErrorMessage } from '../../../api/client'
+import { AdminSurveyFormModal, type SurveyFormValues } from '../../../components/admin/survey/AdminSurveyFormModal'
 import { AdminSurveyListTable } from '../../../components/admin/survey/AdminSurveyListTable'
 import { CustomerSearchPanel } from '../../../components/customer/CustomerSearchPanel'
 import { PageHeader } from '../../../components/layout/PageHeader'
@@ -21,11 +22,16 @@ import {
 } from '../../../hooks/api/admin/useAdminSurveys'
 import type { ApiSurvey } from '../../../types/api/admin'
 
+type FormMode = 'create' | 'edit' | null
+
 export function AdminSurveysPage() {
   const { showToast } = useToast()
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [query, setQuery] = useState('')
   const [responsesSurveyId, setResponsesSurveyId] = useState<string | null>(null)
+  const [formMode, setFormMode] = useState<FormMode>(null)
+  const [editingSurvey, setEditingSurvey] = useState<ApiSurvey | null>(null)
+  const [deletingSurveyId, setDeletingSurveyId] = useState<string | null>(null)
 
   const params = useMemo(
     () => ({
@@ -39,18 +45,40 @@ export function AdminSurveysPage() {
   )
 
   const { data, isLoading, isError, error } = useAdminSurveys(params)
-  const { publishMutation, closeMutation } = useAdminSurveyMutations()
+  const {
+    createMutation,
+    updateMutation,
+    deleteMutation,
+    publishMutation,
+    closeMutation,
+  } = useAdminSurveyMutations()
   const responsesQuery = useAdminSurveyResponses(responsesSurveyId ?? undefined)
 
   const surveys = data?.surveys ?? []
   const publishedCount = surveys.filter((item) => item.status === 'PUBLISHED').length
   const draftCount = surveys.filter((item) => item.status === 'DRAFT').length
+  const closedCount = surveys.filter((item) => item.status === 'CLOSED').length
 
   useEffect(() => {
     if (isError) {
       showToast(getApiErrorMessage(error, 'Không tải được khảo sát.'), 'error')
     }
   }, [isError, error, showToast])
+
+  const openCreate = () => {
+    setEditingSurvey(null)
+    setFormMode('create')
+  }
+
+  const openEdit = (survey: ApiSurvey) => {
+    setEditingSurvey(survey)
+    setFormMode('edit')
+  }
+
+  const closeForm = () => {
+    setFormMode(null)
+    setEditingSurvey(null)
+  }
 
   const handlePublish = async (survey: ApiSurvey) => {
     try {
@@ -70,7 +98,71 @@ export function AdminSurveysPage() {
     }
   }
 
+  const handleConfirmDelete = () => {
+    if (!deletingSurveyId) return
+    const target = surveys.find((item) => item.id === deletingSurveyId)
+    deleteMutation.mutate(deletingSurveyId, {
+      onSuccess: () => {
+        setDeletingSurveyId(null)
+        showToast(
+          `Đã xóa khảo sát "${target?.title ?? ''}".`,
+          'success',
+        )
+      },
+      onError: (mutationError) => {
+        showToast(getApiErrorMessage(mutationError, 'Không thể xóa khảo sát.'), 'error')
+      },
+    })
+  }
+
+  const handleFormSubmit = async (values: SurveyFormValues) => {
+    const questions = values.questions.map((question, index) => ({
+      id: question.id,
+      text: question.text,
+      type: question.type,
+      is_required: question.is_required,
+      options: question.options.filter((option) => option.trim().length > 0),
+      order: index,
+    }))
+
+    if (formMode === 'create') {
+      try {
+        await createMutation.mutateAsync({
+          title: values.title,
+          description: values.description || null,
+          response_window_days: values.response_window_days,
+          questions,
+        })
+        showToast(`Đã tạo khảo sát "${values.title}".`, 'success')
+        closeForm()
+      } catch (mutationError) {
+        showToast(getApiErrorMessage(mutationError, 'Không thể tạo khảo sát.'), 'error')
+      }
+      return
+    }
+
+    if (!editingSurvey) return
+    try {
+      await updateMutation.mutateAsync({
+        surveyId: editingSurvey.id,
+        payload: {
+          title: values.title,
+          description: values.description || null,
+          response_window_days: values.response_window_days,
+          questions,
+        },
+      })
+      showToast(`Đã cập nhật khảo sát "${values.title}".`, 'success')
+      closeForm()
+    } catch (mutationError) {
+      showToast(getApiErrorMessage(mutationError, 'Không thể cập nhật khảo sát.'), 'error')
+    }
+  }
+
   const responseSurveys = responsesQuery.data?.responses ?? []
+  const deletingSurvey = deletingSurveyId
+    ? surveys.find((item) => item.id === deletingSurveyId)
+    : undefined
 
   return (
     <div>
@@ -81,13 +173,20 @@ export function AdminSurveysPage() {
           <PageHeader
             eyebrow="Carivo Quản trị"
             title="Khảo sát"
-            description="Quản lý khảo sát khách hàng — xuất bản, đóng và xem phản hồi."
+            description="Quản lý khảo sát khách hàng — tạo, sửa, xuất bản, đóng và xem phản hồi."
+            action={
+              <Button onClick={openCreate}>
+                <Plus className="h-4 w-4" />
+                Tạo khảo sát
+              </Button>
+            }
           />
 
-          <div className="mb-6 grid gap-4 sm:grid-cols-3">
+          <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard label="Tổng khảo sát" value={surveys.length} icon={MessageSquare} accent="brand" />
             <StatCard label="Đang mở" value={publishedCount} icon={MessageSquare} accent="emerald" />
             <StatCard label="Nháp" value={draftCount} icon={MessageSquare} accent="amber" />
+            <StatCard label="Đã đóng" value={closedCount} icon={MessageSquare} accent="violet" />
           </div>
 
           <div className="mb-6 space-y-4">
@@ -114,12 +213,13 @@ export function AdminSurveysPage() {
               <CardTitle>{surveys.length} khảo sát</CardTitle>
             </CardHeader>
             <CardContent className="overflow-x-auto p-0">
-              <table className="w-full min-w-[800px] text-left text-sm">
+              <table className="w-full min-w-[900px] text-left text-sm">
                 <thead className="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   <tr>
                     <th className="px-6 py-3">Tiêu đề</th>
                     <th className="px-6 py-3">Trạng thái</th>
                     <th className="px-6 py-3">Câu hỏi</th>
+                    <th className="px-6 py-3">Phản hồi</th>
                     <th className="px-6 py-3 text-right">Thao tác</th>
                   </tr>
                 </thead>
@@ -142,8 +242,11 @@ export function AdminSurveysPage() {
                       <td className="px-6 py-4 text-slate-600">
                         {survey.questions?.length ?? 0} câu
                       </td>
+                      <td className="px-6 py-4 text-slate-600">
+                        {survey.response_count ?? 0}
+                      </td>
                       <td className="px-6 py-4">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex flex-wrap justify-end gap-2">
                           <Button
                             size="sm"
                             variant="secondary"
@@ -152,12 +255,21 @@ export function AdminSurveysPage() {
                             <Eye className="h-4 w-4" />
                             Phản hồi
                           </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => openEdit(survey)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            Sửa
+                          </Button>
                           {survey.status === 'DRAFT' ? (
                             <Button
                               size="sm"
                               onClick={() => void handlePublish(survey)}
                               disabled={publishMutation.isPending}
                             >
+                              <Send className="h-4 w-4" />
                               Xuất bản
                             </Button>
                           ) : null}
@@ -168,9 +280,18 @@ export function AdminSurveysPage() {
                               onClick={() => void handleClose(survey)}
                               disabled={closeMutation.isPending}
                             >
+                              <StopCircle className="h-4 w-4" />
                               Đóng
                             </Button>
                           ) : null}
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => setDeletingSurveyId(survey.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Xóa
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -178,7 +299,9 @@ export function AdminSurveysPage() {
                 </tbody>
               </table>
               {surveys.length === 0 ? (
-                <p className="px-6 py-10 text-center text-sm text-slate-500">Chưa có khảo sát.</p>
+                <p className="px-6 py-10 text-center text-sm text-slate-500">
+                  Chưa có khảo sát. Bấm "Tạo khảo sát" để bắt đầu.
+                </p>
               ) : null}
             </CardContent>
           </Card>
@@ -192,6 +315,7 @@ export function AdminSurveysPage() {
                 ? `Khảo sát ${responsesSurveyId.slice(-6)}`
                 : undefined
             }
+            className="max-w-4xl"
           >
             {responsesQuery.isLoading ? (
               <div className="flex justify-center py-8">
@@ -202,6 +326,44 @@ export function AdminSurveysPage() {
             ) : (
               <AdminSurveyListTable surveys={responseSurveys} />
             )}
+          </Modal>
+
+          <AdminSurveyFormModal
+            open={formMode !== null}
+            mode={formMode === 'edit' ? 'edit' : 'create'}
+            initialSurvey={editingSurvey ?? undefined}
+            onClose={closeForm}
+            onSubmit={handleFormSubmit}
+            isSubmitting={createMutation.isPending || updateMutation.isPending}
+          />
+
+          <Modal
+            open={Boolean(deletingSurveyId && deletingSurvey)}
+            onClose={() => setDeletingSurveyId(null)}
+            title="Xóa khảo sát?"
+            description={
+              deletingSurvey
+                ? `"${deletingSurvey.title}" — toàn bộ phản hồi sẽ bị xóa theo.`
+                : undefined
+            }
+          >
+            <div className="space-y-3">
+              <div className="rounded-xl border border-red-200 bg-red-50/70 px-4 py-3 text-sm text-red-800">
+                Thao tác này không thể hoàn tác. Khảo sát đang mở cần đóng trước khi xóa.
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="secondary" onClick={() => setDeletingSurveyId(null)}>
+                  Hủy
+                </Button>
+                <Button
+                  variant="danger"
+                  onClick={handleConfirmDelete}
+                  disabled={deleteMutation.isPending}
+                >
+                  {deleteMutation.isPending ? 'Đang xóa...' : 'Xóa khảo sát'}
+                </Button>
+              </div>
+            </div>
           </Modal>
         </>
       )}

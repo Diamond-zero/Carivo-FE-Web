@@ -31,12 +31,24 @@ export function mapApiPromotion(promotion: ApiPromotion): Promotion {
     discount_value: promotion.discount_value,
     max_discount_amount: promotion.max_discount_amount ?? null,
     min_order_amount: promotion.min_order_amount,
+    audience: (promotion.audience as Promotion['audience']) ?? 'ALL',
+    phone_required: promotion.phone_required ?? false,
+    per_phone_limit: promotion.per_phone_limit ?? null,
     applicable_tiers: (promotion.applicable_tiers ?? []) as Promotion['applicable_tiers'],
+    applicable_vehicle_types: (promotion.applicable_vehicle_types ??
+      []) as Promotion['applicable_vehicle_types'],
+    applicable_service_package_ids: promotion.applicable_service_package_ids ?? [],
     usage_limit: promotion.usage_limit ?? null,
+    per_customer_limit: promotion.per_customer_limit ?? null,
     used_count: promotion.used_count ?? 0,
+    reserved_count: promotion.reserved_count ?? 0,
     start_at: promotion.start_at,
     end_at: promotion.end_at,
     is_active: promotion.is_active,
+    created_by_id: promotion.created_by_id ?? null,
+    updated_by_id: promotion.updated_by_id ?? null,
+    created_at: promotion.created_at,
+    updated_at: promotion.updated_at,
   }
 }
 
@@ -100,26 +112,25 @@ export function mapApiSurvey(survey: ApiSurvey): SurveyResponse {
 }
 
 export function mapApiSurveyResponse(response: ApiSurveyResponse): SurveyResponse {
-  const answers = (response.answers ?? []) as Array<Record<string, unknown>>
+  const answers = response.answers ?? []
   let rating = 0
   let comment = ''
 
   for (const answer of answers) {
-    const value = answer.value
-    if (typeof value === 'number') {
-      rating = value
-    } else if (typeof value === 'string' && value.trim()) {
-      comment = value
-    } else if (value && typeof value === 'object' && 'rating' in (value as object)) {
-      rating = Number((value as { rating: unknown }).rating) || rating
+    if (typeof answer.numeric_value === 'number') {
+      rating = answer.numeric_value
+    } else if (typeof answer.text_value === 'string' && answer.text_value.trim()) {
+      comment = answer.text_value
     }
   }
 
+  const garage = response.survey?.garage
+  const customer = response.customer as { full_name?: string } | undefined
   return {
     id: response.id,
     booking_id: response.booking_id ?? '',
-    customer_name: response.customer?.full_name ?? 'Khách hàng',
-    garage_name: '—',
+    customer_name: customer?.full_name ?? 'Khách hàng',
+    garage_name: garage?.name ?? '—',
     rating,
     comment,
     submitted_at: response.submitted_at ?? response.created_at ?? new Date().toISOString(),
@@ -199,7 +210,7 @@ export function mapApiLoyaltyDetail(record: ApiLoyaltyCustomerDetail) {
       points: item.points,
       type: item.type as LoyaltyPointRecord['type'],
       description: item.description ?? '',
-      related_booking_id: null,
+      related_booking_id: item.booking_id ?? null,
       created_at: item.created_at,
     }),
   )
@@ -229,9 +240,10 @@ export function mapApiLoyaltyDetail(record: ApiLoyaltyCustomerDetail) {
 
 export function mapApiAdminServicePackage(pkg: ApiServicePackage): ServicePackage {
   const mapped = mapApiServicePackage(pkg)
+  const stepsTemplate = (pkg.steps_template ?? []) as ServiceStepTemplate[]
   return {
     ...mapped,
-    steps_template: (pkg.steps_template ?? []) as ServiceStepTemplate[],
+    steps_template: stepsTemplate,
   }
 }
 
@@ -243,14 +255,14 @@ export function mapApiVehicle(vehicle: ApiVehicle): Vehicle {
     normalized_license_plate:
       vehicle.normalized_license_plate ?? vehicle.raw_license_plate,
     vehicle_type: vehicle.vehicle_type,
-    engine_type: 'GASOLINE',
-    motorbike_cc_group: null,
-    car_body_type: null,
-    seat_count: null,
+    engine_type: vehicle.engine_type,
+    motorbike_cc_group: vehicle.motorbike_cc_group ?? null,
+    car_body_type: vehicle.car_body_type ?? null,
+    seat_count: vehicle.seat_count ?? null,
     brand: vehicle.brand ?? null,
     model: vehicle.model ?? null,
     color: vehicle.color ?? null,
-    is_default: false,
+    is_default: vehicle.is_default ?? false,
     is_active: vehicle.is_active,
   }
 }

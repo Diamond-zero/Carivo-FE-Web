@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { VEHICLE_TYPE_LABELS, WASH_BAY_STATUS_LABELS } from '../../../constants/washBayStatus'
 import {
@@ -35,7 +35,10 @@ export function AdminWashBayFormModal({
   isSubmitting = false,
 }: AdminWashBayFormModalProps) {
   const { allGarages } = useAdminGarages()
-  const garages = allGarages.filter((garage) => garage.is_active)
+  const garages = useMemo(
+    () => allGarages.filter((garage) => garage.is_active),
+    [allGarages],
+  )
   const isOccupied = initialBay?.status === 'OCCUPIED'
 
   const createForm = useForm<AdminWashBayCreateValues>({
@@ -79,14 +82,16 @@ export function AdminWashBayFormModal({
       editForm.reset({
         garage_id: initialBay.garage_id,
         name: initialBay.name,
-        bay_code: initialBay.bay_code,
+        bay_code: initialBay.bay_code.trim(),
         vehicle_type: initialBay.vehicle_type,
         status:
           initialBay.status === 'MAINTENANCE'
             ? 'MAINTENANCE'
             : initialBay.status === 'INACTIVE'
               ? 'INACTIVE'
-              : 'AVAILABLE',
+              : initialBay.status === 'OCCUPIED'
+                ? 'OCCUPIED'
+                : 'AVAILABLE',
         is_active: initialBay.is_active,
       })
     }

@@ -4,17 +4,25 @@ import {
   expireAdminWaitlistApi,
   getAdminWaitlistsApi,
   offerAdminWaitlistApi,
+  type OfferAdminWaitlistPayload,
   type WaitlistListParams,
 } from '../../../api/waitlist.api'
 import { useAdminAuth } from '../../../contexts/AdminAuthContext'
 import { adminQueryKeys } from './queryKeys'
+
+const DEFAULT_OFFER_EXPIRE_MINUTES = 15
+const DEFAULT_PAGE_SIZE = 20
 
 export function useAdminWaitlists(params?: WaitlistListParams) {
   const { isAuthenticated } = useAdminAuth()
 
   return useQuery({
     queryKey: adminQueryKeys.waitlists(params),
-    queryFn: () => getAdminWaitlistsApi(params),
+    queryFn: () =>
+      getAdminWaitlistsApi({
+        limit: DEFAULT_PAGE_SIZE,
+        ...params,
+      }),
     enabled: isAuthenticated,
     staleTime: 0,
     refetchOnMount: 'always',
@@ -28,19 +36,13 @@ export function useAdminWaitlistMutations() {
     queryClient.invalidateQueries({ queryKey: adminQueryKeys.waitlists() })
 
   const offerMutation = useMutation({
-    mutationFn: ({
-      waitlistId,
-      offerExpiresInMinutes,
-    }: {
-      waitlistId: string
-      offerExpiresInMinutes?: number
-    }) => offerAdminWaitlistApi(waitlistId, offerExpiresInMinutes),
+    mutationFn: (payload: OfferAdminWaitlistPayload) => offerAdminWaitlistApi(payload),
     onSuccess: () => void invalidate(),
   })
 
   const cancelMutation = useMutation({
-    mutationFn: ({ waitlistId, note }: { waitlistId: string; note?: string }) =>
-      cancelAdminWaitlistApi(waitlistId, note),
+    mutationFn: ({ waitlistId, reason }: { waitlistId: string; reason?: string }) =>
+      cancelAdminWaitlistApi(waitlistId, reason),
     onSuccess: () => void invalidate(),
   })
 
@@ -51,6 +53,8 @@ export function useAdminWaitlistMutations() {
 
   return { offerMutation, cancelMutation, expireMutation }
 }
+
+export { DEFAULT_OFFER_EXPIRE_MINUTES }
 
 export const WAITLIST_STATUS_LABELS: Record<string, string> = {
   WAITING: 'Đang chờ',

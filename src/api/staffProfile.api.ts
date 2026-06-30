@@ -1,34 +1,14 @@
-import type { ApiResponse, ApiStaffProfile, ApiUser } from '../types/api'
+import type { ApiResponse, ApiStaffProfile } from '../types/api'
 import type { ApiListResponse } from '../types/api/admin'
 import { apiClient } from './client'
 
-export interface UserListParams {
-  page?: number
-  limit?: number
-  search?: string
-  role?: 'CUSTOMER' | 'STAFF' | 'ADMIN'
-  is_active?: boolean
-}
+export type StaffTypeValue =
+  | 'CUSTOMER_SERVICE_STAFF'
+  | 'VEHICLE_INSPECTION_STAFF'
+  | 'WASH_OPERATOR'
+  | 'VEHICLE_CARE_STAFF'
 
-export async function getUsersApi(params?: UserListParams) {
-  const { data } = await apiClient.get<ApiListResponse<ApiUser[]>>('/users', {
-    params: { limit: 100, ...params },
-  })
-  return { users: data.data, meta: data.meta }
-}
-
-export async function getUserByIdApi(userId: string) {
-  const { data } = await apiClient.get<ApiResponse<ApiUser>>(`/users/${userId}`)
-  return data.data
-}
-
-export async function updateUserStatusApi(userId: string, isActive: boolean) {
-  const { data } = await apiClient.patch<ApiResponse<ApiUser>>(
-    `/users/${userId}/status`,
-    { is_active: isActive },
-  )
-  return data.data
-}
+export { getAdminUsersApi, getUserByIdApi, updateUserStatusApi, type UserListParams } from './user.api'
 
 export interface StaffProfileListParams {
   page?: number
@@ -41,21 +21,17 @@ export interface StaffProfileListParams {
 }
 
 export interface StaffProfileCreatePayload {
-  user_id?: string
-  full_name?: string
-  email?: string
-  phone?: string
-  password?: string
+  user_id: string
   staff_code: string
-  staff_type: string
-  garage_id: string
+  staff_type: StaffTypeValue
+  garage_id?: string | null
   is_active?: boolean
 }
 
 export interface StaffProfileUpdatePayload {
   staff_code?: string
-  staff_type?: string
-  garage_id?: string
+  staff_type?: StaffTypeValue
+  garage_id?: string | null
   is_active?: boolean
 }
 
@@ -100,6 +76,13 @@ export async function toggleStaffProfileStatusApi(
   const { data } = await apiClient.patch<ApiResponse<ApiStaffProfile>>(
     `/staff-profiles/${profileId}/status`,
     { is_active: isActive },
+  )
+  return data.data
+}
+
+export async function deleteStaffProfileApi(profileId: string) {
+  const { data } = await apiClient.delete<ApiResponse<ApiStaffProfile>>(
+    `/staff-profiles/${profileId}`,
   )
   return data.data
 }

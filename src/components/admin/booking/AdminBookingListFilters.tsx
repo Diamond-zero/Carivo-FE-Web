@@ -2,7 +2,7 @@ import { RotateCcw, Search } from 'lucide-react'
 import { BOOKING_STATUS_LABELS } from '../../../constants/bookingStatus'
 import { VEHICLE_TYPE_LABELS } from '../../../constants/washBayStatus'
 import { getAdminGaragesFromStore } from '../../../mocks/admin/adminGarageStore'
-import type { BookingStatus } from '../../../types/booking'
+import type { BookingStatus, PaymentStatus } from '../../../types/booking'
 import type { VehicleType } from '../../../types/washBay'
 import {
   DEFAULT_ADMIN_BOOKING_FILTERS,
@@ -17,6 +17,14 @@ interface AdminBookingListFiltersProps {
   filters: AdminBookingFilters
   onChange: (filters: AdminBookingFilters) => void
   onReset: () => void
+}
+
+const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  UNPAID: 'Chưa thanh toán',
+  PENDING: 'Đang chờ',
+  PAID: 'Đã thanh toán',
+  PARTIAL: 'Thanh toán một phần',
+  REFUNDED: 'Đã hoàn tiền',
 }
 
 export function AdminBookingListFilters({
@@ -34,6 +42,7 @@ export function AdminBookingListFilters({
     filters.garageId !== DEFAULT_ADMIN_BOOKING_FILTERS.garageId ||
     filters.status !== DEFAULT_ADMIN_BOOKING_FILTERS.status ||
     filters.vehicleType !== DEFAULT_ADMIN_BOOKING_FILTERS.vehicleType ||
+    filters.paymentStatus !== DEFAULT_ADMIN_BOOKING_FILTERS.paymentStatus ||
     filters.dateFrom !== DEFAULT_ADMIN_BOOKING_FILTERS.dateFrom ||
     filters.dateTo !== DEFAULT_ADMIN_BOOKING_FILTERS.dateTo ||
     filters.query !== DEFAULT_ADMIN_BOOKING_FILTERS.query
@@ -94,6 +103,26 @@ export function AdminBookingListFilters({
             <option value="ALL">Tất cả loại xe</option>
             <option value="CAR">{VEHICLE_TYPE_LABELS.CAR}</option>
             <option value="MOTORBIKE">{VEHICLE_TYPE_LABELS.MOTORBIKE}</option>
+          </Select>
+        </div>
+
+        <div>
+          <Label htmlFor="admin-booking-payment">Thanh toán</Label>
+          <Select
+            id="admin-booking-payment"
+            value={filters.paymentStatus}
+            onChange={(event) =>
+              update({ paymentStatus: event.target.value as PaymentStatus | 'ALL' })
+            }
+          >
+            <option value="ALL">Tất cả trạng thái TT</option>
+            {(Object.entries(PAYMENT_STATUS_LABELS) as Array<[PaymentStatus, string]>).map(
+              ([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ),
+            )}
           </Select>
         </div>
 

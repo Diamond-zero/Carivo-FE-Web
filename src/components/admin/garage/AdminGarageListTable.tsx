@@ -1,3 +1,4 @@
+import { Trash2 } from 'lucide-react'
 import { createColumnHelper } from '@tanstack/react-table'
 import { Building2 } from 'lucide-react'
 import { useMemo } from 'react'
@@ -12,12 +13,14 @@ interface AdminGarageListTableProps {
   garages: AdminGarageSummary[]
   hasActiveFilter?: boolean
   onToggleActive: (garageId: string) => void
+  onDelete: (garageId: string) => void
 }
 
 export function AdminGarageListTable({
   garages,
   hasActiveFilter = false,
   onToggleActive,
+  onDelete,
 }: AdminGarageListTableProps) {
   const columns = useMemo(
     () => [
@@ -95,11 +98,19 @@ export function AdminGarageListTable({
             >
               Sửa
             </Link>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 text-sm font-medium text-red-600 hover:text-red-700"
+              onClick={() => onDelete(row.original.id)}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Xóa
+            </button>
           </div>
         ),
       }),
     ],
-    [onToggleActive],
+    [onToggleActive, onDelete],
   )
 
   return (

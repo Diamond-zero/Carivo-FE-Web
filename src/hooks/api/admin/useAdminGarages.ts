@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import {
   createAdminGarageApi,
+  deleteAdminGarageApi,
   getAdminGarageByIdApi,
   getAdminGaragesApi,
   toggleAdminGarageStatusApi,
@@ -167,6 +168,21 @@ export function useToggleAdminGarageStatus() {
       void queryClient.invalidateQueries({
         queryKey: adminQueryKeys.garage(variables.garageId),
       })
+    },
+  })
+}
+
+export function useDeleteAdminGarage() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (garageId: string) => {
+      await deleteAdminGarageApi(garageId)
+      return garageId
+    },
+    onSuccess: (_data, garageId) => {
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.garages() })
+      void queryClient.removeQueries({ queryKey: adminQueryKeys.garage(garageId) })
     },
   })
 }

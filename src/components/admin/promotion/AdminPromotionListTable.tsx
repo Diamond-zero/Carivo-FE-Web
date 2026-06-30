@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { DISCOUNT_TYPE_LABELS } from '../../../constants/promotion'
 import { LOYALTY_TIER_LABELS } from '../../../constants/loyaltyTier'
+import { PROMOTION_AUDIENCE_LABELS } from '../../../hooks/api/admin/useAdminPromotions'
 import { formatCurrency } from '../../../lib/utils'
 import type { Promotion } from '../../../types/promotion'
 import { cn } from '../../../lib/utils'
@@ -28,12 +29,14 @@ interface AdminPromotionListTableProps {
   promotions: Promotion[]
   hasActiveFilter?: boolean
   onToggleActive: (promotionId: string) => void
+  onDelete?: (promotionId: string) => void
 }
 
 export function AdminPromotionListTable({
   promotions,
   hasActiveFilter = false,
   onToggleActive,
+  onDelete,
 }: AdminPromotionListTableProps) {
   const columns = useMemo(
     () => [
@@ -65,7 +68,16 @@ export function AdminPromotionListTable({
           <span className="text-sm text-slate-600">
             {row.original.applicable_tiers
               .map((tier) => LOYALTY_TIER_LABELS[tier])
-              .join(', ')}
+              .join(', ') || '—'}
+          </span>
+        ),
+      }),
+      columnHelper.display({
+        id: 'audience',
+        header: 'Đối tượng',
+        cell: ({ row }) => (
+          <span className="text-sm text-slate-600">
+            {PROMOTION_AUDIENCE_LABELS[row.original.audience]}
           </span>
         ),
       }),
@@ -123,11 +135,20 @@ export function AdminPromotionListTable({
             >
               Sửa
             </Link>
+            {onDelete ? (
+              <button
+                type="button"
+                className="text-sm font-medium text-red-600 hover:text-red-800"
+                onClick={() => onDelete(row.original.id)}
+              >
+                Xóa
+              </button>
+            ) : null}
           </div>
         ),
       }),
     ],
-    [onToggleActive],
+    [onToggleActive, onDelete],
   )
 
   return (

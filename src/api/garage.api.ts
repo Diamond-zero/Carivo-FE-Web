@@ -54,3 +54,10 @@ export async function toggleAdminGarageStatusApi(garageId: string, isActive: boo
   )
   return data.data
 }
+
+export async function deleteAdminGarageApi(garageId: string) {
+  const { data } = await apiClient.delete<ApiResponse<ApiGarage>>(
+    `/admin/garages/${garageId}`,
+  )
+  return data.data
+}

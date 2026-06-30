@@ -1,4 +1,4 @@
-import type { Booking, BookingStatus } from '../types/booking'
+import type { Booking, BookingStatus, PaymentStatus } from '../types/booking'
 import type { VehicleType } from '../types/washBay'
 import { normalizeSearchText } from './booking'
 import { getAdminBookingPhone } from './adminBooking'
@@ -7,6 +7,7 @@ export interface AdminBookingFilters {
   garageId: string | 'ALL'
   status: BookingStatus | 'ALL'
   vehicleType: VehicleType | 'ALL'
+  paymentStatus: PaymentStatus | 'ALL'
   dateFrom: string
   dateTo: string
   query: string
@@ -16,6 +17,7 @@ export const DEFAULT_ADMIN_BOOKING_FILTERS: AdminBookingFilters = {
   garageId: 'ALL',
   status: 'ALL',
   vehicleType: 'ALL',
+  paymentStatus: 'ALL',
   dateFrom: '',
   dateTo: '',
   query: '',
@@ -38,6 +40,13 @@ export function searchAdminBookings(
       }
 
       if (filters.vehicleType !== 'ALL' && booking.vehicle_type !== filters.vehicleType) {
+        return false
+      }
+
+      if (
+        filters.paymentStatus !== 'ALL' &&
+        booking.payment_status !== filters.paymentStatus
+      ) {
         return false
       }
 
@@ -76,6 +85,7 @@ export function hasActiveAdminBookingFilters(filters: AdminBookingFilters) {
     filters.garageId !== 'ALL' ||
     filters.status !== 'ALL' ||
     filters.vehicleType !== 'ALL' ||
+    filters.paymentStatus !== 'ALL' ||
     filters.dateFrom !== '' ||
     filters.dateTo !== '' ||
     filters.query.trim() !== ''

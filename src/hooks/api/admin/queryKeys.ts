@@ -8,6 +8,8 @@ export const adminQueryKeys = {
   staffProfile: (id: string) => [...adminQueryKeys.all, 'staff-profile', id] as const,
   customers: (params?: unknown) => [...adminQueryKeys.all, 'customers', params] as const,
   customer: (id: string) => [...adminQueryKeys.all, 'customer', id] as const,
+  users: (params?: unknown) => [...adminQueryKeys.all, 'users', params] as const,
+  user: (id: string) => [...adminQueryKeys.all, 'user', id] as const,
   vehicles: (params?: unknown) => [...adminQueryKeys.all, 'vehicles', params] as const,
   bookings: (params?: unknown) => [...adminQueryKeys.all, 'bookings', params] as const,
   booking: (id: string) => [...adminQueryKeys.all, 'booking', id] as const,
@@ -16,6 +18,7 @@ export const adminQueryKeys = {
   servicePackage: (id: string) =>
     [...adminQueryKeys.all, 'service-package', id] as const,
   promotions: (params?: unknown) => [...adminQueryKeys.all, 'promotions', params] as const,
+  promotionsList: () => [...adminQueryKeys.all, 'promotions-list'] as const,
   promotion: (id: string) => [...adminQueryKeys.all, 'promotion', id] as const,
   tierRules: () => [...adminQueryKeys.all, 'tier-rules'] as const,
   analyticsOverview: (params?: unknown) =>
@@ -37,4 +40,14 @@ export const adminQueryKeys = {
     [...adminQueryKeys.all, 'expiring-points', params] as const,
   loyaltyTransactions: (params?: unknown) =>
     [...adminQueryKeys.all, 'loyalty-transactions', params] as const,
+  loyaltyCustomer: (id: string) =>
+    [...adminQueryKeys.all, 'loyalty-customer', id] as const,
+  researchReports: (params?: unknown) =>
+    [...adminQueryKeys.all, 'research', params] as const,
+  researchReport: (id: string) =>
+    [...adminQueryKeys.all, 'research', id] as const,
+  uploads: (params?: unknown) =>
+    [...adminQueryKeys.all, 'uploads', params] as const,
+  notifications: (customerId?: string) =>
+    [...adminQueryKeys.all, 'customer-notifications', customerId] as const,
 }

@@ -163,8 +163,8 @@ export interface ApiBooking {
   points_discount_amount?: number
   discount_amount: number
   final_price: number
-  payment_method: 'CASH' | 'PAYOS'
-  payment_status: 'UNPAID' | 'PENDING' | 'PAID'
+  payment_method: 'CASH' | 'PAYOS' | string
+  payment_status: 'UNPAID' | 'PENDING' | 'PAID' | 'PARTIAL' | 'REFUNDED' | string
   used_points?: number
   earned_points?: number
   promotion_id?: string | null
@@ -267,14 +267,44 @@ export interface ApiBookingServiceStep {
   completed_at: string | null
 }
 
+export interface ApiVehicleInspectionImage {
+  image_url: string
+  public_id?: string
+  caption?: string
+}
+
 export interface ApiVehicleInspection {
   id: string
   booking_id: string
   type: 'BEFORE_WASH' | 'AFTER_WASH'
   note: string
-  images: string[]
+  /** BE trả về object[] cho phép caption/public_id, FE đã normalize sang string[] khi map. */
+  images: ApiVehicleInspectionImage[] | string[]
   inspected_by: string
   inspected_at: string
+}
+
+/** Swagger `markPaidResponse.data` */
+export interface ApiMarkPaidResult {
+  booking: ApiBooking
+  wash_history?: ApiWashHistory | null
+  loyalty?: Record<string, unknown> | null
+  point_transaction?: Record<string, unknown> | null
+  promotion_usage?: Record<string, unknown> | null
+  notifications?: Array<Record<string, unknown>>
+  already_processed?: boolean
+}
+
+/** Swagger `startServiceResponse.data` */
+export interface ApiStartServiceResult {
+  booking: ApiBooking
+  service_steps: ApiBookingServiceStep[]
+}
+
+/** Swagger `paymentDetailResponse.data` */
+export interface ApiPaymentDetailResult {
+  booking: ApiBooking
+  payment: ApiPaymentTransaction
 }
 
 export interface ApiWashHistoryCustomer {
@@ -429,6 +459,14 @@ export interface UploadApiResponse {
   id: string
   url: string
   public_id?: string
+  mime_type?: string
+  size?: number
+  purpose?: string
+  owner_id?: string
+  related_type?: string | null
+  related_id?: string | null
+  created_at?: string
+  updated_at?: string
 }
 
 export interface ApiWashBay {

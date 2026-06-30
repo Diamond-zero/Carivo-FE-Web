@@ -23,6 +23,7 @@ import { useToast } from '../../../contexts/ToastContext'
 import { useAdminGarages } from '../../../hooks/api/admin/useAdminGarages'
 import {
   useAdminStaff,
+  useDeleteAdminStaff,
   useToggleAdminStaffStatus,
 } from '../../../hooks/api/admin/useAdminStaff'
 import type { StaffType } from '../../../types/staffProfile'
@@ -33,6 +34,7 @@ export function AdminStaffListPage() {
   const [garageFilter, setGarageFilter] = useState<string | 'ALL'>('ALL')
   const [staffTypeFilter, setStaffTypeFilter] = useState<StaffType | 'ALL'>('ALL')
   const [confirmProfileId, setConfirmProfileId] = useState<string | null>(null)
+  const [deleteProfileId, setDeleteProfileId] = useState<string | null>(null)
 
   const { allGarages: garages } = useAdminGarages()
   const { staff, allStaff, isLoading, isError, error } = useAdminStaff({
@@ -41,6 +43,7 @@ export function AdminStaffListPage() {
     staffTypeFilter,
   })
   const toggleMutation = useToggleAdminStaffStatus()
+  const deleteMutation = useDeleteAdminStaff()
 
   const activeCount = allStaff.filter(
     (record) => record.profile.is_active && record.user.is_active,
@@ -50,6 +53,9 @@ export function AdminStaffListPage() {
 
   const pendingRecord = confirmProfileId
     ? allStaff.find((record) => record.profile.id === confirmProfileId)
+    : undefined
+  const deletingRecord = deleteProfileId
+    ? allStaff.find((record) => record.profile.id === deleteProfileId)
     : undefined
 
   const handleConfirmToggle = () => {
@@ -78,6 +84,26 @@ export function AdminStaffListPage() {
         },
       },
     )
+  }
+
+  const handleConfirmDelete = () => {
+    if (!deleteProfileId || !deletingRecord) return
+
+    deleteMutation.mutate(deleteProfileId, {
+      onSuccess: () => {
+        setDeleteProfileId(null)
+        showToast(`Đã xóa hồ sơ nhân viên ${deletingRecord.user.full_name}.`, 'success')
+      },
+      onError: (mutationError) => {
+        showToast(
+          getApiErrorMessage(
+            mutationError,
+            'Không thể xóa nhân viên. Hãy ngưng làm việc trước.',
+          ),
+          'error',
+        )
+      },
+    })
   }
 
   if (isLoading) {
@@ -196,6 +222,7 @@ export function AdminStaffListPage() {
             staff={staff}
             hasActiveFilter={hasActiveFilter}
             onToggleActive={setConfirmProfileId}
+            onDelete={setDeleteProfileId}
           />
         </CardContent>
       </Card>
@@ -225,6 +252,36 @@ export function AdminStaffListPage() {
           >
             Xác nhận
           </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(deleteProfileId && deletingRecord)}
+        onClose={() => setDeleteProfileId(null)}
+        title="Xóa hồ sơ nhân viên?"
+        description={
+          deletingRecord
+            ? `${deletingRecord.user.full_name} (${deletingRecord.profile.staff_code}) tại ${deletingRecord.garage.name}.`
+            : undefined
+        }
+      >
+        <div className="space-y-3">
+          <div className="rounded-xl border border-red-200 bg-red-50/70 px-4 py-3 text-sm text-red-800">
+            Thao tác này không thể hoàn tác. Hồ sơ đang phụ trách ca làm việc sẽ không thể xóa —
+            hãy ngưng làm việc trước.
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setDeleteProfileId(null)}>
+              Hủy
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleConfirmDelete}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? 'Đang xóa...' : 'Xóa hồ sơ'}
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>
