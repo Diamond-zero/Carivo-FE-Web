@@ -18,17 +18,25 @@ export interface SurveyListParams {
   created_by?: string
 }
 
+export interface SurveyQuestionWrite {
+  text: string
+  type: 'RATING' | 'NPS' | 'SINGLE_CHOICE' | 'MULTI_CHOICE' | 'TEXT'
+  is_required: boolean
+  options: string[]
+  order: number
+}
+
 export interface SurveyCreatePayload {
   title: string
   description?: string | null
-  questions?: ApiSurveyQuestion[]
+  questions?: SurveyQuestionWrite[]
   response_window_days?: number
 }
 
 export interface SurveyUpdatePayload {
   title?: string
   description?: string | null
-  questions?: ApiSurveyQuestion[]
+  questions?: SurveyQuestionWrite[]
   response_window_days?: number
 }
 

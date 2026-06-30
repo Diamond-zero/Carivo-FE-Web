@@ -116,27 +116,50 @@ export function AdminSurveysPage() {
   }
 
   const handleFormSubmit = async (values: SurveyFormValues) => {
-    const questions = values.questions.map((question, index) => ({
-      id: question.id,
-      text: question.text,
-      type: question.type,
-      is_required: question.is_required,
-      options: question.options.filter((option) => option.trim().length > 0),
-      order: index,
-    }))
+    const questions = values.questions.map((question, index) => {
+      const cleanedOptions = question.options.filter(
+        (option) => option.trim().length > 0,
+      )
+      return {
+        text: question.text,
+        type: question.type,
+        is_required: Boolean(question.is_required),
+        options:
+          question.type === 'SINGLE_CHOICE' || question.type === 'MULTI_CHOICE'
+            ? cleanedOptions
+            : [],
+        order: index + 1,
+      }
+    })
+
+    const basePayload = {
+      title: values.title,
+      description: values.description?.trim() ? values.description : null,
+      response_window_days: values.response_window_days,
+      questions,
+    }
 
     if (formMode === 'create') {
       try {
-        await createMutation.mutateAsync({
-          title: values.title,
-          description: values.description || null,
-          response_window_days: values.response_window_days,
-          questions,
-        })
+        await createMutation.mutateAsync(basePayload)
         showToast(`Đã tạo khảo sát "${values.title}".`, 'success')
         closeForm()
       } catch (mutationError) {
-        showToast(getApiErrorMessage(mutationError, 'Không thể tạo khảo sát.'), 'error')
+        const axiosErr = mutationError as {
+          response?: { status?: number; data?: { error_code?: string; message?: string; errors?: Array<{ field?: string; message?: string }> } }
+        }
+        console.error('[AdminSurvey] create error', {
+          status: axiosErr?.response?.status,
+          data: axiosErr?.response?.data,
+        })
+        const detail =
+          axiosErr?.response?.data?.error_code ??
+          axiosErr?.response?.data?.message ??
+          getApiErrorMessage(mutationError, 'Không thể tạo khảo sát.')
+        showToast(
+          `Tạo khảo sát thất bại${axiosErr?.response?.status ? ` (${axiosErr.response.status})` : ''}: ${detail}`,
+          'error',
+        )
       }
       return
     }
@@ -145,17 +168,26 @@ export function AdminSurveysPage() {
     try {
       await updateMutation.mutateAsync({
         surveyId: editingSurvey.id,
-        payload: {
-          title: values.title,
-          description: values.description || null,
-          response_window_days: values.response_window_days,
-          questions,
-        },
+        payload: basePayload,
       })
       showToast(`Đã cập nhật khảo sát "${values.title}".`, 'success')
       closeForm()
     } catch (mutationError) {
-      showToast(getApiErrorMessage(mutationError, 'Không thể cập nhật khảo sát.'), 'error')
+      const axiosErr = mutationError as {
+        response?: { status?: number; data?: { error_code?: string; message?: string; errors?: Array<{ field?: string; message?: string }> } }
+      }
+      console.error('[AdminSurvey] update error', {
+        status: axiosErr?.response?.status,
+        data: axiosErr?.response?.data,
+      })
+      const detail =
+        axiosErr?.response?.data?.error_code ??
+        axiosErr?.response?.data?.message ??
+        getApiErrorMessage(mutationError, 'Không thể cập nhật khảo sát.')
+      showToast(
+        `Cập nhật khảo sát thất bại${axiosErr?.response?.status ? ` (${axiosErr.response.status})` : ''}: ${detail}`,
+        'error',
+      )
     }
   }
 
@@ -329,6 +361,7 @@ export function AdminSurveysPage() {
           </Modal>
 
           <AdminSurveyFormModal
+            key={`${formMode ?? 'closed'}-${editingSurvey?.id ?? 'new'}`}
             open={formMode !== null}
             mode={formMode === 'edit' ? 'edit' : 'create'}
             initialSurvey={editingSurvey ?? undefined}

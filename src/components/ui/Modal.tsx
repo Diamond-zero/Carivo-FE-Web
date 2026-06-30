@@ -54,7 +54,7 @@ export function Modal({
         aria-modal="true"
         aria-labelledby="modal-title"
         className={cn(
-          'relative z-10 w-full max-w-lg overflow-hidden rounded-2xl border border-white/20 bg-white shadow-[var(--shadow-carivo-lg)]',
+          'relative z-10 flex max-h-[calc(100vh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-white/20 bg-white shadow-[var(--shadow-carivo-lg)]',
           className,
         )}
       >
@@ -78,7 +78,7 @@ export function Modal({
           </Button>
         </div>
 
-        <div className="px-6 py-5">{children}</div>
+        <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
       </div>
     </div>
   )
