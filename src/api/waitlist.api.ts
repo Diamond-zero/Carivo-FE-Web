@@ -1,5 +1,5 @@
 import type { ApiResponse } from '../types/api'
-import type { ApiListResponse, ApiWaitlist } from '../types/api/admin'
+import type { ApiListResponse, ApiPaginationMeta, ApiWaitlist } from '../types/api/admin'
 import { apiClient } from './client'
 
 export interface WaitlistListParams {
@@ -15,25 +15,38 @@ export interface WaitlistListParams {
   to?: string
 }
 
-export async function getAdminWaitlistsApi(params?: WaitlistListParams) {
-  const { data } = await apiClient.get<ApiListResponse<ApiWaitlist[]>>('/admin/waitlists', {
-    params: { limit: 100, ...params },
-  })
+export interface AdminWaitlistsResult {
+  waitlists: ApiWaitlist[]
+  meta: ApiPaginationMeta
+}
+
+export async function getAdminWaitlistsApi(
+  params?: WaitlistListParams,
+): Promise<AdminWaitlistsResult> {
+  const { data } = await apiClient.get<ApiListResponse<ApiWaitlist[]>>(
+    '/admin/waitlists',
+    { params },
+  )
   return { waitlists: data.data, meta: data.meta }
 }
 
-export async function cancelAdminWaitlistApi(waitlistId: string, note?: string) {
+export async function cancelAdminWaitlistApi(waitlistId: string, reason?: string) {
   const { data } = await apiClient.patch<ApiResponse<ApiWaitlist>>(
     `/admin/waitlists/${waitlistId}/cancel`,
-    { note: note ?? '' },
+    { reason: reason ?? '' },
   )
   return data.data
 }
 
-export async function offerAdminWaitlistApi(
-  waitlistId: string,
-  offerExpiresInMinutes = 15,
-) {
+export interface OfferAdminWaitlistPayload {
+  waitlistId: string
+  offerExpiresInMinutes?: number
+}
+
+export async function offerAdminWaitlistApi({
+  waitlistId,
+  offerExpiresInMinutes,
+}: OfferAdminWaitlistPayload) {
   const { data } = await apiClient.patch<ApiResponse<ApiWaitlist>>(
     `/admin/waitlists/${waitlistId}/offer`,
     { offer_expires_in_minutes: offerExpiresInMinutes },

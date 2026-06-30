@@ -36,7 +36,7 @@ export async function getWashHistoriesApi(
     ApiResponse<ApiWashHistory[]> & {
       meta?: WashHistoryListResult['meta']
     }
-  >('/admin/wash-histories', { params: { limit: 100, ...params } })
+  >('/admin/wash-histories', { params })
 
   return {
     histories: data.data,

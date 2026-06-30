@@ -146,6 +146,7 @@ export function WashHistoryPage() {
             open={Boolean(selectedHistory)}
             history={selectedHistory}
             onClose={() => setSelectedHistory(null)}
+            bookingLinkPrefix="/bookings/"
           />
         </>
       )}

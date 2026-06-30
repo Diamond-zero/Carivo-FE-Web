@@ -20,6 +20,8 @@ interface WashHistoryDetailModalProps {
   history: WashHistory | null
   open: boolean
   onClose: () => void
+  /** Prefix cho link "Xem booking". Mặc định phù hợp cả admin và staff. */
+  bookingLinkPrefix?: string
 }
 
 function getWashHistoryDisplayFields(
@@ -48,6 +50,7 @@ export function WashHistoryDetailModal({
   history,
   open,
   onClose,
+  bookingLinkPrefix = '/admin/bookings/',
 }: WashHistoryDetailModalProps) {
   const [detail, setDetail] = useState<ApiWashHistory | null>(null)
   const [bookingFallback, setBookingFallback] = useState<ApiBooking | null>(null)
@@ -183,7 +186,7 @@ export function WashHistoryDetailModal({
 
       <div className="mt-4 flex flex-col gap-2">
         {bookingId ? (
-          <Link to={`/bookings/${bookingId}`} onClick={onClose}>
+          <Link to={`${bookingLinkPrefix}${bookingId}`} onClick={onClose}>
             <Button variant="secondary" fullWidth>
               <ExternalLink className="h-4 w-4" />
               Xem booking {formatBookingIdLabel(bookingId)}
