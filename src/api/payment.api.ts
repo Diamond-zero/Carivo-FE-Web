@@ -1,6 +1,10 @@
 import axios from 'axios'
 import type { ApiResponse } from '../types/api'
-import type { ApiBooking, ApiPaymentTransaction } from '../types/api/staff'
+import type {
+  ApiBooking,
+  ApiPaymentDetailResult,
+  ApiPaymentTransaction,
+} from '../types/api/staff'
 import { markBookingPaidApi } from './booking.api'
 import { apiClient, getApiErrorCode } from './client'
 
@@ -27,7 +31,7 @@ export async function createPayosPaymentApi(
     `/admin/payments/bookings/${bookingId}/payos`,
     payload ?? {},
   )
-  return data.data.payment
+  return data.data
 }
 
 export async function markBookingPaidWithCashApi(
@@ -35,7 +39,8 @@ export async function markBookingPaidWithCashApi(
   note?: string,
 ) {
   try {
-    return await markBookingPaidApi(bookingId, note)
+    const result = await markBookingPaidApi(bookingId, note)
+    return result.booking
   } catch (error) {
     if (
       !axios.isAxiosError(error) ||
@@ -44,16 +49,17 @@ export async function markBookingPaidWithCashApi(
       throw error
     }
 
-    const payment = await createPayosPaymentApi(bookingId)
+    const { payment } = await createPayosPaymentApi(bookingId)
     await cancelPaymentApi(payment.id, {
       reason: note?.trim() || 'Staff confirmed cash payment',
     })
-    return await markBookingPaidApi(bookingId, note)
+    const result = await markBookingPaidApi(bookingId, note)
+    return result.booking
   }
 }
 
 export async function getPaymentApi(paymentId: string) {
-  const { data } = await apiClient.get<ApiResponse<ApiPaymentTransaction>>(
+  const { data } = await apiClient.get<ApiResponse<ApiPaymentDetailResult>>(
     `/admin/payments/${paymentId}`,
   )
   return data.data
@@ -63,7 +69,7 @@ export async function cancelPaymentApi(
   paymentId: string,
   payload?: CancelPaymentPayload,
 ) {
-  const { data } = await apiClient.patch<ApiResponse<ApiPaymentTransaction>>(
+  const { data } = await apiClient.patch<ApiResponse<ApiPaymentDetailResult>>(
     `/admin/payments/${paymentId}/cancel`,
     payload ?? {},
   )
@@ -71,7 +77,7 @@ export async function cancelPaymentApi(
 }
 
 export async function expirePaymentApi(paymentId: string) {
-  const { data } = await apiClient.patch<ApiResponse<ApiPaymentTransaction>>(
+  const { data } = await apiClient.patch<ApiResponse<ApiPaymentDetailResult>>(
     `/admin/payments/${paymentId}/expire`,
     {},
   )

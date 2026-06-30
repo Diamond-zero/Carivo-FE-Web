@@ -1,4 +1,17 @@
-import { ArrowLeft, Lock, Mail, Phone, Unlock, UserX } from 'lucide-react'
+import {
+  ArrowLeft,
+  Bell,
+  Car,
+  Lock,
+  Mail,
+  Pencil,
+  Phone,
+  Shield,
+  Trash2,
+  Trophy,
+  Unlock,
+  UserX,
+} from 'lucide-react'
 import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { getApiErrorMessage } from '../../../api/client'
@@ -17,19 +30,41 @@ import {
   CardTitle,
 } from '../../../components/ui/Card'
 import { EmptyState } from '../../../components/ui/EmptyState'
+import { Input } from '../../../components/ui/Input'
+import { Label } from '../../../components/ui/Label'
 import { Modal } from '../../../components/ui/Modal'
+import { Select } from '../../../components/ui/Select'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { useToast } from '../../../contexts/ToastContext'
 import {
   useAdminCustomerDetail,
   useUpdateAdminCustomerStatus,
 } from '../../../hooks/api/admin/useAdminCustomers'
+import {
+  useAdminDeleteUser,
+  useAdminUpdateUser,
+  useAdminUpdateUserRole,
+} from '../../../hooks/api/admin/useAdminUsers'
 import { cn } from '../../../lib/utils'
+
+const ROLE_OPTIONS: Array<{ value: 'CUSTOMER' | 'STAFF' | 'ADMIN'; label: string }> = [
+  { value: 'CUSTOMER', label: 'Khách hàng' },
+  { value: 'STAFF', label: 'Nhân viên' },
+  { value: 'ADMIN', label: 'Quản trị viên' },
+]
 
 export function AdminCustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { showToast } = useToast()
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [roleOpen, setRoleOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+
+  const [editFullName, setEditFullName] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [editPhone, setEditPhone] = useState('')
+  const [editRole, setEditRole] = useState<'CUSTOMER' | 'STAFF' | 'ADMIN'>('CUSTOMER')
 
   const {
     user,
@@ -43,6 +78,9 @@ export function AdminCustomerDetailPage() {
     error,
   } = useAdminCustomerDetail(id)
   const updateStatusMutation = useUpdateAdminCustomerStatus()
+  const updateUserMutation = useAdminUpdateUser()
+  const updateRoleMutation = useAdminUpdateUserRole()
+  const deleteUserMutation = useAdminDeleteUser()
 
   if (!id) {
     return <Navigate to="/admin/users/customers" replace />
@@ -82,6 +120,20 @@ export function AdminCustomerDetailPage() {
 
   const isActive = user?.is_active ?? true
 
+  const openEdit = () => {
+    if (!user) return
+    setEditFullName(user.full_name)
+    setEditEmail(user.email ?? '')
+    setEditPhone(user.phone)
+    setEditOpen(true)
+  }
+
+  const openRoleModal = () => {
+    if (!user) return
+    setEditRole(user.role)
+    setRoleOpen(true)
+  }
+
   const handleToggleStatus = () => {
     if (!user) return
 
@@ -108,6 +160,58 @@ export function AdminCustomerDetailPage() {
     )
   }
 
+  const handleSaveEdit = () => {
+    if (!user) return
+    updateUserMutation.mutate(
+      {
+        userId: user.id,
+        payload: {
+          full_name: editFullName.trim() || user.full_name,
+          email: editEmail.trim() || user.email,
+          phone: editPhone.trim() || user.phone,
+        },
+      },
+      {
+        onSuccess: () => {
+          setEditOpen(false)
+          showToast(`Đã cập nhật hồ sơ ${user.full_name}.`, 'success')
+        },
+        onError: (mutationError) => {
+          showToast(getApiErrorMessage(mutationError, 'Không thể cập nhật hồ sơ.'), 'error')
+        },
+      },
+    )
+  }
+
+  const handleSaveRole = () => {
+    if (!user) return
+    updateRoleMutation.mutate(
+      { userId: user.id, payload: { role: editRole } },
+      {
+        onSuccess: () => {
+          setRoleOpen(false)
+          showToast(`Đã đổi vai trò của ${user.full_name} sang ${editRole}.`, 'success')
+        },
+        onError: (mutationError) => {
+          showToast(getApiErrorMessage(mutationError, 'Không thể đổi vai trò.'), 'error')
+        },
+      },
+    )
+  }
+
+  const handleDelete = () => {
+    if (!user) return
+    deleteUserMutation.mutate(user.id, {
+      onSuccess: () => {
+        setDeleteOpen(false)
+        showToast(`Đã xóa tài khoản ${user.full_name}.`, 'success')
+      },
+      onError: (mutationError) => {
+        showToast(getApiErrorMessage(mutationError, 'Không thể xóa tài khoản.'), 'error')
+      },
+    })
+  }
+
   return (
     <div>
       {isLoading || !user || !loyalty ? (
@@ -120,6 +224,32 @@ export function AdminCustomerDetailPage() {
             description="Chi tiết khách hàng toàn hệ thống — loyalty, phương tiện và lịch sử booking."
             action={
               <div className="flex flex-wrap items-center gap-2">
+                <Link to={`/admin/users/customers/${user.id}/vehicles`}>
+                  <Button variant="secondary">
+                    <Car className="h-4 w-4" />
+                    Phương tiện
+                  </Button>
+                </Link>
+                <Link to={`/admin/users/customers/${user.id}/loyalty`}>
+                  <Button variant="secondary">
+                    <Trophy className="h-4 w-4" />
+                    Loyalty
+                  </Button>
+                </Link>
+                <Link to={`/admin/users/customers/${user.id}/notifications`}>
+                  <Button variant="secondary">
+                    <Bell className="h-4 w-4" />
+                    Thông báo
+                  </Button>
+                </Link>
+                <Button variant="secondary" onClick={openEdit}>
+                  <Pencil className="h-4 w-4" />
+                  Sửa hồ sơ
+                </Button>
+                <Button variant="secondary" onClick={openRoleModal}>
+                  <Shield className="h-4 w-4" />
+                  Đổi vai trò
+                </Button>
                 <Button
                   variant={isActive ? 'danger' : 'primary'}
                   onClick={() => setConfirmOpen(true)}
@@ -135,6 +265,10 @@ export function AdminCustomerDetailPage() {
                       Mở khóa tài khoản
                     </>
                   )}
+                </Button>
+                <Button variant="danger" onClick={() => setDeleteOpen(true)}>
+                  <Trash2 className="h-4 w-4" />
+                  Xóa
                 </Button>
                 <Link to="/admin/users/customers">
                   <Button variant="secondary">
@@ -235,29 +369,139 @@ export function AdminCustomerDetailPage() {
             </Card>
           </div>
 
-          <Modal
-            open={confirmOpen}
-            onClose={() => setConfirmOpen(false)}
-            title={isActive ? 'Khóa tài khoản khách hàng?' : 'Mở khóa tài khoản khách hàng?'}
-            description={
-              isActive
-                ? `Khách ${user.full_name} sẽ không thể đăng nhập hoặc đặt lịch cho đến khi được mở khóa.`
-                : `Khách ${user.full_name} sẽ được phép sử dụng lại tài khoản.`
-            }
+<Modal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title={isActive ? 'Khóa tài khoản khách hàng?' : 'Mở khóa tài khoản khách hàng?'}
+        description={
+          isActive
+            ? `Khách ${user.full_name} sẽ không thể đăng nhập hoặc đặt lịch cho đến khi được mở khóa.`
+            : `Khách ${user.full_name} sẽ được phép sử dụng lại tài khoản.`
+        }
+      >
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={() => setConfirmOpen(false)}>
+            Hủy
+          </Button>
+          <Button
+            variant={isActive ? 'danger' : 'primary'}
+            onClick={handleToggleStatus}
+            disabled={updateStatusMutation.isPending}
           >
-            <div className="flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setConfirmOpen(false)}>
-                Hủy
-              </Button>
-              <Button
-                variant={isActive ? 'danger' : 'primary'}
-                onClick={handleToggleStatus}
-                disabled={updateStatusMutation.isPending}
-              >
-                {isActive ? 'Xác nhận khóa' : 'Xác nhận mở khóa'}
-              </Button>
+            {isActive ? 'Xác nhận khóa' : 'Xác nhận mở khóa'}
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        title="Sửa hồ sơ khách hàng"
+        description={`Cập nhật thông tin của ${user.full_name}.`}
+      >
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="edit-full_name">Họ và tên</Label>
+            <Input
+              id="edit-full_name"
+              value={editFullName}
+              onChange={(event) => setEditFullName(event.target.value)}
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="edit-email">Email</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={editEmail}
+                onChange={(event) => setEditEmail(event.target.value)}
+              />
             </div>
-          </Modal>
+            <div>
+              <Label htmlFor="edit-phone">Số điện thoại</Label>
+              <Input
+                id="edit-phone"
+                value={editPhone}
+                onChange={(event) => setEditPhone(event.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+            <Button variant="secondary" onClick={() => setEditOpen(false)}>
+              Hủy
+            </Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={updateUserMutation.isPending}
+            >
+              {updateUserMutation.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={roleOpen}
+        onClose={() => setRoleOpen(false)}
+        title="Đổi vai trò"
+        description={`Thay đổi vai trò cho ${user.full_name}.`}
+      >
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="edit-role">Vai trò</Label>
+            <Select
+              id="edit-role"
+              value={editRole}
+              onChange={(event) =>
+                setEditRole(event.target.value as 'CUSTOMER' | 'STAFF' | 'ADMIN')
+              }
+            >
+              {ROLE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+            <Button variant="secondary" onClick={() => setRoleOpen(false)}>
+              Hủy
+            </Button>
+            <Button
+              onClick={handleSaveRole}
+              disabled={updateRoleMutation.isPending}
+            >
+              {updateRoleMutation.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        title="Xóa tài khoản khách hàng?"
+        description={`${user.full_name} (${user.phone})`}
+      >
+        <div className="space-y-3">
+          <div className="rounded-xl border border-red-200 bg-red-50/70 px-4 py-3 text-sm text-red-800">
+            Thao tác này không thể hoàn tác. Mọi dữ liệu liên quan đến khách hàng sẽ bị ảnh hưởng.
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setDeleteOpen(false)}>
+              Hủy
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleDelete}
+              disabled={deleteUserMutation.isPending}
+            >
+              {deleteUserMutation.isPending ? 'Đang xóa...' : 'Xóa tài khoản'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
         </>
       )}
     </div>

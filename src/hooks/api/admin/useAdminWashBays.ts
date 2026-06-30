@@ -3,10 +3,11 @@ import { useMemo } from 'react'
 import { getAdminGaragesApi } from '../../../api/garage.api'
 import {
   createAdminWashBayApi,
+  deleteAdminWashBayApi,
   getAdminWashBayByIdApi,
   getAdminWashBaysApi,
-  toggleAdminWashBayStatusApi,
   updateAdminWashBayApi,
+  updateAdminWashBayStatusApi,
   type WashBayCreatePayload,
   type WashBayUpdatePayload,
 } from '../../../api/washBay.api'
@@ -90,7 +91,10 @@ export function useAdminWashBays(filters: AdminWashBayListFilters = {}) {
     staleTime: 30_000,
   })
 
-  const allWashBays = query.data ?? []
+  const allWashBays = useMemo(
+    () => (query.data ?? []).filter((bay) => bay.is_active !== false),
+    [query.data],
+  )
   const washBays = useMemo(
     () => filterWashBaySummaries(allWashBays, filters),
     [
@@ -157,22 +161,38 @@ export function useUpdateAdminWashBay() {
   })
 }
 
-export function useToggleAdminWashBayStatus() {
+export function useUpdateAdminWashBayStatus() {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async ({
       washBayId,
-      isActive,
+      status,
     }: {
       washBayId: string
-      isActive: boolean
-    }) => mapApiWashBay(await toggleAdminWashBayStatusApi(washBayId, isActive)),
+      status: 'AVAILABLE' | 'MAINTENANCE' | 'INACTIVE'
+    }) => mapApiWashBay(await updateAdminWashBayStatusApi(washBayId, status)),
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.washBays() })
       void queryClient.invalidateQueries({
         queryKey: adminQueryKeys.washBay(variables.washBayId),
       })
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.garages() })
+    },
+  })
+}
+
+export function useDeleteAdminWashBay() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (washBayId: string) => {
+      await deleteAdminWashBayApi(washBayId)
+      return washBayId
+    },
+    onSuccess: (_data, washBayId) => {
+      void queryClient.removeQueries({ queryKey: adminQueryKeys.washBays() })
+      void queryClient.removeQueries({ queryKey: adminQueryKeys.washBay(washBayId) })
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.garages() })
     },
   })

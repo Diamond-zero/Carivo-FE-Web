@@ -1,9 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   activateAdminTierRuleApi,
+  createAdminTierRuleApi,
   deactivateAdminTierRuleApi,
+  deleteAdminTierRuleApi,
+  expireAdminLoyaltyPointsApi,
+  getAdminExpiringPointsApi,
+  getAdminLoyaltyTransactionsListApi,
   getAdminTierRulesApi,
   updateAdminTierRuleApi,
+  type ExpirePointsPayload,
+  type ExpiringPointsParams,
+  type LoyaltyTransactionsParams,
+  type TierRuleCreatePayload,
   type TierRuleUpdatePayload,
 } from '../../../api/loyalty.api'
 import { useAdminAuth } from '../../../contexts/AdminAuthContext'
@@ -37,6 +46,30 @@ export function useAdminTierRules() {
   })
 }
 
+export function useCreateAdminTierRule() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: TierRuleCreatePayload) =>
+      mapApiTierRule(await createAdminTierRuleApi(payload)),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.tierRules() })
+    },
+  })
+}
+
+export function useDeleteAdminTierRule() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (ruleId: string) => {
+      await deleteAdminTierRuleApi(ruleId)
+      return ruleId
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.tierRules() })
+    },
+  })
+}
+
 export function useUpdateAdminTierRule() {
   const queryClient = useQueryClient()
 
@@ -47,7 +80,10 @@ export function useUpdateAdminTierRule() {
     }: {
       ruleId: string
       values: AdminTierRuleFormValues
-    }) => mapApiTierRule(await updateAdminTierRuleApi(ruleId, toTierRuleUpdatePayload(values))),
+    }) =>
+      mapApiTierRule(
+        await updateAdminTierRuleApi(ruleId, toTierRuleUpdatePayload(values)),
+      ),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.tierRules() })
     },
@@ -72,6 +108,40 @@ export function useToggleAdminTierRuleStatus() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.tierRules() })
+    },
+  })
+}
+
+export function useAdminExpiringPoints(params?: ExpiringPointsParams) {
+  const { isAuthenticated } = useAdminAuth()
+
+  return useQuery({
+    queryKey: adminQueryKeys.expiringPoints(params),
+    queryFn: () => getAdminExpiringPointsApi(params),
+    enabled: isAuthenticated,
+    staleTime: 30_000,
+  })
+}
+
+export function useAdminLoyaltyTransactions(params?: LoyaltyTransactionsParams) {
+  const { isAuthenticated } = useAdminAuth()
+
+  return useQuery({
+    queryKey: adminQueryKeys.loyaltyTransactions(params),
+    queryFn: () => getAdminLoyaltyTransactionsListApi(params),
+    enabled: isAuthenticated,
+    staleTime: 30_000,
+  })
+}
+
+export function useExpireLoyaltyPoints() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload?: ExpirePointsPayload) => expireAdminLoyaltyPointsApi(payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.expiringPoints() })
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.loyaltyTransactions() })
     },
   })
 }

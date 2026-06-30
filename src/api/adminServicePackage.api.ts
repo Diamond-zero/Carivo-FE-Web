@@ -1,5 +1,5 @@
 import type { ApiResponse } from '../types/api'
-import type { ApiListResponse, ApiVehicle } from '../types/api/admin'
+import type { ApiListResponse } from '../types/api/admin'
 import type { ApiServicePackage } from '../types/api/staff'
 import type { ServiceStepTemplate } from '../types/servicePackage'
 import { apiClient } from './client'
@@ -91,28 +91,6 @@ export async function updateAdminServicePackageIncludedServicesApi(
   const { data } = await apiClient.put<ApiResponse<ApiServicePackage>>(
     `/admin/service-packages/${packageId}/included-services`,
     { included_service_ids: includedServiceIds },
-  )
-  return data.data
-}
-
-export async function getAdminVehiclesApi(params?: {
-  page?: number
-  limit?: number
-  search?: string
-  customer_id?: string
-  vehicle_type?: string
-  is_active?: boolean
-}) {
-  const { data } = await apiClient.get<ApiListResponse<ApiVehicle[]>>(
-    '/admin/vehicles',
-    { params: { limit: 100, ...params } },
-  )
-  return { vehicles: data.data, meta: data.meta }
-}
-
-export async function getAdminVehicleByIdApi(vehicleId: string) {
-  const { data } = await apiClient.get<ApiResponse<ApiVehicle>>(
-    `/admin/vehicles/${vehicleId}`,
   )
   return data.data
 }

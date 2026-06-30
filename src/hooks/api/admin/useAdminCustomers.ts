@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { getStaffBookingsApi } from '../../../api/booking.api'
-import { getAdminVehiclesApi } from '../../../api/adminServicePackage.api'
+import { getAdminVehiclesApi } from '../../../api/vehicle.api'
 import {
   getAdminLoyaltyCustomerByIdApi,
   getAdminLoyaltyCustomersApi,
 } from '../../../api/loyalty.api'
-import { updateUserStatusApi } from '../../../api/staffProfile.api'
+import { updateUserStatusApi } from '../../../api/user.api'
 import { useAdminAuth } from '../../../contexts/AdminAuthContext'
 import {
   mapApiLoyaltyCustomer,
@@ -136,8 +136,12 @@ export function useAdminCustomerDetail(customerId?: string) {
     bookings: bookingsQuery.data ?? [],
     isLoading:
       detailQuery.isLoading || vehiclesQuery.isLoading || bookingsQuery.isLoading,
-    isError: detailQuery.isError || vehiclesQuery.isError || bookingsQuery.isError,
-    error: detailQuery.error ?? vehiclesQuery.error ?? bookingsQuery.error,
+    // Only primary query (customer detail) determines overall error state.
+    // Vehicles & bookings are supplementary — they fail silently with empty data.
+    isError: detailQuery.isError,
+    error: detailQuery.error ?? null,
+    vehiclesError: vehiclesQuery.error,
+    bookingsError: bookingsQuery.error,
     refetch: () => {
       void detailQuery.refetch()
       void vehiclesQuery.refetch()

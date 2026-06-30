@@ -106,8 +106,8 @@ export function AdminBookingDetailPage() {
     }
 
     try {
-      const payment = await payosMutation.mutateAsync()
-      const checkoutUrl = payment.checkout_url
+      const result = await payosMutation.mutateAsync()
+      const checkoutUrl = result.payment.checkout_url
       showToast('Đã tạo link thanh toán PayOS.', 'success')
       return { ok: true, message: '', checkoutUrl }
     } catch (mutationError) {

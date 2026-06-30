@@ -1,5 +1,5 @@
 import { createColumnHelper } from '@tanstack/react-table'
-import { UserCog } from 'lucide-react'
+import { Trash2, UserCog } from 'lucide-react'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -16,12 +16,14 @@ interface AdminStaffListTableProps {
   staff: AdminStaffRecord[]
   hasActiveFilter?: boolean
   onToggleActive: (profileId: string) => void
+  onDelete: (profileId: string) => void
 }
 
 export function AdminStaffListTable({
   staff,
   hasActiveFilter = false,
   onToggleActive,
+  onDelete,
 }: AdminStaffListTableProps) {
   const columns = useMemo(
     () => [
@@ -97,11 +99,19 @@ export function AdminStaffListTable({
             >
               Sửa
             </Link>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 text-sm font-medium text-red-600 hover:text-red-700"
+              onClick={() => onDelete(row.original.profile.id)}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Xóa
+            </button>
           </div>
         ),
       }),
     ],
-    [onToggleActive],
+    [onToggleActive, onDelete],
   )
 
   return (

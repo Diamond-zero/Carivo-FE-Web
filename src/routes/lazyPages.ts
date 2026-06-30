@@ -51,9 +51,29 @@ export const AdminCustomerDetailPage = lazyNamed(
   'AdminCustomerDetailPage',
 )
 
+export const AdminCustomerVehiclesPage = lazyNamed(
+  () => import('../pages/admin/customers/AdminCustomerVehiclesPage'),
+  'AdminCustomerVehiclesPage',
+)
+
+export const AdminCustomerLoyaltyPage = lazyNamed(
+  () => import('../pages/admin/customers/AdminCustomerLoyaltyPage'),
+  'AdminCustomerLoyaltyPage',
+)
+
+export const AdminCustomerNotificationsPage = lazyNamed(
+  () => import('../pages/admin/customers/AdminCustomerNotificationsPage'),
+  'AdminCustomerNotificationsPage',
+)
+
 export const AdminStaffListPage = lazyNamed(
   () => import('../pages/admin/users/AdminStaffListPage'),
   'AdminStaffListPage',
+)
+
+export const AdminUsersListPage = lazyNamed(
+  () => import('../pages/admin/users/AdminUsersListPage'),
+  'AdminUsersListPage',
 )
 
 export const AdminStaffFormPage = lazyNamed(

@@ -55,6 +55,7 @@ export const adminNavItems: AdminNavItem[] = [
     icon: Users,
     section: 'management',
     children: [
+      { label: 'Tất cả', path: '/admin/users/all' },
       { label: 'Khách hàng', path: '/admin/users/customers' },
       { label: 'Nhân viên', path: '/admin/users/staff' },
     ],

@@ -1,3 +1,22 @@
+export const customerQueryKeys = {
+  all: ['customer'] as const,
+  notifications: (params?: unknown) =>
+    ['customer', 'notifications', params] as const,
+  notificationUnreadCount: () =>
+    ['customer', 'notifications', 'unread-count'] as const,
+  vehicles: (params?: unknown) =>
+    ['customer', 'vehicles', params] as const,
+  vehicle: (id: string) =>
+    ['customer', 'vehicles', id] as const,
+  loyaltyOverview: () => ['customer', 'loyalty'] as const,
+  loyaltyTransactions: (params?: unknown) =>
+    ['customer', 'loyalty', 'transactions', params] as const,
+  availableSurveys: (bookingId?: string) =>
+    ['customer', 'surveys', 'available', bookingId] as const,
+  uploads: (params?: unknown) =>
+    ['customer', 'uploads', params] as const,
+}
+
 export const staffQueryKeys = {
   bookings: (garageId?: string) => ['staff', 'bookings', garageId] as const,
   bookingList: (garageId?: string, params?: unknown) =>

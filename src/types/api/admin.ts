@@ -9,7 +9,7 @@ export interface ApiListResponse<T> {
   success: boolean
   message: string
   data: T
-  meta?: ApiPaginationMeta
+  meta?: ApiPaginationMeta | (ApiPaginationMeta & Record<string, unknown>)
 }
 
 export interface ApiPromotion {
@@ -99,6 +99,8 @@ export interface ApiLoyaltyCustomer {
 }
 
 export interface ApiLoyaltyCustomerDetail extends ApiLoyaltyCustomer {
+  current_tier_rule?: ApiTierRule | null
+  next_tier_rule?: ApiTierRule | null
   tier_history?: Array<{
     id: string
     from_tier?: string | null
@@ -108,12 +110,29 @@ export interface ApiLoyaltyCustomerDetail extends ApiLoyaltyCustomer {
   }>
   point_transactions?: Array<{
     id: string
-    type: string
+    type: 'EARN' | 'REDEEM' | 'REFUND' | 'EXPIRE' | 'ADJUST'
     points: number
     balance_after: number
     description?: string
+    booking_id?: string | null
     created_at: string
   }>
+}
+
+export type ApiSurveyQuestionType =
+  | 'RATING'
+  | 'NPS'
+  | 'SINGLE_CHOICE'
+  | 'MULTI_CHOICE'
+  | 'TEXT'
+
+export interface ApiSurveyQuestion {
+  id?: string
+  text: string
+  type: ApiSurveyQuestionType
+  is_required?: boolean
+  options?: string[]
+  order: number
 }
 
 export interface ApiSurvey {
@@ -121,19 +140,48 @@ export interface ApiSurvey {
   title: string
   description?: string | null
   status: 'DRAFT' | 'PUBLISHED' | 'CLOSED'
-  questions?: Array<{
-    id: string
-    text: string
-    type: string
-    is_required?: boolean
-    options?: string[]
-    order?: number
-  }>
+  questions?: ApiSurveyQuestion[]
+  response_window_days?: number
+  response_expires_at?: string | null
+  booking_id?: string | null
+  wash_history_id?: string | null
   garage_id?: string | null
   garage?: { id: string; name: string } | null
-  response_count?: number
+  created_by_id?: string
+  created_by?: Record<string, unknown> | null
   published_at?: string | null
   closed_at?: string | null
+  response_count?: number
+  created_at?: string
+  updated_at?: string
+}
+
+export interface ApiSurveyResponseAnswer {
+  question_id: string
+  question_text?: string
+  question_type?: ApiSurveyQuestionType
+  numeric_value?: number | null
+  text_value?: string | null
+  selected_options?: string[]
+}
+
+export interface ApiSurveyResponse {
+  id: string
+  survey_id: string
+  survey?: ApiSurvey
+  booking_id: string
+  wash_history_id?: string
+  customer_id?: string
+  customer?: Record<string, unknown> | null
+  answers: ApiSurveyResponseAnswer[]
+  upload_ids?: string[]
+  uploads?: Array<{
+    id: string
+    url: string
+    public_id?: string
+    mime_type?: string
+  }>
+  submitted_at: string
   created_at?: string
   updated_at?: string
 }
@@ -153,10 +201,85 @@ export interface ApiResearchReport {
   objective?: string
   type: string
   status: 'DRAFT' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
-  filters?: Record<string, unknown>
+  filters?: ApiResearchFilters | Record<string, unknown>
   result?: Record<string, unknown> | null
+  data_snapshot?: Record<string, unknown> | null
+  model?: string | null
+  prompt_version?: string | null
+  usage_metadata?: Record<string, unknown> | null
+  error?: Record<string, unknown> | null
+  created_by_id?: string
+  created_by?: Record<string, unknown> | null
+  started_at?: string | null
+  completed_at?: string | null
   created_at?: string
   updated_at?: string
+}
+
+export interface ApiResearchFilters {
+  survey_id: string
+  from?: string | null
+  to?: string | null
+  garage_id?: string | null
+  service_package_id?: string | null
+  vehicle_type?: 'MOTORBIKE' | 'CAR' | null
+  group_by?: 'DAY' | 'WEEK' | 'MONTH'
+}
+
+export type ApiNotificationType =
+  | 'AUTH_REGISTER_SUCCESS'
+  | 'AUTH_PASSWORD_RESET_REQUESTED'
+  | 'BOOKING_CONFIRMED'
+  | 'BOOKING_REMINDER'
+  | 'BOOKING_CANCELED'
+  | 'WAITLIST_JOINED'
+  | 'WAITLIST_OFFERED'
+  | 'WAITLIST_OFFER_ACCEPTED'
+  | 'WAITLIST_OFFER_EXPIRED'
+  | 'WAITLIST_CANCELED'
+  | 'CHECKED_IN'
+  | 'SERVICE_STARTED'
+  | 'SERVICE_STEP_DONE'
+  | 'SERVICE_COMPLETED'
+  | 'PAYMENT_CONFIRMED'
+  | 'REWARD_EARNED'
+  | 'POINTS_EXPIRING'
+  | 'TIER_UPGRADED'
+  | 'TIER_DOWNGRADED'
+  | 'PROMOTION_AVAILABLE'
+  | 'SURVEY_REQUEST'
+
+export type ApiNotificationChannel = 'IN_APP' | 'EMAIL'
+export type ApiNotificationRelatedType =
+  | 'AUTH'
+  | 'BOOKING'
+  | 'WAITLIST'
+  | 'LOYALTY'
+  | 'PROMOTION'
+  | 'SURVEY'
+
+export interface ApiNotification {
+  id: string
+  user_id?: string | null
+  recipient_email?: string | null
+  type: ApiNotificationType
+  title: string
+  message: string
+  channels: ApiNotificationChannel[]
+  related_type: ApiNotificationRelatedType
+  related_id?: string
+  in_app_status: 'UNREAD' | 'READ'
+  read_at?: string | null
+  email_status: 'NOT_REQUIRED' | 'PENDING' | 'SENT' | 'FAILED'
+  email_sent_at?: string | null
+  email_failed_reason?: string | null
+  metadata?: Record<string, unknown>
+  created_at: string
+  updated_at?: string
+}
+
+export interface ApiNotificationMeta extends ApiPaginationMeta {
+  unread_count?: number
 }
 
 export interface ApiWaitlist {
@@ -202,19 +325,51 @@ export interface ApiExpiringPoint {
   created_at?: string
 }
 
-export interface ApiSurveyResponse {
+export type ApiPointTransactionType =
+  | 'EARN'
+  | 'REDEEM'
+  | 'REFUND'
+  | 'EXPIRE'
+  | 'ADJUST'
+
+export interface ApiPointTransaction {
   id: string
-  survey_id: string
-  customer_id?: string | null
-  customer?: { id: string; full_name: string } | null
+  customer_id: string
+  customer?: {
+    id: string
+    full_name: string
+    email?: string | null
+    phone?: string | null
+    role?: string
+    is_active?: boolean
+  } | null
   booking_id?: string | null
-  answers?: Array<{
-    question_id: string
-    value: unknown
-  }>
-  submitted_at?: string
-  created_at?: string
+  type: ApiPointTransactionType
+  points: number
+  remaining_points?: number
+  balance_before?: number
+  balance_after: number
+  description?: string | null
+  earned_at?: string | null
+  expires_at?: string | null
+  expired_at?: string | null
+  source_transaction_ids?: string[]
+  created_by?: string | null
+  created_at: string
+  updated_at?: string
 }
+
+export interface ApiSurveyResponse { /* moved up - see ApiSurveyResponse export below */ }
+
+export type ApiVehicleEngineType = 'GASOLINE' | 'ELECTRIC'
+export type ApiMotorbikeCcGroup = 'UNDER_175CC' | 'OVER_175CC'
+export type ApiCarBodyType =
+  | 'HATCHBACK'
+  | 'SEDAN'
+  | 'SUV'
+  | 'MPV'
+  | 'PICKUP'
+  | 'VAN'
 
 export interface ApiVehicle {
   id: string
@@ -222,8 +377,15 @@ export interface ApiVehicle {
   raw_license_plate: string
   normalized_license_plate?: string
   vehicle_type: 'MOTORBIKE' | 'CAR'
+  engine_type?: ApiVehicleEngineType
+  motorbike_cc_group?: ApiMotorbikeCcGroup | null
+  car_body_type?: ApiCarBodyType | null
+  seat_count?: number | null
   brand?: string | null
   model?: string | null
   color?: string | null
+  is_default?: boolean
   is_active: boolean
+  created_at?: string
+  updated_at?: string
 }

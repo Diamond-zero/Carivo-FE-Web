@@ -130,12 +130,23 @@ export function mapApiServiceStep(step: ApiBookingServiceStep): BookingServiceSt
 }
 
 export function mapApiInspection(inspection: ApiVehicleInspection): VehicleInspection {
+  const rawImages = Array.isArray(inspection.images) ? inspection.images : []
+  const images = rawImages
+    .map((entry) => {
+      if (typeof entry === 'string') return entry
+      if (entry && typeof entry === 'object' && 'image_url' in entry) {
+        return entry.image_url
+      }
+      return null
+    })
+    .filter((url): url is string => Boolean(url))
+
   return {
     id: inspection.id,
     booking_id: inspection.booking_id,
     type: inspection.type,
     note: inspection.note,
-    images: inspection.images,
+    images,
     inspected_by: inspection.inspected_by,
     inspected_at: inspection.inspected_at,
   }

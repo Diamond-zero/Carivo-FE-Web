@@ -21,6 +21,7 @@ import { StatCard } from '../../../components/ui/StatCard'
 import { useToast } from '../../../contexts/ToastContext'
 import {
   useAdminGarages,
+  useDeleteAdminGarage,
   useToggleAdminGarageStatus,
 } from '../../../hooks/api/admin/useAdminGarages'
 
@@ -29,12 +30,14 @@ export function AdminGarageListPage() {
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL')
   const [confirmGarageId, setConfirmGarageId] = useState<string | null>(null)
+  const [deleteGarageId, setDeleteGarageId] = useState<string | null>(null)
 
   const { garages, allGarages, isLoading, isError, error } = useAdminGarages({
     query,
     statusFilter,
   })
   const toggleMutation = useToggleAdminGarageStatus()
+  const deleteMutation = useDeleteAdminGarage()
 
   const activeCount = allGarages.filter((garage) => garage.is_active).length
   const cityCount = new Set(allGarages.map((garage) => garage.city)).size
@@ -42,6 +45,9 @@ export function AdminGarageListPage() {
 
   const pendingGarage = confirmGarageId
     ? allGarages.find((garage) => garage.id === confirmGarageId)
+    : undefined
+  const deletingGarage = deleteGarageId
+    ? allGarages.find((garage) => garage.id === deleteGarageId)
     : undefined
 
   const handleConfirmToggle = () => {
@@ -67,6 +73,23 @@ export function AdminGarageListPage() {
         },
       },
     )
+  }
+
+  const handleConfirmDelete = () => {
+    if (!deleteGarageId || !deletingGarage) return
+
+    deleteMutation.mutate(deleteGarageId, {
+      onSuccess: () => {
+        setDeleteGarageId(null)
+        showToast(`Đã xóa garage ${deletingGarage.name}.`, 'success')
+      },
+      onError: (mutationError) => {
+        showToast(
+          getApiErrorMessage(mutationError, 'Không thể xóa garage. Hãy thử ngưng hoạt động trước.'),
+          'error',
+        )
+      },
+    })
   }
 
   if (isLoading) {
@@ -163,6 +186,7 @@ export function AdminGarageListPage() {
             garages={garages}
             hasActiveFilter={hasActiveFilter}
             onToggleActive={setConfirmGarageId}
+            onDelete={setDeleteGarageId}
           />
         </CardContent>
       </Card>
@@ -190,6 +214,36 @@ export function AdminGarageListPage() {
           >
             Xác nhận
           </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(deleteGarageId && deletingGarage)}
+        onClose={() => setDeleteGarageId(null)}
+        title="Xóa garage?"
+        description={
+          deletingGarage
+            ? `${deletingGarage.name} (${deletingGarage.garage_code}) — ${deletingGarage.city}.`
+            : undefined
+        }
+      >
+        <div className="space-y-3">
+          <div className="rounded-xl border border-red-200 bg-red-50/70 px-4 py-3 text-sm text-red-800">
+            Thao tác này không thể hoàn tác. Garage có buồng rửa hoặc lịch sử booking sẽ không thể
+            xóa — hãy ngưng hoạt động trước.
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setDeleteGarageId(null)}>
+              Hủy
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleConfirmDelete}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? 'Đang xóa...' : 'Xóa garage'}
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>
