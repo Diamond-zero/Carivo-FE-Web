@@ -13,6 +13,7 @@ import {
   useCreateAdminPromotion,
   useUpdateAdminPromotion,
 } from '../../../hooks/api/admin/useAdminPromotions'
+import type { PromotionCreatePayload, PromotionUpdatePayload } from '../../../api/promotion.api'
 import type { AdminPromotionFormValues } from '../../../lib/validations/adminPromotion'
 
 export function AdminPromotionFormPage() {
@@ -63,24 +64,47 @@ export function AdminPromotionFormPage() {
   }
 
   const handleSubmit = async (values: AdminPromotionFormValues) => {
-    const payload = {
+    const base: Record<string, unknown> = {
       code: values.code,
       name: values.name,
-      description: values.description,
+      description: values.description?.trim() || null,
       discount_type: values.discount_type,
       discount_value: values.discount_value,
-      max_discount_amount:
-        values.discount_type === 'PERCENTAGE' ? values.max_discount_amount ?? null : null,
       min_order_amount: values.min_order_amount,
+      audience: values.audience,
+      phone_required: values.phone_required,
       applicable_tiers: values.applicable_tiers,
-      usage_limit: values.usage_limit ?? null,
+      is_active: values.is_active,
       start_at: values.start_at,
       end_at: values.end_at,
-      is_active: values.is_active,
+    }
+
+    if (values.discount_type === 'PERCENTAGE' && values.max_discount_amount != null) {
+      Object.assign(base, { max_discount_amount: values.max_discount_amount })
+    }
+
+    if (values.usage_limit != null && values.usage_limit > 0) {
+      Object.assign(base, { usage_limit: values.usage_limit })
+    }
+
+    if (values.per_customer_limit != null && values.per_customer_limit > 0) {
+      Object.assign(base, { per_customer_limit: values.per_customer_limit })
+    }
+
+    if (values.phone_required && values.per_phone_limit != null) {
+      Object.assign(base, { per_phone_limit: values.per_phone_limit })
+    }
+
+    if (values.applicable_vehicle_types.length > 0) {
+      Object.assign(base, { applicable_vehicle_types: values.applicable_vehicle_types })
+    }
+
+    if (values.applicable_service_package_ids.length > 0) {
+      Object.assign(base, { applicable_service_package_ids: values.applicable_service_package_ids })
     }
 
     if (isCreate) {
-      createMutation.mutate(payload, {
+      createMutation.mutate(base as PromotionCreatePayload, {
         onSuccess: (created) => {
           showToast(`Đã tạo mã ${created.code}.`, 'success')
           navigate('/admin/promotions')
@@ -95,7 +119,7 @@ export function AdminPromotionFormPage() {
     if (!promotionId) return
 
     updateMutation.mutate(
-      { promotionId, payload },
+      { promotionId, payload: base as PromotionUpdatePayload },
       {
         onSuccess: (updated) => {
           showToast(`Đã cập nhật ${updated.code}.`, 'success')

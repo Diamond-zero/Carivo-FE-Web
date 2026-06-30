@@ -31,12 +31,24 @@ export function mapApiPromotion(promotion: ApiPromotion): Promotion {
     discount_value: promotion.discount_value,
     max_discount_amount: promotion.max_discount_amount ?? null,
     min_order_amount: promotion.min_order_amount,
+    audience: (promotion.audience as Promotion['audience']) ?? 'ALL',
+    phone_required: promotion.phone_required ?? false,
+    per_phone_limit: promotion.per_phone_limit ?? null,
     applicable_tiers: (promotion.applicable_tiers ?? []) as Promotion['applicable_tiers'],
+    applicable_vehicle_types: (promotion.applicable_vehicle_types ??
+      []) as Promotion['applicable_vehicle_types'],
+    applicable_service_package_ids: promotion.applicable_service_package_ids ?? [],
     usage_limit: promotion.usage_limit ?? null,
+    per_customer_limit: promotion.per_customer_limit ?? null,
     used_count: promotion.used_count ?? 0,
+    reserved_count: promotion.reserved_count ?? 0,
     start_at: promotion.start_at,
     end_at: promotion.end_at,
     is_active: promotion.is_active,
+    created_by_id: promotion.created_by_id ?? null,
+    updated_by_id: promotion.updated_by_id ?? null,
+    created_at: promotion.created_at,
+    updated_at: promotion.updated_at,
   }
 }
 

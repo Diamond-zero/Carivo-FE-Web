@@ -12,6 +12,8 @@ export interface ApiListResponse<T> {
   meta?: ApiPaginationMeta | (ApiPaginationMeta & Record<string, unknown>)
 }
 
+export type ApiPromotionAudience = 'ALL' | 'CUSTOMER' | 'WALK_IN' | string
+
 export interface ApiPromotion {
   id: string
   code: string
@@ -21,7 +23,7 @@ export interface ApiPromotion {
   discount_value: number
   max_discount_amount?: number | null
   min_order_amount: number
-  audience?: string
+  audience?: ApiPromotionAudience
   phone_required?: boolean
   per_phone_limit?: number | null
   applicable_tiers?: string[]
@@ -34,6 +36,8 @@ export interface ApiPromotion {
   used_count?: number
   reserved_count?: number
   is_active: boolean
+  created_by_id?: string | null
+  updated_by_id?: string | null
   created_at?: string
   updated_at?: string
 }

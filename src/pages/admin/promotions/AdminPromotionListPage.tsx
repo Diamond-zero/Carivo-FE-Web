@@ -1,5 +1,5 @@
-import { Gift, Plus, Sparkles } from 'lucide-react'
-import { useState } from 'react'
+import { Gift, Loader2, Plus, Sparkles } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getApiErrorMessage } from '../../../api/client'
 import { AdminPromotionListTable } from '../../../components/admin/promotion/AdminPromotionListTable'
@@ -14,48 +14,92 @@ import { Select } from '../../../components/ui/Select'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { StatCard } from '../../../components/ui/StatCard'
 import { DISCOUNT_TYPE_LABELS, DISCOUNT_TYPES } from '../../../constants/promotion'
+import { LOYALTY_TIER_LABELS } from '../../../constants/loyaltyTier'
 import { useToast } from '../../../contexts/ToastContext'
 import {
+  ADMIN_PROMOTION_PAGE_SIZE,
+  PROMOTION_AUDIENCES,
+  PROMOTION_AUDIENCE_LABELS,
   useAdminPromotions,
+  useDeleteAdminPromotion,
   useToggleAdminPromotionStatus,
+  type AdminPromotionStatusFilter,
 } from '../../../hooks/api/admin/useAdminPromotions'
-import type { DiscountType } from '../../../types/promotion'
+import type { DiscountType, LoyaltyTier, PromotionAudience } from '../../../types/promotion'
+
+type ModalState =
+  | { kind: 'toggle'; promotionId: string }
+  | { kind: 'delete'; promotionId: string }
+  | null
 
 export function AdminPromotionListPage() {
   const { showToast } = useToast()
   const [query, setQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
   const [discountTypeFilter, setDiscountTypeFilter] = useState<DiscountType | 'ALL'>('ALL')
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL')
-  const [confirmPromotionId, setConfirmPromotionId] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState<AdminPromotionStatusFilter>('ALL')
+  const [audienceFilter, setAudienceFilter] = useState<PromotionAudience | 'ALL'>('ALL')
+  const [tierFilter, setTierFilter] = useState<LoyaltyTier | 'ALL'>('ALL')
+  const [page, setPage] = useState(1)
+  const [modal, setModal] = useState<ModalState>(null)
 
-  const { promotions, allPromotions, isLoading, isError, error } = useAdminPromotions({
-    query,
-    discountTypeFilter,
-    statusFilter,
-  })
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setDebouncedQuery(query.trim())
+      setPage(1)
+    }, 300)
+    return () => window.clearTimeout(handle)
+  }, [query])
+
+  useEffect(() => {
+    setPage(1)
+  }, [statusFilter, audienceFilter, tierFilter])
+
+  const { promotions, allPromotions, meta, isLoading, isFetching, isError, error } =
+    useAdminPromotions({
+      query: debouncedQuery,
+      discount_type:
+        discountTypeFilter === 'ALL' ? undefined : discountTypeFilter,
+      audience: audienceFilter === 'ALL' ? undefined : audienceFilter,
+      tier: tierFilter === 'ALL' ? undefined : tierFilter,
+      statusFilter,
+      page,
+      limit: ADMIN_PROMOTION_PAGE_SIZE,
+    })
+
   const toggleMutation = useToggleAdminPromotionStatus()
+  const deleteMutation = useDeleteAdminPromotion()
 
-  const activeCount = allPromotions.filter((promo) => promo.is_active).length
-  const percentageCount = allPromotions.filter(
-    (promo) => promo.discount_type === 'PERCENTAGE',
-  ).length
+  const total = meta?.total ?? allPromotions.length
+  const totalPages = meta?.total_pages ?? 1
+  const activeCount = useMemo(
+    () => allPromotions.filter((promo) => promo.is_active).length,
+    [allPromotions],
+  )
+  const percentageCount = useMemo(
+    () => allPromotions.filter((promo) => promo.discount_type === 'PERCENTAGE').length,
+    [allPromotions],
+  )
+
   const hasActiveFilter =
-    query.trim().length > 0 ||
+    debouncedQuery.length > 0 ||
     discountTypeFilter !== 'ALL' ||
-    statusFilter !== 'ALL'
+    statusFilter !== 'ALL' ||
+    audienceFilter !== 'ALL' ||
+    tierFilter !== 'ALL'
 
-  const pendingPromotion = confirmPromotionId
-    ? allPromotions.find((promo) => promo.id === confirmPromotionId)
+  const pendingPromotion = modal
+    ? allPromotions.find((promo) => promo.id === modal.promotionId)
     : undefined
 
   const handleConfirmToggle = () => {
-    if (!confirmPromotionId || !pendingPromotion) return
+    if (!modal || modal.kind !== 'toggle' || !pendingPromotion) return
 
     toggleMutation.mutate(
-      { promotionId: confirmPromotionId, isActive: !pendingPromotion.is_active },
+      { promotionId: modal.promotionId, isActive: !pendingPromotion.is_active },
       {
         onSuccess: (promotion) => {
-          setConfirmPromotionId(null)
+          setModal(null)
           showToast(
             promotion.is_active
               ? `Đã kích hoạt ${promotion.code}.`
@@ -71,6 +115,26 @@ export function AdminPromotionListPage() {
         },
       },
     )
+  }
+
+  const handleConfirmDelete = () => {
+    if (!modal || modal.kind !== 'delete' || !pendingPromotion) return
+
+    deleteMutation.mutate(modal.promotionId, {
+      onSuccess: () => {
+        setModal(null)
+        showToast(`Đã xóa khuyến mãi ${pendingPromotion.code}.`, 'success')
+      },
+      onError: (mutationError) => {
+        showToast(
+          getApiErrorMessage(
+            mutationError,
+            'Không thể xóa khuyến mãi — có thể đã có lịch sử sử dụng.',
+          ),
+          'error',
+        )
+      },
+    })
   }
 
   if (isLoading) {
@@ -111,12 +175,7 @@ export function AdminPromotionListPage() {
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <StatCard
-          label="Tổng mã KM"
-          value={allPromotions.length}
-          icon={Gift}
-          accent="brand"
-        />
+        <StatCard label="Tổng mã KM" value={total} icon={Gift} accent="brand" />
         <StatCard
           label="Đang chạy"
           value={activeCount}
@@ -137,7 +196,7 @@ export function AdminPromotionListPage() {
           onChange={setQuery}
           onReset={() => setQuery('')}
         />
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="carivo-panel p-4">
             <Label htmlFor="promo-type-filter" className="mb-1.5">
               Loại giảm giá
@@ -165,12 +224,52 @@ export function AdminPromotionListPage() {
               id="promo-status-filter"
               value={statusFilter}
               onChange={(event) =>
-                setStatusFilter(event.target.value as 'ALL' | 'ACTIVE' | 'INACTIVE')
+                setStatusFilter(event.target.value as AdminPromotionStatusFilter)
               }
             >
               <option value="ALL">Tất cả</option>
               <option value="ACTIVE">Đang chạy</option>
               <option value="INACTIVE">Tạm dừng</option>
+            </Select>
+          </div>
+          <div className="carivo-panel p-4">
+            <Label htmlFor="promo-audience-filter" className="mb-1.5">
+              Đối tượng
+            </Label>
+            <Select
+              id="promo-audience-filter"
+              value={audienceFilter}
+              onChange={(event) =>
+                setAudienceFilter(event.target.value as PromotionAudience | 'ALL')
+              }
+            >
+              <option value="ALL">Tất cả</option>
+              {PROMOTION_AUDIENCES.map((audience) => (
+                <option key={audience} value={audience}>
+                  {PROMOTION_AUDIENCE_LABELS[audience]}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="carivo-panel p-4">
+            <Label htmlFor="promo-tier-filter" className="mb-1.5">
+              Hạng áp dụng
+            </Label>
+            <Select
+              id="promo-tier-filter"
+              value={tierFilter}
+              onChange={(event) =>
+                setTierFilter(event.target.value as LoyaltyTier | 'ALL')
+              }
+            >
+              <option value="ALL">Tất cả</option>
+              {(['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'] as LoyaltyTier[]).map(
+                (tier) => (
+                  <option key={tier} value={tier}>
+                    {LOYALTY_TIER_LABELS[tier]}
+                  </option>
+                ),
+              )}
             </Select>
           </div>
         </div>
@@ -181,22 +280,55 @@ export function AdminPromotionListPage() {
           <CardTitle>
             {promotions.length} khuyến mãi
             {hasActiveFilter ? ' (đã lọc)' : ''}
+            {meta ? ` · Trang ${meta.page}/${meta.total_pages}` : ''}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0 pb-2">
           <AdminPromotionListTable
             promotions={promotions}
             hasActiveFilter={hasActiveFilter}
-            onToggleActive={setConfirmPromotionId}
+            onToggleActive={(promotionId) => setModal({ kind: 'toggle', promotionId })}
+            onDelete={(promotionId) => setModal({ kind: 'delete', promotionId })}
           />
         </CardContent>
+        {meta && meta.total_pages > 1 ? (
+          <div className="flex items-center justify-between border-t border-slate-100 px-6 py-3 text-sm text-slate-600">
+            <span>
+              Trang {meta.page} / {meta.total_pages} · {meta.total} bản ghi
+            </span>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                disabled={page <= 1 || isFetching}
+              >
+                Trước
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() =>
+                  setPage((current) => Math.min(totalPages, current + 1))
+                }
+                disabled={page >= totalPages || isFetching}
+              >
+                Sau
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </Card>
 
       <Modal
-        open={Boolean(confirmPromotionId && pendingPromotion)}
-        onClose={() => setConfirmPromotionId(null)}
+        open={Boolean(modal && pendingPromotion)}
+        onClose={() => !deleteMutation.isPending && !toggleMutation.isPending && setModal(null)}
         title={
-          pendingPromotion?.is_active ? 'Tạm dừng khuyến mãi?' : 'Kích hoạt khuyến mãi?'
+          modal?.kind === 'delete'
+            ? 'Xóa khuyến mãi?'
+            : pendingPromotion?.is_active
+              ? 'Tạm dừng khuyến mãi?'
+              : 'Kích hoạt khuyến mãi?'
         }
         description={
           pendingPromotion
@@ -205,16 +337,44 @@ export function AdminPromotionListPage() {
         }
       >
         <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={() => setConfirmPromotionId(null)}>
+          <Button
+            variant="secondary"
+            onClick={() => setModal(null)}
+            disabled={deleteMutation.isPending || toggleMutation.isPending}
+          >
             Hủy
           </Button>
-          <Button
-            variant={pendingPromotion?.is_active ? 'danger' : 'primary'}
-            onClick={handleConfirmToggle}
-            disabled={toggleMutation.isPending}
-          >
-            Xác nhận
-          </Button>
+          {modal?.kind === 'delete' ? (
+            <Button
+              variant="danger"
+              onClick={handleConfirmDelete}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Đang xóa...
+                </>
+              ) : (
+                'Xóa'
+              )}
+            </Button>
+          ) : (
+            <Button
+              variant={pendingPromotion?.is_active ? 'danger' : 'primary'}
+              onClick={handleConfirmToggle}
+              disabled={toggleMutation.isPending}
+            >
+              {toggleMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Đang xử lý...
+                </>
+              ) : (
+                'Xác nhận'
+              )}
+            </Button>
+          )}
         </div>
       </Modal>
     </div>
