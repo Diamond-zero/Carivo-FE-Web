@@ -13,11 +13,13 @@ export async function buildStaffSessionFromProfile(): Promise<StaffAuthSession> 
     throw new MockLoginError('NO_STAFF_PROFILE')
   }
 
-  const garage = await getGarageByIdApi(profile.garage_id)
+  const garage = profile.garage_id
+    ? mapApiGarage(await getGarageByIdApi(profile.garage_id))
+    : null
 
   return {
     user: mapApiUser(profile.user),
     staffProfile: mapApiStaffProfile(profile),
-    garage: mapApiGarage(garage),
+    garage,
   }
 }

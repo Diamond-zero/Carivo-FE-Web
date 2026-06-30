@@ -33,6 +33,7 @@ export function AdminStaffListPage() {
   const [query, setQuery] = useState('')
   const [garageFilter, setGarageFilter] = useState<string | 'ALL'>('ALL')
   const [staffTypeFilter, setStaffTypeFilter] = useState<StaffType | 'ALL'>('ALL')
+  const [isActiveFilter, setIsActiveFilter] = useState<boolean | 'ALL'>('ALL')
   const [confirmProfileId, setConfirmProfileId] = useState<string | null>(null)
   const [deleteProfileId, setDeleteProfileId] = useState<string | null>(null)
 
@@ -41,6 +42,7 @@ export function AdminStaffListPage() {
     query,
     garageFilter,
     staffTypeFilter,
+    isActiveFilter,
   })
   const toggleMutation = useToggleAdminStaffStatus()
   const deleteMutation = useDeleteAdminStaff()
@@ -49,7 +51,10 @@ export function AdminStaffListPage() {
     (record) => record.profile.is_active && record.user.is_active,
   ).length
   const hasActiveFilter =
-    query.trim().length > 0 || garageFilter !== 'ALL' || staffTypeFilter !== 'ALL'
+    query.trim().length > 0 ||
+    garageFilter !== 'ALL' ||
+    staffTypeFilter !== 'ALL' ||
+    isActiveFilter !== 'ALL'
 
   const pendingRecord = confirmProfileId
     ? allStaff.find((record) => record.profile.id === confirmProfileId)
@@ -170,7 +175,7 @@ export function AdminStaffListPage() {
           onChange={setQuery}
           onReset={() => setQuery('')}
         />
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
           <div className="carivo-panel p-4">
             <Label htmlFor="garage-filter" className="mb-1.5">
               Lọc theo garage
@@ -205,6 +210,23 @@ export function AdminStaffListPage() {
                   {STAFF_TYPE_LABELS[type]}
                 </option>
               ))}
+            </Select>
+          </div>
+          <div className="carivo-panel p-4">
+            <Label htmlFor="is-active-filter" className="mb-1.5">
+              Lọc theo trạng thái
+            </Label>
+            <Select
+              id="is-active-filter"
+              value={isActiveFilter === 'ALL' ? 'ALL' : String(isActiveFilter)}
+              onChange={(event) => {
+                const value = event.target.value
+                setIsActiveFilter(value === 'ALL' ? 'ALL' : value === 'true')
+              }}
+            >
+              <option value="ALL">Tất cả trạng thái</option>
+              <option value="true">Đang làm việc</option>
+              <option value="false">Ngưng làm việc</option>
             </Select>
           </div>
         </div>

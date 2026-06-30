@@ -61,7 +61,6 @@ export function ServiceExecutionPage() {
   } | null>(null)
   const [completingStepId, setCompletingStepId] = useState<string | null>(null)
   const [isStarting, setIsStarting] = useState(false)
-  const [allowEarlyStart, setAllowEarlyStart] = useState(false)
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false)
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false)
@@ -132,9 +131,8 @@ export function ServiceExecutionPage() {
 
     setIsStarting(true)
     setFeedback(null)
-    const result = await startService(selectedBookingId, { allowEarlyStart })
+    const result = await startService(selectedBookingId)
     setIsStarting(false)
-    setAllowEarlyStart(false)
     setFeedback({
       type: result.success ? 'success' : 'error',
       message: result.message,
@@ -332,33 +330,6 @@ export function ServiceExecutionPage() {
                     )}
                   </GuardedActionButton>
                 </CardContent>
-
-                {booking.raw?.arrival_status === 'EARLY' && !allowEarlyStart ? (
-                  <CardContent className="-mt-2 border-t border-brand-100 pt-4">
-                    <button
-                      type="button"
-                      className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
-                      onClick={() => setAllowEarlyStart(true)}
-                    >
-                      Chuyển sang bắt đầu ngay (thay đổi lịch về hiện tại)
-                    </button>
-                  </CardContent>
-                ) : null}
-
-                {booking.raw?.arrival_status === 'EARLY' && allowEarlyStart ? (
-                  <CardContent className="-mt-2 border-t border-blue-200 bg-blue-50 pt-4">
-                    <p className="text-sm font-medium text-blue-700">
-                      Chế độ bắt đầu sớm đang bật — lịch booking sẽ được chuyển về giờ hiện tại.
-                    </p>
-                    <button
-                      type="button"
-                      className="mt-1 text-sm text-blue-500 hover:text-blue-600 hover:underline"
-                      onClick={() => setAllowEarlyStart(false)}
-                    >
-                      Hủy bỏ
-                    </button>
-                  </CardContent>
-                ) : null}
               </Card>
             ) : null}
 

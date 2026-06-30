@@ -273,21 +273,24 @@ export function mapApiStaffRecord(
 ): AdminStaffRecord | null {
   if (!profile.user) return null
 
+  const garageId = profile.garage_id ?? ''
   return {
     user: mapApiUser(profile.user),
     profile: mapApiStaffProfile(profile),
-    garage: garage ? mapApiGarage(garage) : {
-      id: profile.garage_id,
-      name: profile.garage_id,
-      garage_code: '',
-      address: '',
-      city: '',
-      phone: '',
-      opening_time: '07:00',
-      closing_time: '18:00',
-      slot_interval_minutes: 30,
-      is_active: true,
-    },
+    garage: garage
+      ? mapApiGarage(garage)
+      : {
+          id: garageId,
+          name: 'Chưa phân công garage',
+          garage_code: '',
+          address: '',
+          city: '',
+          phone: '',
+          opening_time: '07:00',
+          closing_time: '18:00',
+          slot_interval_minutes: 30,
+          is_active: true,
+        },
   }
 }
 

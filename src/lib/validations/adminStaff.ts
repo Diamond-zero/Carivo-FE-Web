@@ -21,4 +21,17 @@ export const adminStaffFormSchema = z.object({
   is_active: z.boolean(),
 })
 
+export const adminStaffCreateSchema = z.object({
+  user_id: z.string().min(1, 'Chọn nhân viên'),
+  staff_code: z
+    .string()
+    .min(3, 'Mã nhân viên tối thiểu 3 ký tự')
+    .regex(/^STF[A-Z0-9]+$/, 'Định dạng: STF + mã (vd. STF009)'),
+  staff_type: z.enum(staffTypeValues, {
+    message: 'Chọn vai trò nhân viên',
+  }),
+  garage_id: z.string().optional(),
+  is_active: z.boolean(),
+})
+
 export type AdminStaffFormValues = z.infer<typeof adminStaffFormSchema>

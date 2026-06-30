@@ -116,7 +116,7 @@ interface BookingContextValue {
   fetchServiceSteps: (bookingId: string) => Promise<BookingServiceStep[]>
   startService: (
     bookingId: string,
-    options?: { allowEarlyStart?: boolean },
+    note?: string,
   ) => Promise<ActionResult>
   completeServiceStep: (
     stepId: string,
@@ -383,13 +383,13 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   const startServiceMutation = useMutation({
     mutationFn: ({
       bookingId,
-      options,
+      note,
     }: {
       bookingId: string
-      options?: { allowEarlyStart?: boolean }
+      note?: string
     }) =>
       startServiceApi(bookingId, {
-        allow_early_start: options?.allowEarlyStart,
+        ...(note ? { note } : {}),
       }),
     onSuccess: async (_, { bookingId }) => {
       await invalidateBookings()
@@ -608,12 +608,9 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   )
 
   const startService = useCallback(
-    (
-      bookingId: string,
-      options?: { allowEarlyStart?: boolean },
-    ) =>
+    (bookingId: string, note?: string) =>
       wrapMutation(
-        () => startServiceMutation.mutateAsync({ bookingId, options }),
+        () => startServiceMutation.mutateAsync({ bookingId, note }),
         'Đã bắt đầu dịch vụ.',
       ),
     [startServiceMutation],

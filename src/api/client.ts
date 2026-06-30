@@ -68,6 +68,17 @@ const API_ERROR_MESSAGES: Record<string, string> = {
     'Bạn không thể tự khóa tài khoản đang đăng nhập.',
   CANNOT_DELETE_SELF:
     'Bạn không thể tự xóa tài khoản đang đăng nhập.',
+  STAFF_PROFILE_NOT_FOUND: 'Không tìm thấy hồ sơ nhân viên.',
+  STAFF_PROFILE_USER_EXISTS:
+    'Tài khoản này đã có hồ sơ nhân viên. Vui lòng dùng chức năng cập nhật.',
+  STAFF_CODE_EXISTS:
+    'Mã nhân viên đã tồn tại. Vui lòng chọn mã khác.',
+  STAFF_USER_NOT_EXISTS:
+    'Người dùng được gán không tồn tại hoặc không có vai trò STAFF.',
+  STAFF_GARAGE_NOT_FOUND:
+    'Không tìm thấy garage. Vui lòng kiểm tra lại garage_id.',
+  STAFF_PROFILE_INACTIVE:
+    'Hồ sơ nhân viên đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.',
 }
 
 export function getApiErrorCode(error: unknown): string | undefined {

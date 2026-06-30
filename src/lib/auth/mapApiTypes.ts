@@ -29,7 +29,7 @@ export function mapApiStaffProfile(profile: ApiStaffProfile): StaffProfile {
     user_id: profile.user_id,
     staff_code: profile.staff_code,
     staff_type: profile.staff_type as StaffType,
-    garage_id: profile.garage_id,
+    garage_id: profile.garage_id ?? null,
     is_active: profile.is_active,
   }
 }
