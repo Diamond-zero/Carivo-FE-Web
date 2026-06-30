@@ -15,6 +15,7 @@ import {
 import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { getApiErrorMessage } from '../../../api/client'
+import type { AdminUpdateUserPayload } from '../../../api/user.api'
 import { AdminCustomerBookingsTable } from '../../../components/admin/customer/AdminCustomerBookingsTable'
 import { CustomerLoyaltyCard } from '../../../components/customer/CustomerLoyaltyCard'
 import { CustomerVehicleList } from '../../../components/customer/CustomerVehicleList'
@@ -38,13 +39,11 @@ import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { useToast } from '../../../contexts/ToastContext'
 import {
   useAdminCustomerDetail,
+  useDeleteAdminCustomer,
+  useUpdateAdminCustomer,
+  useUpdateAdminCustomerRole,
   useUpdateAdminCustomerStatus,
 } from '../../../hooks/api/admin/useAdminCustomers'
-import {
-  useAdminDeleteUser,
-  useAdminUpdateUser,
-  useAdminUpdateUserRole,
-} from '../../../hooks/api/admin/useAdminUsers'
 import { cn } from '../../../lib/utils'
 
 const ROLE_OPTIONS: Array<{ value: 'CUSTOMER' | 'STAFF' | 'ADMIN'; label: string }> = [
@@ -78,9 +77,9 @@ export function AdminCustomerDetailPage() {
     error,
   } = useAdminCustomerDetail(id)
   const updateStatusMutation = useUpdateAdminCustomerStatus()
-  const updateUserMutation = useAdminUpdateUser()
-  const updateRoleMutation = useAdminUpdateUserRole()
-  const deleteUserMutation = useAdminDeleteUser()
+  const updateUserMutation = useUpdateAdminCustomer()
+  const updateRoleMutation = useUpdateAdminCustomerRole()
+  const deleteUserMutation = useDeleteAdminCustomer()
 
   if (!id) {
     return <Navigate to="/admin/users/customers" replace />
@@ -162,15 +161,22 @@ export function AdminCustomerDetailPage() {
 
   const handleSaveEdit = () => {
     if (!user) return
+    const trimmedName = editFullName.trim()
+    const trimmedEmail = editEmail.trim()
+    const trimmedPhone = editPhone.trim()
+
+    const payload: AdminUpdateUserPayload = {}
+    if (trimmedName) payload.full_name = trimmedName
+    if (trimmedEmail) payload.email = trimmedEmail
+    if (trimmedPhone) payload.phone = trimmedPhone
+
+    if (Object.keys(payload).length === 0) {
+      showToast('Không có thay đổi nào để lưu.', 'info')
+      return
+    }
+
     updateUserMutation.mutate(
-      {
-        userId: user.id,
-        payload: {
-          full_name: editFullName.trim() || user.full_name,
-          email: editEmail.trim() || user.email,
-          phone: editPhone.trim() || user.phone,
-        },
-      },
+      { userId: user.id, payload },
       {
         onSuccess: () => {
           setEditOpen(false)

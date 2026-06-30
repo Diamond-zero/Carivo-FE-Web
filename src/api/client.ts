@@ -59,6 +59,15 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   POINTS_NOT_ENOUGH: 'Không đủ điểm để áp dụng.',
   RATE_LIMIT_EXCEEDED:
     'Bạn thao tác quá nhanh. Vui lòng đợi vài phút rồi thử lại.',
+  USER_NOT_FOUND: 'Không tìm thấy người dùng này trên hệ thống.',
+  EMAIL_OR_PHONE_EXISTS:
+    'Email hoặc số điện thoại đã được sử dụng bởi tài khoản khác.',
+  INVALID_ROLE:
+    'Vai trò được chọn không hợp lệ. Vui lòng liên hệ quản trị viên.',
+  CANNOT_DEACTIVATE_SELF:
+    'Bạn không thể tự khóa tài khoản đang đăng nhập.',
+  CANNOT_DELETE_SELF:
+    'Bạn không thể tự xóa tài khoản đang đăng nhập.',
 }
 
 export function getApiErrorCode(error: unknown): string | undefined {

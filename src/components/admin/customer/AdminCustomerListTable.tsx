@@ -1,23 +1,26 @@
 import { createColumnHelper } from '@tanstack/react-table'
-import { Users } from 'lucide-react'
+import { Ban, Trash2, Users } from 'lucide-react'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { formatCurrency } from '../../../lib/utils'
-import type { AdminCustomerSummary } from '../../../utils/adminCustomerLookup'
 import { cn } from '../../../lib/utils'
+import type { User } from '../../../types/user'
+import { Button } from '../../ui/Button'
 import { DataTable } from '../../ui/DataTable'
-import { TierBadge } from '../../customer/TierBadge'
 
-const columnHelper = createColumnHelper<AdminCustomerSummary>()
+const columnHelper = createColumnHelper<User>()
 
 interface AdminCustomerListTableProps {
-  customers: AdminCustomerSummary[]
+  customers: User[]
   hasActiveFilter?: boolean
+  onToggleActive?: (userId: string) => void
+  onDelete?: (userId: string) => void
 }
 
 export function AdminCustomerListTable({
   customers,
   hasActiveFilter = false,
+  onToggleActive,
+  onDelete,
 }: AdminCustomerListTableProps) {
   const columns = useMemo(
     () => [
@@ -27,31 +30,18 @@ export function AdminCustomerListTable({
         cell: ({ row }) => (
           <div>
             <Link
-              to={`/admin/users/customers/${row.original.user.id}`}
+              to={`/admin/users/customers/${row.original.id}`}
               className="carivo-link"
             >
-              {row.original.user.full_name}
+              {row.original.full_name}
             </Link>
-            <p className="text-xs text-slate-500">{row.original.user.phone}</p>
+            <p className="text-xs text-slate-500">{row.original.phone}</p>
           </div>
         ),
       }),
-      columnHelper.display({
-        id: 'tier',
-        header: 'Hạng loyalty',
-        cell: ({ row }) => <TierBadge tier={row.original.loyalty.current_tier} />,
-      }),
-      columnHelper.accessor('loyalty.total_spent', {
-        header: 'Tổng chi tiêu',
-        cell: (info) => (
-          <span className="font-medium text-slate-900">
-            {formatCurrency(info.getValue())}
-          </span>
-        ),
-      }),
-      columnHelper.accessor('bookingCount', {
-        header: 'Lượt booking',
-        cell: (info) => info.getValue(),
+      columnHelper.accessor('email', {
+        header: 'Email',
+        cell: (info) => info.getValue() ?? <span className="text-slate-400">—</span>,
       }),
       columnHelper.display({
         id: 'status',
@@ -73,12 +63,36 @@ export function AdminCustomerListTable({
         id: 'actions',
         header: '',
         cell: ({ row }) => (
-          <Link
-            to={`/admin/users/customers/${row.original.user.id}`}
-            className="carivo-link text-sm"
-          >
-            Xem chi tiết
-          </Link>
+          <div className="flex items-center justify-end gap-1">
+            <Link
+              to={`/admin/users/customers/${row.original.id}`}
+              className="carivo-link text-sm"
+            >
+              Xem
+            </Link>
+            {onToggleActive && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1 text-xs text-amber-600 hover:text-amber-700"
+                onClick={() => onToggleActive(row.original.id)}
+              >
+                <Ban className="h-3.5 w-3.5" />
+                {row.original.is_active ? 'Khóa' : 'Mở'}
+              </Button>
+            )}
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1 text-xs text-red-600 hover:text-red-700"
+                onClick={() => onDelete(row.original.id)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Xóa
+              </Button>
+            )}
+          </div>
         ),
       }),
     ],
@@ -93,7 +107,7 @@ export function AdminCustomerListTable({
         icon: Users,
         title: hasActiveFilter ? 'Không tìm thấy khách hàng' : 'Chưa có khách hàng',
         description: hasActiveFilter
-          ? 'Thử đổi từ khóa tìm kiếm hoặc bộ lọc hạng loyalty.'
+          ? 'Thử đổi từ khóa tìm kiếm hoặc bộ lọc trạng thái.'
           : 'Dữ liệu khách hàng toàn hệ thống sẽ hiển thị tại đây.',
       }}
     />
