@@ -142,6 +142,7 @@ export async function assignWashBayApi(bookingId: string, washBayId: string) {
 
 export interface StartServiceApiPayload {
   note?: string
+  allow_early_start?: boolean
 }
 
 export async function startServiceApi(
