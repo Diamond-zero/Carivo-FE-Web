@@ -189,10 +189,24 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     queryFn: async () => {
       // STAFF: BE tự giới hạn theo StaffProfile.garage_id — không gửi garage_id
       const result = await getWashHistoriesApi({ limit: 100 })
-      const cachedBookings =
-        queryClient.getQueryData<{ raw: ApiBooking[] }>(
-          staffQueryKeys.bookings(garageId),
-        )?.raw ?? []
+
+      // Đợi bookings của cùng garage fetch xong để làm fallback cho các bản ghi
+      // walk-in / bản ghi cũ mà payload list BE không populate `vehicle` /
+      // `customer`. Nếu bookings fetch fail (vd staff bị đổi garage), vẫn trả
+      // danh sách gốc để UI không trắng trơn.
+      let cachedBookings: ApiBooking[] = []
+      try {
+        await queryClient.ensureQueryData({
+          queryKey: staffQueryKeys.bookings(garageId),
+        })
+        cachedBookings =
+          queryClient.getQueryData<{ raw: ApiBooking[] }>(
+            staffQueryKeys.bookings(garageId),
+          )?.raw ?? []
+      } catch {
+        cachedBookings = []
+      }
+
       return mapWashHistoriesWithBookingFallback(result.histories, cachedBookings)
     },
     enabled: isAuthenticated && Boolean(garageId),

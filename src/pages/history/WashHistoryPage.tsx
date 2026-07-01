@@ -125,6 +125,7 @@ export function WashHistoryPage() {
               <WashHistoryTable
                 histories={filteredHistories}
                 onViewDetail={setSelectedHistory}
+                showBookingColumn={false}
                 emptyState={{
                   icon: hasActiveFilters ? SearchX : History,
                   title: hasActiveFilters
