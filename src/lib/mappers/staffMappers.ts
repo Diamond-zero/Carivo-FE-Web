@@ -154,7 +154,14 @@ export function mapApiInspection(inspection: ApiVehicleInspection): VehicleInspe
 
 type WashHistoryBookingFallback = Pick<
   ApiBooking,
-  'license_plate' | 'normalized_license_plate' | 'vehicle' | 'guest_name' | 'customer'
+  | 'license_plate'
+  | 'normalized_license_plate'
+  | 'vehicle'
+  | 'guest_name'
+  | 'guest_phone'
+  | 'normalized_guest_phone'
+  | 'is_walk_in'
+  | 'customer'
 >
 
 function resolveBookingLicensePlate(
@@ -169,6 +176,16 @@ function resolveBookingLicensePlate(
     booking.vehicle?.normalized_license_plate ??
     ''
   )
+}
+
+function resolveBookingCustomerPhone(
+  booking?: WashHistoryBookingFallback | null,
+): string | null {
+  if (!booking) return null
+  const fromCustomer = booking.customer?.phone
+  if (fromCustomer) return normalizePhoneForDisplay(fromCustomer)
+  const guestPhone = booking.guest_phone ?? booking.normalized_guest_phone
+  return guestPhone ? normalizePhoneForDisplay(guestPhone) : null
 }
 
 export function resolveWashHistoryLicensePlate(
@@ -193,8 +210,26 @@ export function resolveWashHistoryCustomerName(
     item.customer_name ??
     booking?.customer?.full_name ??
     booking?.guest_name ??
-    'Khách'
+    ''
   )
+}
+
+export function resolveWashHistoryCustomerPhone(
+  item: ApiWashHistory,
+  booking?: WashHistoryBookingFallback | null,
+): string | null {
+  const rawPhone = item.customer?.phone
+  if (rawPhone) return normalizePhoneForDisplay(rawPhone)
+  return resolveBookingCustomerPhone(booking)
+}
+
+export function resolveWashHistoryIsWalkIn(
+  item: ApiWashHistory,
+  booking?: WashHistoryBookingFallback | null,
+): boolean {
+  if (typeof booking?.is_walk_in === 'boolean') return booking.is_walk_in
+  // Không có customer_id hoặc chỉ có customer là null ⇒ walk-in
+  return !item.customer_id && !item.customer
 }
 
 export function mapApiWashHistory(
@@ -209,6 +244,8 @@ export function mapApiWashHistory(
     service_package_id: item.service_package_id,
     service_package_name: item.service_package?.name ?? item.service_package_name,
     customer_name: resolveWashHistoryCustomerName(item, booking),
+    customer_phone: resolveWashHistoryCustomerPhone(item, booking),
+    is_walk_in: resolveWashHistoryIsWalkIn(item, booking),
     final_price: item.amount_paid ?? item.final_price ?? 0,
     payment_method: item.payment_method,
     washed_at:

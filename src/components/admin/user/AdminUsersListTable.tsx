@@ -2,6 +2,7 @@ import { createColumnHelper } from '@tanstack/react-table'
 import { Trash2, UserCog } from 'lucide-react'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { useAdminAuth } from '../../../contexts/AdminAuthContext'
 import { cn } from '../../../lib/utils'
 import type { User } from '../../../types/user'
 import { DataTable } from '../../ui/DataTable'
@@ -33,6 +34,9 @@ export function AdminUsersListTable({
   onToggleActive,
   onDelete,
 }: AdminUsersListTableProps) {
+  const { session } = useAdminAuth()
+  const currentUserId = session?.user.id
+
   const columns = useMemo(
     () => [
       columnHelper.display({
@@ -89,36 +93,49 @@ export function AdminUsersListTable({
       columnHelper.display({
         id: 'actions',
         header: '',
-        cell: ({ row }) => (
-          <div className="flex items-center justify-end gap-3">
-            <button
-              type="button"
-              className="text-sm font-medium text-slate-600 hover:text-slate-900"
-              onClick={() => onToggleActive(row.original.id)}
-            >
-              {row.original.is_active ? 'Khóa' : 'Mở khóa'}
-            </button>
-            {row.original.role === 'CUSTOMER' ? (
-              <Link
-                to={`/admin/users/customers/${row.original.id}`}
-                className="carivo-link text-sm"
+        cell: ({ row }) => {
+          const target = row.original
+          const isAdmin = target.role === 'ADMIN'
+          const isSelf = currentUserId === target.id
+          const canManage = !isAdmin && !isSelf
+          if (!canManage) {
+            return (
+              <div className="flex items-center justify-end text-xs italic text-slate-400">
+                Tài khoản hệ thống
+              </div>
+            )
+          }
+          return (
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                className="text-sm font-medium text-slate-600 hover:text-slate-900"
+                onClick={() => onToggleActive(target.id)}
               >
-                Chi tiết
-              </Link>
-            ) : null}
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 text-sm font-medium text-red-600 hover:text-red-700"
-              onClick={() => onDelete(row.original.id)}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Xóa
-            </button>
-          </div>
-        ),
+                {target.is_active ? 'Khóa' : 'Mở khóa'}
+              </button>
+              {target.role === 'CUSTOMER' ? (
+                <Link
+                  to={`/admin/users/customers/${target.id}`}
+                  className="carivo-link text-sm"
+                >
+                  Chi tiết
+                </Link>
+              ) : null}
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 text-sm font-medium text-red-600 hover:text-red-700"
+                onClick={() => onDelete(target.id)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Xóa
+              </button>
+            </div>
+          )
+        },
       }),
     ],
-    [onToggleActive, onDelete],
+    [onToggleActive, onDelete, currentUserId],
   )
 
   return (

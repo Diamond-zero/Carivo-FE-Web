@@ -52,8 +52,28 @@ export function useAdminSurveyResponses(surveyId?: string) {
 export function useAdminSurveyMutations() {
   const queryClient = useQueryClient()
 
-  const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: adminQueryKeys.surveys() })
+  const invalidate = () => {
+    queryClient.invalidateQueries({
+      queryKey: [...adminQueryKeys.all, 'surveys'],
+      exact: false,
+    })
+    queryClient.invalidateQueries({
+      queryKey: [...adminQueryKeys.all, 'survey-responses'],
+      exact: false,
+    })
+    queryClient.invalidateQueries({
+      queryKey: [...adminQueryKeys.all, 'research'],
+      exact: false,
+    })
+    queryClient.invalidateQueries({
+      queryKey: [...adminQueryKeys.all, 'analytics-survey'],
+      exact: false,
+    })
+    queryClient.refetchQueries({
+      queryKey: [...adminQueryKeys.all, 'surveys'],
+      exact: false,
+    })
+  }
 
   const createMutation = useMutation({
     mutationFn: (payload: SurveyCreatePayload) => createAdminSurveyApi(payload),

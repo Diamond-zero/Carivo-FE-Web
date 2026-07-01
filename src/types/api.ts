@@ -59,10 +59,14 @@ export interface RegisterData {
 export interface ApiStaffProfile {
   id: string
   user_id: string
-  user?: ApiUser
+  user?: ApiUser | null
   staff_code: string
-  staff_type: string
-  garage_id: string
+  staff_type:
+    | 'CUSTOMER_SERVICE_STAFF'
+    | 'VEHICLE_INSPECTION_STAFF'
+    | 'WASH_OPERATOR'
+    | 'VEHICLE_CARE_STAFF'
+  garage_id: string | null
   is_active: boolean
   created_at: string
   updated_at: string

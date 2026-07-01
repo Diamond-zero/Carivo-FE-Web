@@ -116,7 +116,7 @@ interface BookingContextValue {
   fetchServiceSteps: (bookingId: string) => Promise<BookingServiceStep[]>
   startService: (
     bookingId: string,
-    options?: { allowEarlyStart?: boolean },
+    note?: string,
   ) => Promise<ActionResult>
   completeServiceStep: (
     stepId: string,
@@ -189,10 +189,24 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     queryFn: async () => {
       // STAFF: BE tự giới hạn theo StaffProfile.garage_id — không gửi garage_id
       const result = await getWashHistoriesApi({ limit: 100 })
-      const cachedBookings =
-        queryClient.getQueryData<{ raw: ApiBooking[] }>(
-          staffQueryKeys.bookings(garageId),
-        )?.raw ?? []
+
+      // Đợi bookings của cùng garage fetch xong để làm fallback cho các bản ghi
+      // walk-in / bản ghi cũ mà payload list BE không populate `vehicle` /
+      // `customer`. Nếu bookings fetch fail (vd staff bị đổi garage), vẫn trả
+      // danh sách gốc để UI không trắng trơn.
+      let cachedBookings: ApiBooking[] = []
+      try {
+        await queryClient.ensureQueryData({
+          queryKey: staffQueryKeys.bookings(garageId),
+        })
+        cachedBookings =
+          queryClient.getQueryData<{ raw: ApiBooking[] }>(
+            staffQueryKeys.bookings(garageId),
+          )?.raw ?? []
+      } catch {
+        cachedBookings = []
+      }
+
       return mapWashHistoriesWithBookingFallback(result.histories, cachedBookings)
     },
     enabled: isAuthenticated && Boolean(garageId),
@@ -383,13 +397,13 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   const startServiceMutation = useMutation({
     mutationFn: ({
       bookingId,
-      options,
+      note,
     }: {
       bookingId: string
-      options?: { allowEarlyStart?: boolean }
+      note?: string
     }) =>
       startServiceApi(bookingId, {
-        allow_early_start: options?.allowEarlyStart,
+        ...(note ? { note } : {}),
       }),
     onSuccess: async (_, { bookingId }) => {
       await invalidateBookings()
@@ -608,12 +622,9 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   )
 
   const startService = useCallback(
-    (
-      bookingId: string,
-      options?: { allowEarlyStart?: boolean },
-    ) =>
+    (bookingId: string, note?: string) =>
       wrapMutation(
-        () => startServiceMutation.mutateAsync({ bookingId, options }),
+        () => startServiceMutation.mutateAsync({ bookingId, note }),
         'Đã bắt đầu dịch vụ.',
       ),
     [startServiceMutation],

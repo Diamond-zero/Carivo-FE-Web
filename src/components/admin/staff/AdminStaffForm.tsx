@@ -40,7 +40,7 @@ export function AdminStaffForm({
       user_id: initialRecord?.user.id ?? '',
       staff_code: initialRecord?.profile.staff_code ?? '',
       staff_type: initialRecord?.profile.staff_type ?? 'CUSTOMER_SERVICE_STAFF',
-      garage_id: initialRecord?.profile.garage_id ?? garages[0]?.id ?? '',
+      garage_id: initialRecord?.profile.garage_id ?? '',
       is_active: initialRecord?.profile.is_active ?? true,
     },
   })
@@ -101,6 +101,7 @@ export function AdminStaffForm({
       <div>
         <Label htmlFor="garage_id">Garage làm việc</Label>
         <Select id="garage_id" error={errors.garage_id?.message} {...register('garage_id')}>
+          <option value="">Chưa phân công garage</option>
           {garages.map((garage) => (
             <option key={garage.id} value={garage.id}>
               {garage.name} ({garage.garage_code})

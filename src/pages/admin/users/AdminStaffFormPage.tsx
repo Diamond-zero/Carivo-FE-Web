@@ -64,13 +64,14 @@ export function AdminStaffFormPage() {
   }
 
   const handleSubmit = async (values: AdminStaffFormValues) => {
+    const garageId = values.garage_id && values.garage_id.length > 0 ? values.garage_id : null
     if (isCreate) {
       createMutation.mutate(
         {
           user_id: values.user_id,
           staff_code: values.staff_code,
           staff_type: values.staff_type as StaffType,
-          garage_id: values.garage_id,
+          garage_id: garageId,
           is_active: values.is_active,
         },
         {
@@ -94,7 +95,7 @@ export function AdminStaffFormPage() {
         payload: {
           staff_code: values.staff_code,
           staff_type: values.staff_type as StaffType,
-          garage_id: values.garage_id,
+          garage_id: garageId,
           is_active: values.is_active,
         },
       },

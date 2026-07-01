@@ -1,10 +1,14 @@
-import { ExternalLink, Loader2 } from 'lucide-react'
+import { ExternalLink, Loader2, Phone, UserRound } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { ApiBooking, ApiWashHistory } from '../../types/api/staff'
 import { getWashHistoryByIdApi } from '../../api/washHistory.api'
 import { getApiErrorMessage } from '../../api/client'
-import { mapApiWashHistory } from '../../lib/mappers/staffMappers'
+import {
+  mapApiWashHistory,
+  resolveWashHistoryCustomerPhone,
+  resolveWashHistoryIsWalkIn,
+} from '../../lib/mappers/staffMappers'
 import type { WashHistory } from '../../types/washHistory'
 import { formatDateTime, formatPrice } from '../../utils/format'
 import { fetchWashHistoryBookingFallback } from '../../utils/washHistoryEnrichment'
@@ -31,6 +35,8 @@ function getWashHistoryDisplayFields(
   const mapped = mapApiWashHistory(item, booking)
   return {
     customerName: mapped.customer_name,
+    customerPhone: resolveWashHistoryCustomerPhone(item, booking),
+    isWalkIn: resolveWashHistoryIsWalkIn(item, booking),
     licensePlate: mapped.license_plate,
     servicePackageName:
       mapped.service_package_name ?? mapped.service_package_id,
@@ -119,11 +125,34 @@ export function WashHistoryDetailModal({
         <dl className="space-y-3 text-sm">
           <div className="flex justify-between gap-4">
             <dt className="text-slate-500">Khách</dt>
-            <dd className="font-medium text-slate-900">{display.customerName}</dd>
+            <dd className="text-right">
+              <div className="flex flex-wrap items-center justify-end gap-1.5">
+                <span className="font-medium text-slate-900">
+                  {display.customerName || '—'}
+                </span>
+                {display.isWalkIn ? (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700"
+                    title="Khách vãng lai — không liên kết tài khoản khách hàng"
+                  >
+                    <UserRound className="h-3 w-3" />
+                    Vãng lai
+                  </span>
+                ) : null}
+              </div>
+              {display.customerPhone ? (
+                <p className="mt-0.5 flex items-center justify-end gap-1 text-xs text-slate-500">
+                  <Phone className="h-3 w-3" />
+                  <span>{display.customerPhone}</span>
+                </p>
+              ) : null}
+            </dd>
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-slate-500">Biển số</dt>
-            <dd className="font-medium text-slate-900">{display.licensePlate}</dd>
+            <dd className="font-medium text-slate-900">
+              {display.licensePlate || '—'}
+            </dd>
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-slate-500">Gói dịch vụ</dt>

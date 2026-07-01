@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, Plus, X } from 'lucide-react'
 import { useEffect } from 'react'
-import { useFieldArray, useForm } from 'react-hook-form'
+import { Controller, useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import type { ApiSurvey, ApiSurveyQuestion } from '../../../types/api/admin'
 import { Button } from '../../ui/Button'
@@ -38,7 +38,20 @@ const questionSchema = z.object({
 const surveySchema = z.object({
   title: z.string().min(3, 'Tiêu đề tối thiểu 3 ký tự'),
   description: z.string().nullable().optional(),
-  response_window_days: z.coerce.number().int().min(1).max(365).optional(),
+  response_window_days: z
+    .preprocess(
+      (value) => {
+        if (value === '' || value === null || value === undefined) {
+          return 7
+        }
+        if (typeof value === 'string') {
+          const parsed = Number(value)
+          return Number.isFinite(parsed) && parsed > 0 ? parsed : 7
+        }
+        return value
+      },
+      z.number().int().min(1).max(365),
+    ),
   questions: z.array(questionSchema).min(1, 'Khảo sát cần ít nhất 1 câu hỏi'),
 })
 
@@ -103,6 +116,7 @@ export function AdminSurveyFormModal({
         response_window_days: 7,
         questions: [
           {
+            id: undefined,
             text: '',
             type: 'RATING',
             is_required: true,
@@ -119,6 +133,7 @@ export function AdminSurveyFormModal({
         ? initialSurvey.questions.map(mapQuestionToForm)
         : [
             {
+              id: undefined,
               text: '',
               type: 'RATING' as const,
               is_required: true,
@@ -176,13 +191,30 @@ export function AdminSurveyFormModal({
           </div>
           <div>
             <Label htmlFor="response_window_days">Số ngày mở</Label>
-            <Input
-              id="response_window_days"
-              type="number"
-              min={1}
-              max={365}
-              error={form.formState.errors.response_window_days?.message}
-              {...form.register('response_window_days', { valueAsNumber: true })}
+            <Controller
+              control={form.control}
+              name="response_window_days"
+              render={({ field, fieldState }) => (
+                <Input
+                  id="response_window_days"
+                  type="number"
+                  min={1}
+                  max={365}
+                  placeholder="7"
+                  value={String(field.value ?? 7)}
+                  onChange={(event) => {
+                    const raw = event.target.value
+                    if (raw === '') {
+                      field.onChange(7)
+                      return
+                    }
+                    const parsed = Number(raw)
+                    field.onChange(Number.isFinite(parsed) ? parsed : 7)
+                  }}
+                  onBlur={field.onBlur}
+                  error={fieldState.error?.message}
+                />
+              )}
             />
           </div>
         </div>
@@ -294,7 +326,7 @@ export function AdminSurveyFormModal({
           ) : null}
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+        <div className="sticky bottom-0 -mx-6 flex justify-end gap-2 border-t border-slate-100 bg-white/95 px-6 py-4 backdrop-blur">
           <Button type="button" variant="secondary" onClick={onClose}>
             Hủy
           </Button>

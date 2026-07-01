@@ -1,7 +1,8 @@
-import { Lock, Unlock, UserCheck, Users, UserX } from 'lucide-react'
+import { Lock, Plus, Unlock, UserCheck, Users, UserX } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getApiErrorMessage } from '../../../api/client'
+import { AdminCreateUserModal } from '../../../components/admin/user/AdminCreateUserModal'
 import { AdminUsersListTable } from '../../../components/admin/user/AdminUsersListTable'
 import { CustomerSearchPanel } from '../../../components/customer/CustomerSearchPanel'
 import { PageHeader } from '../../../components/layout/PageHeader'
@@ -46,6 +47,7 @@ export function AdminUsersListPage() {
   const [statusFilter, setStatusFilter] = useState<boolean | 'ALL'>('ALL')
   const [confirmToggleId, setConfirmToggleId] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   const { users, allUsers, isLoading, isError, error } = useAdminUsers({
     query,
@@ -145,9 +147,15 @@ export function AdminUsersListPage() {
         title="Tất cả người dùng"
         description="Quản lý toàn bộ tài khoản CUSTOMER, STAFF và ADMIN trên hệ thống — lọc theo vai trò và trạng thái."
         action={
-          <Link to="/admin/users/customers">
-            <Button variant="secondary">Xem khách hàng</Button>
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link to="/admin/users/customers">
+              <Button variant="secondary">Xem khách hàng</Button>
+            </Link>
+            <Button onClick={() => setIsCreateOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Thêm người dùng
+            </Button>
+          </div>
         }
       />
 
@@ -310,6 +318,18 @@ export function AdminUsersListPage() {
           </div>
         </div>
       </Modal>
+
+      <AdminCreateUserModal
+        open={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onCreated={(user) => {
+          setIsCreateOpen(false)
+          showToast(
+            `Đã tạo tài khoản ${user.full_name} (${user.role}).`,
+            'success',
+          )
+        }}
+      />
     </div>
   )
 }

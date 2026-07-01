@@ -9,6 +9,6 @@ export interface StaffProfile {
   user_id: string
   staff_code: string
   staff_type: StaffType
-  garage_id: string
+  garage_id: string | null
   is_active: boolean
 }
