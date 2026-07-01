@@ -1,4 +1,4 @@
-import { Loader2, ExternalLink } from 'lucide-react'
+import { CheckCircle2, Loader2, ExternalLink } from 'lucide-react'
 import { useState } from 'react'
 import type { Booking } from '../../types/booking'
 import { getBookingCustomerName } from '../../utils/booking'
@@ -25,6 +25,8 @@ interface MarkPaidModalProps {
   onConfirmPayos?: () => Promise<MarkPaidResult>
 }
 
+type SubmitState = 'idle' | 'submitting' | 'success' | 'error'
+
 export function MarkPaidModal({
   open,
   onClose,
@@ -33,41 +35,48 @@ export function MarkPaidModal({
   onConfirmPayos,
 }: MarkPaidModalProps) {
   const [method, setMethod] = useState<'CASH' | 'PAYOS'>('CASH')
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitState, setSubmitState] = useState<SubmitState>('idle')
   const [error, setError] = useState<string | null>(null)
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const earnedPointsPreview = calculateEarnedPoints(booking)
 
   const handleConfirm = async () => {
-    setIsSubmitting(true)
+    setSubmitState('submitting')
     setError(null)
     setCheckoutUrl(null)
+    setSuccessMessage(null)
 
     const result =
       method === 'PAYOS' && onConfirmPayos
         ? await onConfirmPayos()
         : await onConfirmCash()
 
-    setIsSubmitting(false)
-
     if (!result.success) {
+      setSubmitState('error')
       setError(result.message)
       return
     }
 
     if (result.checkoutUrl) {
       setCheckoutUrl(result.checkoutUrl)
+      setSubmitState('success')
+      setSuccessMessage(result.message)
       return
     }
 
-    onClose()
+    // Cash payment success — show success state
+    setSuccessMessage(result.message ?? 'Thu tiền thành công.')
+    setSubmitState('success')
   }
 
   const handleClose = () => {
-    if (isSubmitting) return
+    if (submitState === 'submitting') return
     setError(null)
     setCheckoutUrl(null)
+    setSuccessMessage(null)
     setMethod('CASH')
+    setSubmitState('idle')
     onClose()
   }
 
@@ -101,14 +110,24 @@ export function MarkPaidModal({
             <button
               key={option}
               type="button"
-              disabled={option === 'PAYOS' && !onConfirmPayos}
+              disabled={
+                option === 'PAYOS' && !onConfirmPayos
+                  ? true
+                  : submitState === 'success' || submitState === 'submitting'
+                    ? true
+                    : undefined
+              }
               onClick={() => setMethod(option)}
               className={cn(
                 'rounded-xl border px-4 py-3 text-sm font-medium transition-colors',
                 method === option
                   ? 'border-brand-500 bg-brand-50 text-brand-800'
                   : 'border-slate-200 text-slate-700',
-                option === 'PAYOS' && !onConfirmPayos && 'opacity-50',
+                (option === 'PAYOS' && !onConfirmPayos) ||
+                  submitState === 'success' ||
+                  submitState === 'submitting'
+                  ? 'opacity-50'
+                  : '',
               )}
             >
               {option === 'CASH' ? 'Tiền mặt' : 'PayOS (QR)'}
@@ -116,17 +135,27 @@ export function MarkPaidModal({
           ))}
         </div>
 
-        {booking.payment_status === 'PENDING' ? (
+        {booking.payment_status === 'PENDING' && submitState !== 'success' ? (
           <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
             Booking đang có link PayOS chờ thanh toán. Xác nhận tiền mặt sẽ tự động hủy
             link PayOS hiện tại.
           </p>
         ) : null}
 
-        {earnedPointsPreview > 0 ? (
+        {earnedPointsPreview > 0 && submitState !== 'success' ? (
           <p className="rounded-xl bg-violet-50 px-4 py-3 text-sm text-violet-800">
             Khách đăng ký có thể được cộng {earnedPointsPreview} điểm sau thanh toán.
           </p>
+        ) : null}
+
+        {submitState === 'success' && successMessage ? (
+          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+            <div className="flex items-center gap-2 font-medium">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              Thanh toán thành công
+            </div>
+            <p className="mt-1">{successMessage}</p>
+          </div>
         ) : null}
 
         {checkoutUrl ? (
@@ -149,12 +178,21 @@ export function MarkPaidModal({
         ) : null}
 
         <div className="flex gap-3 pt-1">
-          <Button variant="secondary" fullWidth onClick={handleClose} disabled={isSubmitting}>
-            {checkoutUrl ? 'Đóng' : 'Hủy'}
+          <Button
+            variant="secondary"
+            fullWidth
+            onClick={handleClose}
+            disabled={submitState === 'submitting'}
+          >
+            {submitState === 'success' || checkoutUrl ? 'Đóng' : 'Hủy'}
           </Button>
-          {!checkoutUrl ? (
-            <Button fullWidth onClick={handleConfirm} disabled={isSubmitting}>
-              {isSubmitting ? (
+          {submitState !== 'success' && !checkoutUrl ? (
+            <Button
+              fullWidth
+              onClick={handleConfirm}
+              disabled={submitState === 'submitting'}
+            >
+              {submitState === 'submitting' ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Đang xử lý...

@@ -131,7 +131,13 @@ export function ServiceExecutionPage() {
 
     setIsStarting(true)
     setFeedback(null)
-    const result = await startService(selectedBookingId)
+    const isEarly =
+      booking?.raw?.arrival_status === 'EARLY'
+    const result = await startService(
+      selectedBookingId,
+      undefined,
+      isEarly ? true : undefined,
+    )
     setIsStarting(false)
     setFeedback({
       type: result.success ? 'success' : 'error',

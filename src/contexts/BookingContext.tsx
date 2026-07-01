@@ -398,12 +398,15 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     mutationFn: ({
       bookingId,
       note,
+      allowEarlyStart,
     }: {
       bookingId: string
       note?: string
+      allowEarlyStart?: boolean
     }) =>
       startServiceApi(bookingId, {
         ...(note ? { note } : {}),
+        ...(allowEarlyStart !== undefined ? { allow_early_start: allowEarlyStart } : {}),
       }),
     onSuccess: async (_, { bookingId }) => {
       await invalidateBookings()
@@ -431,7 +434,12 @@ export function BookingProvider({ children }: { children: ReactNode }) {
 
   const markPaidMutation = useMutation({
     mutationFn: (bookingId: string) => markBookingPaidWithCashApi(bookingId),
-    onSuccess: () => void invalidateBookings(),
+    onSuccess: async (_data, bookingId) => {
+      await invalidateBookings()
+      await queryClient.invalidateQueries({
+        queryKey: staffQueryKeys.bookingDetail(bookingId),
+      })
+    },
   })
 
   const payosMutation = useMutation({
@@ -622,9 +630,9 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   )
 
   const startService = useCallback(
-    (bookingId: string, note?: string) =>
+    (bookingId: string, note?: string, allowEarlyStart?: boolean) =>
       wrapMutation(
-        () => startServiceMutation.mutateAsync({ bookingId, note }),
+        () => startServiceMutation.mutateAsync({ bookingId, note, allowEarlyStart }),
         'Đã bắt đầu dịch vụ.',
       ),
     [startServiceMutation],
