@@ -1,27 +1,27 @@
 import { ArrowRight, Camera, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getApiErrorMessage } from '../../api/client'
-import { PageHeader } from '../../components/layout/PageHeader'
-import { Badge } from '../../components/ui/Badge'
-import { Button } from '../../components/ui/Button'
+import { getApiErrorMessage } from '../../../api/client'
+import { PageHeader } from '../../../components/layout/PageHeader'
+import { Badge } from '../../../components/ui/Badge'
+import { Button } from '../../../components/ui/Button'
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from '../../components/ui/Card'
-import { EmptyState } from '../../components/ui/EmptyState'
-import { Label } from '../../components/ui/Label'
-import { DashboardPageSkeleton } from '../../components/ui/Skeleton'
-import { useToast } from '../../contexts/ToastContext'
+} from '../../../components/ui/Card'
+import { EmptyState } from '../../../components/ui/EmptyState'
+import { Label } from '../../../components/ui/Label'
+import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
+import { useToast } from '../../../contexts/ToastContext'
 import {
   useStaffArrivalQueue,
   useStaffPlateScans,
   useRecognizePlateMutation,
-} from '../../hooks/api/staff/useStaffPlateScans'
-import { uploadFileApi } from '../../api/upload.api'
-import { formatDateTime } from '../../utils/format'
+} from '../../../hooks/api/staff/useStaffPlateScans'
+import { uploadFileApi } from '../../../api/upload.api'
+import { formatDateTime } from '../../../utils/format'
 
 export function StaffArrivalQueuePage() {
   const { showToast } = useToast()
