@@ -38,7 +38,7 @@ export function clearStaffSessionStorage() {
 
 export function clearStaffSession() {
   clearStaffSessionStorage()
-  clearAccessToken()
+  clearAccessToken('STAFF')
 }
 
 export async function staffLogin(
@@ -73,7 +73,7 @@ async function performStaffLogin(
     })
 
     assertStaffLogin(loginData.user)
-    setAccessToken(loginData.access_token)
+    setAccessToken(loginData.access_token, { role: 'STAFF' })
 
     const session = await buildStaffSessionFromProfile()
     persistStaffSession(session)

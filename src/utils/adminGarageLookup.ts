@@ -6,6 +6,11 @@ import { normalizeSearchText } from './booking'
 export interface AdminGarageSummary extends Garage {
   washBayCount: number
   activeWashBayCount: number
+  /**
+   * Số buồng hiện đang trống (status=AVAILABLE + is_active=true).
+   * Dùng làm tử số cho hiển thị dạng "5/8 buồng" trên admin garage list.
+   */
+  availableWashBayCount: number
 }
 
 export function getAdminGarageSummaries(): AdminGarageSummary[] {
@@ -16,6 +21,9 @@ export function getAdminGarageSummaries(): AdminGarageSummary[] {
         ...garage,
         washBayCount: washBays.length,
         activeWashBayCount: washBays.filter((bay) => bay.is_active).length,
+        availableWashBayCount: washBays.filter(
+          (bay) => bay.is_active && bay.status === 'AVAILABLE',
+        ).length,
       }
     })
     .sort((a, b) => a.name.localeCompare(b.name, 'vi'))

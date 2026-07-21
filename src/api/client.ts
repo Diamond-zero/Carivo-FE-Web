@@ -1,6 +1,6 @@
 import axios, { type AxiosError } from 'axios'
 import type { ApiValidationError } from '../types/api'
-import { getAccessToken } from '../lib/auth/tokenStorage'
+import { getAccessTokenForRequest } from '../lib/auth/tokenStorage'
 
 const API_BASE_URL = `${import.meta.env.VITE_API_URL ?? 'https://wdp301-project-backend.onrender.com'}/api/v1`
 
@@ -15,7 +15,10 @@ export const apiClient = axios.create({
 })
 
 apiClient.interceptors.request.use((config) => {
-  const token = getAccessToken()
+  // Chọn token dựa trên URL đang được gọi, tránh gửi admin token cho
+  // staff route (hoặc ngược lại) khi cả hai đều đăng nhập cùng tab.
+  const targetUrl = config.url ?? ''
+  const token = getAccessTokenForRequest(targetUrl)
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
