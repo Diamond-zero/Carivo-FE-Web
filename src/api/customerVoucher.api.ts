@@ -27,4 +27,26 @@ export async function getCustomerVouchersApi(
   return { vouchers: data.data, meta: data.meta }
 }
 
+export async function approveCustomerVoucherApi(
+  voucherId: string,
+  payload: { note?: string | null } = {},
+): Promise<ApiCustomerVoucher> {
+  const { data } = await apiClient.patch<ApiResponse<ApiCustomerVoucher>>(
+    `/admin/customer-vouchers/${voucherId}/approve`,
+    payload,
+  )
+  return data.data
+}
+
+export async function revokeCustomerVoucherApi(
+  voucherId: string,
+  payload: { reason?: string } = {},
+): Promise<ApiCustomerVoucher> {
+  const { data } = await apiClient.patch<ApiResponse<ApiCustomerVoucher>>(
+    `/admin/customer-vouchers/${voucherId}/revoke`,
+    payload,
+  )
+  return data.data
+}
+
 export type { ApiResponse }

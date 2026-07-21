@@ -93,7 +93,7 @@ export function ServiceExecutionPage() {
     ? getStartServiceGuard(booking, staffGarageId)
     : { allowed: false as const }
   const completeServiceGuard = booking
-    ? getCompleteServiceGuard(booking, steps, staffGarageId)
+    ? getCompleteServiceGuard(booking, steps, staffGarageId, session?.staffProfile.id)
     : { allowed: false as const }
 
   const needsWashBayAssignment = assignWashBayGuard.allowed

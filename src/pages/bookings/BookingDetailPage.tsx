@@ -7,6 +7,7 @@ import {
   MapPin,
   Phone,
   User,
+  Users,
 } from 'lucide-react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { MarkPaidModal } from '../../components/booking/MarkPaidModal'
@@ -416,6 +417,52 @@ export function BookingDetailPage() {
         </CardHeader>
         <CardContent>
           <BookingServiceStepSummary steps={serviceSteps} />
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Users className="h-5 w-5 text-slate-500" />
+            Phân công nhân viên care
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!booking.requires_care_staff ? (
+            <p className="text-sm text-slate-500">
+              Gói dịch vụ này không yêu cầu nhân viên care.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="text-slate-600">Yêu cầu:</span>
+                <span className="font-medium text-slate-900">
+                  {booking.care_staff_required_count ?? 1} nhân viên
+                </span>
+                <span className="text-slate-400">·</span>
+                <span className="text-slate-600">Đã phân công:</span>
+                <span className="font-medium text-slate-900">
+                  {booking.assigned_care_staff_ids?.length ?? 0}
+                </span>
+              </div>
+              {booking.assigned_care_staff_ids &&
+              booking.assigned_care_staff_ids.length > 0 ? (
+                <ul className="space-y-1 text-sm text-slate-700">
+                  {booking.assigned_care_staff_ids.map((id) => (
+                    <li key={id} className="font-mono">
+                      · {id}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                  Chưa có nhân viên nào được phân công. Khi nhấn "Hoàn thành dịch vụ"
+                  BE sẽ từ chối với thông báo "You do not have the required staff
+                  capability" — liên hệ admin/manager để được gán vào danh sách.
+                </p>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

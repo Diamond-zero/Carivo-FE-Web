@@ -34,6 +34,7 @@ import {
   AdminServicePackageListPage,
   AdminServicePackageStepsPage,
   AdminSettingsPage,
+  AdminCustomerVouchersPage,
   AdminStaffFormPage,
   AdminStaffListPage,
   AdminStaffTypeChangeHistoryPage,
@@ -418,6 +419,14 @@ function App() {
                   element={
                     <LazyPage>
                       <AdminSurveysPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/customer-vouchers"
+                  element={
+                    <LazyPage>
+                      <AdminCustomerVouchersPage />
                     </LazyPage>
                   }
                 />

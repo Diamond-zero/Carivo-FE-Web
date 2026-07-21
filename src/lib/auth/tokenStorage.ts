@@ -32,12 +32,23 @@ import {
  */
 const STAFF_ALLOWED_ADMIN_PATHS: readonly string[] = [
   '/admin/bookings',
+  '/admin/waitlists',
   '/admin/wash-histories',
   '/admin/wash-bays',
   '/admin/promotions',
   '/admin/service-packages',
   '/admin/garages',
+  '/admin/analytics',
+  '/admin/audit-logs',
+  '/admin/customer-cases',
+  '/admin/customer-vouchers',
+  '/admin/customers',
+  '/admin/loyalty',
+  '/admin/payments',
+  '/admin/research',
   '/admin/staff-profiles/me', // profile & capabilities của staff hiện tại
+  '/admin/surveys',
+  '/admin/vehicles',
 ]
 
 function isStaffAllowedAdminPath(url: string): boolean {
@@ -49,9 +60,12 @@ function isStaffAllowedAdminPath(url: string): boolean {
 function pickActiveRole(): 'STAFF' | 'ADMIN' | null {
   const hasStaff = sessionStorage.getItem(STAFF_ACCESS_TOKEN_STORAGE_KEY)
   const hasAdmin = sessionStorage.getItem(ADMIN_ACCESS_TOKEN_STORAGE_KEY)
-  // Ưu tiên admin nếu có — admin token thường được lưu trước khi load admin UI.
-  if (hasAdmin) return 'ADMIN'
+  // Ưu tiên STAFF trước: nếu user vừa đăng nhập staff thì staff session đang
+  // active; việc lấy admin token ở đây sẽ gửi sai token cho các endpoint
+  // staff-side (/admin/waitlists, /admin/analytics, ...) và BE trả 401.
+  // Admin UI sẽ tự refresh tab khi người dùng chuyển qua đăng nhập admin.
   if (hasStaff) return 'STAFF'
+  if (hasAdmin) return 'ADMIN'
   return null
 }
 

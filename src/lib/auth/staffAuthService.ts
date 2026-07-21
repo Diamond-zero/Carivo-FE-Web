@@ -1,14 +1,14 @@
 import { loginApi, logoutApi } from '../../api/auth.api'
 import { getApiStatusCode } from '../../api/client'
 import type { ApiUser } from '../../types/api'
-import { STAFF_SESSION_STORAGE_KEY } from './constants'
+import { STAFF_ACCESS_TOKEN_STORAGE_KEY, STAFF_SESSION_STORAGE_KEY } from './constants'
 import {
   MockLoginError,
   mockStaffLogin,
   type StaffAuthSession,
 } from './mockStaffLogin'
 import { buildStaffSessionFromProfile } from './staffSessionBuilder'
-import { clearAccessToken, getAccessToken, setAccessToken } from './tokenStorage'
+import { clearAccessToken, setAccessToken } from './tokenStorage'
 
 let staffLoginInFlight: Promise<StaffAuthSession> | null = null
 
@@ -118,7 +118,13 @@ export async function restoreStaffSession(): Promise<StaffAuthSession | null> {
     }
   }
 
-  if (!getAccessToken()) {
+  // Chỉ restore staff session khi CÓ staff token thực sự. Nếu chỉ có admin
+  // token (hoặc legacy token của admin) thì KHÔNG gọi /staff-profiles/me —
+  // endpoint đó yêu cầu role STAFF, gọi với admin token sẽ 403 và gây
+  // trắng màn hình ở mọi trang khi admin login. Đây là lý do trang admin
+  // trước đây crash ngay khi load.
+  const hasStaffToken = Boolean(sessionStorage.getItem(STAFF_ACCESS_TOKEN_STORAGE_KEY))
+  if (!hasStaffToken) {
     clearStaffSession()
     return null
   }

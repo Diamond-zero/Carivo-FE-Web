@@ -74,6 +74,10 @@ export function mapApiBooking(booking: ApiBooking): Booking {
     cancellation_source: booking.cancellation_source ?? null,
     customer_voucher: booking.customer_voucher ?? null,
     voucher_discount_amount: booking.voucher_discount_amount ?? null,
+    // === Care-staff assignment (BE enriched fields) ===
+    requires_care_staff: booking.requires_care_staff ?? booking.service_package?.requires_care_staff,
+    care_staff_required_count: booking.care_staff_required_count ?? null,
+    assigned_care_staff_ids: booking.assigned_care_staff_ids ?? [],
     raw: booking,
   }
 }

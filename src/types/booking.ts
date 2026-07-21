@@ -58,6 +58,13 @@ export interface Booking {
   voucher_discount_amount?: number | null
   /** Toàn bộ field từ BE — không render UI, dùng cho debug/tích hợp sau */
   raw?: import('./api/staff').ApiBooking
+  // === Bổ sung cho bookingActionGuards (không lộ trên UI ngoài guard hint) ===
+  /** Service package có yêu cầu care_staff hay không. */
+  requires_care_staff?: boolean
+  /** Số nhân viên cần phân công. */
+  care_staff_required_count?: number
+  /** Danh sách staff_profile_id hiện đang được assign cho booking. */
+  assigned_care_staff_ids?: string[]
 }
 
 export interface WalkInBookingForm {

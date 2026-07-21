@@ -13,6 +13,7 @@ import {
   ScrollText,
   Settings,
   Star,
+  Ticket,
   Users,
 } from 'lucide-react'
 
@@ -103,6 +104,12 @@ export const adminNavItems: AdminNavItem[] = [
     section: 'management',
   },
   {
+    label: 'Voucher bồi thường',
+    path: '/admin/customer-vouchers',
+    icon: Ticket,
+    section: 'management',
+  },
+  {
     label: 'Đổi chức năng nhân viên',
     icon: ArrowRightLeft,
     section: 'management',
@@ -163,4 +170,5 @@ export const ADMIN_NAV_EXPAND_PREFIXES: Array<{
   { prefix: '/admin/analytics', groupLabel: 'Phân tích' },
   { prefix: '/admin/staff-type-change-requests', groupLabel: 'Đổi chức năng nhân viên' },
   { prefix: '/admin/staff-type-change-history', groupLabel: 'Đổi chức năng nhân viên' },
+  { prefix: '/admin/customer-vouchers', groupLabel: 'Voucher bồi thường' },
 ]

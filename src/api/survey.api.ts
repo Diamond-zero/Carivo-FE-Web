@@ -212,29 +212,16 @@ export async function retryAdminResearchReportApi(reportId: string) {
   return data.data
 }
 
-export async function getAnalyticsGaragesApi(params?: ApiAnalyticsParams) {
-  const { data } = await apiClient.get<ApiResponse<Record<string, unknown>>>(
-    '/admin/analytics/garages',
-    { params },
-  )
-  return data.data
-}
-
-export async function getAnalyticsServicesApi(params?: ApiAnalyticsParams) {
-  const { data } = await apiClient.get<ApiResponse<Record<string, unknown>>>(
-    '/admin/analytics/services',
-    { params },
-  )
-  return data.data
-}
-
-export async function getAnalyticsPromotionsApi(params?: ApiAnalyticsParams) {
-  const { data } = await apiClient.get<ApiResponse<Record<string, unknown>>>(
-    '/admin/analytics/promotions',
-    { params },
-  )
-  return data.data
-}
+// ----------------------------------------------------------------------------
+// Back-compat re-exports: the 3 analytics routes below live canonically in
+// `./analytics.api`. Some legacy call-sites may still import them from this
+// module — keep them re-exported to avoid breaking those imports.
+// ----------------------------------------------------------------------------
+export {
+  getAnalyticsGaragesApi,
+  getAnalyticsServicesApi,
+  getAnalyticsPromotionsApi,
+} from './analytics.api'
 
 export async function getAnalyticsSurveyApi(
   surveyId: string,

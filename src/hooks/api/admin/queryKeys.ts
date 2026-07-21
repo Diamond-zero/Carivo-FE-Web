@@ -62,4 +62,6 @@ export const adminQueryKeys = {
     [...adminQueryKeys.all, 'staff-type-change-history', staffProfileId] as const,
   staffTypeChangeImpact: (staffProfileId: string) =>
     [...adminQueryKeys.all, 'staff-type-change-impact', staffProfileId] as const,
+  customerVouchers: (params?: unknown) =>
+    [...adminQueryKeys.all, 'customer-vouchers', params] as const,
 }
