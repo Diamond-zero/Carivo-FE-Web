@@ -12,6 +12,9 @@ import {
   AdminAnalyticsBookingsPage,
   AdminAnalyticsRevenuePage,
   AdminAnalyticsWashBayPage,
+  AdminAnalyticsGaragesPage,
+  AdminAnalyticsServicesPage,
+  AdminAnalyticsPromotionsPage,
   AdminAuditLogsPage,
   AdminBookingDetailPage,
   AdminBookingListPage,
@@ -33,6 +36,9 @@ import {
   AdminSettingsPage,
   AdminStaffFormPage,
   AdminStaffListPage,
+  AdminStaffTypeChangeHistoryPage,
+  AdminStaffTypeChangeRequestDetailPage,
+  AdminStaffTypeChangeRequestsPage,
   AdminSurveysPage,
   AdminLoyaltyOverviewPage,
   AdminWaitlistsPage,
@@ -53,6 +59,16 @@ import {
   ServiceExecutionPage,
   SettingsPage,
   StaffLayout,
+  StaffWaitlistListPage,
+  StaffCompensationVouchersPage,
+  StaffHandoverPage,
+  StaffCustomerCasesPage,
+  StaffCustomerCaseDetailPage,
+  StaffCustomerCaseSlaDashboardPage,
+  StaffWalkInCaseCreatePage,
+  StaffTechnicalAssessmentPage,
+  StaffArrivalQueuePage,
+  StaffPlateScanDetailPage,
   WalkInCreatePage,
   WashHistoryPage,
 } from './routes/lazyPages'
@@ -178,6 +194,30 @@ function App() {
                   element={
                     <LazyPage>
                       <AdminStaffFormPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/staff-type-change-requests"
+                  element={
+                    <LazyPage>
+                      <AdminStaffTypeChangeRequestsPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/staff-type-change-requests/:requestId"
+                  element={
+                    <LazyPage>
+                      <AdminStaffTypeChangeRequestDetailPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/staff-type-change-history"
+                  element={
+                    <LazyPage>
+                      <AdminStaffTypeChangeHistoryPage />
                     </LazyPage>
                   }
                 />
@@ -342,6 +382,30 @@ function App() {
                   }
                 />
                 <Route
+                  path="/admin/analytics/garages"
+                  element={
+                    <LazyPage>
+                      <AdminAnalyticsGaragesPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/analytics/services"
+                  element={
+                    <LazyPage>
+                      <AdminAnalyticsServicesPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/analytics/promotions"
+                  element={
+                    <LazyPage>
+                      <AdminAnalyticsPromotionsPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
                   path="/admin/audit-logs"
                   element={
                     <LazyPage>
@@ -485,6 +549,86 @@ function App() {
                   element={
                     <LazyPage>
                       <SettingsPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/staff/waitlists"
+                  element={
+                    <LazyPage>
+                      <StaffWaitlistListPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/staff/vouchers"
+                  element={
+                    <LazyPage>
+                      <StaffCompensationVouchersPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/staff/handover/:bookingId"
+                  element={
+                    <LazyPage>
+                      <StaffHandoverPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/staff/cases"
+                  element={
+                    <LazyPage>
+                      <StaffCustomerCasesPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/staff/cases/sla"
+                  element={
+                    <LazyPage>
+                      <StaffCustomerCaseSlaDashboardPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/staff/cases/walk-in"
+                  element={
+                    <LazyPage>
+                      <StaffWalkInCaseCreatePage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/staff/cases/:caseId/technical-assessment"
+                  element={
+                    <LazyPage>
+                      <StaffTechnicalAssessmentPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/staff/cases/:caseId"
+                  element={
+                    <LazyPage>
+                      <StaffCustomerCaseDetailPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/staff/arrivals"
+                  element={
+                    <LazyPage>
+                      <StaffArrivalQueuePage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/staff/arrivals/:scanId"
+                  element={
+                    <LazyPage>
+                      <StaffPlateScanDetailPage />
                     </LazyPage>
                   }
                 />

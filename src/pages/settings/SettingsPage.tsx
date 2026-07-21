@@ -28,6 +28,8 @@ import { getApiErrorMessage } from '../../api/client'
 
 import { ChangePasswordForm } from '../../components/settings/ChangePasswordForm'
 import { EditProfileForm } from '../../components/settings/EditProfileForm'
+import { StaffCapabilitiesCard } from '../../components/settings/StaffCapabilitiesCard'
+import { StaffTypeChangeCard } from '../../components/settings/StaffTypeChangeCard'
 import { PageHeader } from '../../components/layout/PageHeader'
 
 import { SettingsInfoRow } from '../../components/settings/SettingsInfoRow'
@@ -53,6 +55,7 @@ import { STAFF_TYPE_COLORS, STAFF_TYPE_LABELS } from '../../constants/staffType'
 import { useAuth } from '../../contexts/AuthContext'
 
 import { useStaffSettings } from '../../hooks/api/staff/useStaffSettings'
+import { useStaffCapabilities } from '../../hooks/api/staff/useStaffTypeChangeRequests'
 
 import { cn } from '../../lib/utils'
 
@@ -77,6 +80,8 @@ export function SettingsPage() {
     refetch,
 
   } = useStaffSettings()
+
+  const capabilitiesQuery = useStaffCapabilities()
 
 
 
@@ -504,6 +509,18 @@ export function SettingsPage() {
         </Card>
 
 
+
+        <StaffCapabilitiesCard
+          capabilities={capabilitiesQuery.data?.capabilities ?? []}
+          isLoading={capabilitiesQuery.isLoading}
+          errorMessage={
+            capabilitiesQuery.isError
+              ? getApiErrorMessage(capabilitiesQuery.error, 'Không tải được quyền.')
+              : null
+          }
+        />
+
+        <StaffTypeChangeCard currentStaffType={staffProfile.staff_type} />
 
         <Card className="lg:col-span-2">
 

@@ -12,6 +12,7 @@ import { Link, useLocation, useParams } from 'react-router-dom'
 import { MarkPaidModal } from '../../components/booking/MarkPaidModal'
 import { BookingExceptionActions } from '../../components/booking/BookingExceptionActions'
 import { GuardedActionButton } from '../../components/booking/GuardedActionButton'
+import { StaffBookingIncidentActions } from '../../components/booking/StaffBookingIncidentActions'
 import { BookingServiceStepSummary } from '../../components/booking/BookingServiceStepSummary'
 import { BookingStatusBadge } from '../../components/booking/BookingStatusBadge'
 import { BookingTimeline } from '../../components/booking/BookingTimeline'
@@ -229,6 +230,17 @@ export function BookingDetailPage() {
             Không cần buồng rửa
           </span>
         ) : null}
+      </div>
+
+      <div className="mb-4">
+        <StaffBookingIncidentActions
+          booking={booking}
+          onChanged={() => {
+            if (id) {
+              void detailQuery.refetch()
+            }
+          }}
+        />
       </div>
 
       <div className="mb-6">

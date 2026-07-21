@@ -93,6 +93,10 @@ interface BookingContextValue {
   getServicePackagesByVehicleType: (
     vehicleType: Booking['vehicle_type'],
   ) => ServicePackage[]
+  /** Đặt vehicle_type hiện tại để BE filter `/service-packages` đúng cách. */
+  setServicePackageVehicleType: (
+    vehicleType: Booking['vehicle_type'] | null,
+  ) => void
   assignWashBay: (bookingId: string, washBayId: string) => Promise<ActionResult>
   searchCheckInCandidates: (query: string) => Booking[]
   checkInBooking: (id: string) => Promise<ActionResult>
@@ -152,6 +156,16 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   const [availableBaysByBooking, setAvailableBaysByBooking] = useState<
     Record<string, WashBay[]>
   >({})
+  /**
+   * vehicle_type staff đang xem cho dropdown service-package. Mặc định null
+   * = BE trả toàn bộ (giữ backward-compat cho các màn khác). Khi staff đổi
+   * "Loại xe" trong WalkInForm thì state này được set để trigger fetch mới
+   * với query param BE-side filter. Quan trọng: nếu KHÔNG truyền
+   * `vehicle_type`, BE chỉ trả 1 MOTORBIKE add-on (xem thử nghiệm API).
+   */
+  const [servicePackageVehicleType, setServicePackageVehicleType] = useState<
+    Booking['vehicle_type'] | null
+  >(null)
 
   // Staff không có quyền GET /admin/garages/:id/wash-bays — suy buồng rửa từ bookings.
   const washBaysQuery = useQuery({
@@ -176,9 +190,17 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   })
 
   const servicePackagesQuery = useQuery({
-    queryKey: staffQueryKeys.servicePackages,
+    queryKey: [
+      ...staffQueryKeys.servicePackages,
+      servicePackageVehicleType ?? 'ALL',
+    ],
     queryFn: async () => {
-      const packages = await getServicePackagesApi()
+      // BE list `/service-packages` mặc định không trả đầy đủ gói MOTORBIKE
+      // (chỉ trả 1 gói ADDON). Phải truyền `vehicle_type` để BE filter server
+      // side — nếu không dropdown "Gói dịch vụ" sẽ trống khi staff chọn xe máy.
+      const packages = await getServicePackagesApi(
+        servicePackageVehicleType ?? undefined,
+      )
       return packages.map(mapApiServicePackage)
     },
     enabled: isAuthenticated,
@@ -742,6 +764,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       fetchAvailableWashBaysForBooking,
       getServicePackageName: getServicePackageNameFn,
       getServicePackagesByVehicleType: getServicePackagesByVehicleTypeFn,
+      setServicePackageVehicleType,
       assignWashBay,
       searchCheckInCandidates,
       checkInBooking,

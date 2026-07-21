@@ -4,8 +4,11 @@ import type {
   AnalyticsOverview,
   BookingStatusStat,
   DailyBookingStat,
+  GaragePerformanceRow,
   GarageRevenueStat,
   MonthlyRevenueStat,
+  PromotionPerformanceRow,
+  ServicePerformanceRow,
   VehicleTypeBookingStat,
   WashBayPerformanceRow,
 } from '../../types/adminAnalytics'
@@ -257,6 +260,133 @@ export function mapWashBayPerformanceRows(
         'avg_wait_minutes',
         'avgWaitMinutes',
         'average_wait_minutes',
+      ),
+    }
+  })
+}
+
+export function mapGaragePerformanceRows(
+  data: Record<string, unknown>,
+): GaragePerformanceRow[] {
+  const items = readArray(
+    data,
+    'garages',
+    'garage_stats',
+    'garageStats',
+    'garage_performance',
+    'rows',
+  )
+
+  return items.map((item, index) => {
+    const row = (item ?? {}) as Record<string, unknown>
+    const garage = readRecord(row, 'garage')
+    return {
+      garage_id:
+        readString(row, 'garage_id', 'garageId') || readString(garage, 'id') || `garage-${index}`,
+      garage_name:
+        readString(row, 'garage_name', 'garageName') || readString(garage, 'name') || '—',
+      total_bookings: readNumber(row, 'total_bookings', 'totalBookings', 'bookings'),
+      total_revenue: readNumber(row, 'total_revenue', 'totalRevenue', 'revenue'),
+      utilization_percent: readNumber(
+        row,
+        'utilization_percent',
+        'utilizationPercent',
+        'utilization',
+      ),
+      average_rating: readNumber(row, 'average_rating', 'averageRating', 'rating'),
+      customer_count: readNumber(row, 'customer_count', 'customerCount', 'customers'),
+    }
+  })
+}
+
+export function mapServicePerformanceRows(
+  data: Record<string, unknown>,
+): ServicePerformanceRow[] {
+  const items = readArray(
+    data,
+    'services',
+    'service_stats',
+    'serviceStats',
+    'service_performance',
+    'service_packages',
+    'rows',
+  )
+
+  return items.map((item, index) => {
+    const row = (item ?? {}) as Record<string, unknown>
+    const pkg = readRecord(row, 'service_package', 'servicePackage')
+    return {
+      service_package_id:
+        readString(row, 'service_package_id', 'servicePackageId') ||
+        readString(pkg, 'id') ||
+        `service-${index}`,
+      service_name:
+        readString(row, 'service_name', 'serviceName') ||
+        readString(pkg, 'name') ||
+        readString(row, 'name') ||
+        '—',
+      total_bookings: readNumber(row, 'total_bookings', 'totalBookings', 'bookings'),
+      total_revenue: readNumber(row, 'total_revenue', 'totalRevenue', 'revenue'),
+      average_price: readNumber(
+        row,
+        'average_price',
+        'averagePrice',
+        'avg_price',
+        'avgPrice',
+      ),
+      customer_satisfaction: readNumber(
+        row,
+        'customer_satisfaction',
+        'customerSatisfaction',
+        'satisfaction',
+      ),
+    }
+  })
+}
+
+export function mapPromotionPerformanceRows(
+  data: Record<string, unknown>,
+): PromotionPerformanceRow[] {
+  const items = readArray(
+    data,
+    'promotions',
+    'promotion_stats',
+    'promotionStats',
+    'promotion_performance',
+    'rows',
+  )
+
+  return items.map((item, index) => {
+    const row = (item ?? {}) as Record<string, unknown>
+    const promo = readRecord(row, 'promotion')
+    return {
+      promotion_id:
+        readString(row, 'promotion_id', 'promotionId') ||
+        readString(promo, 'id') ||
+        `promo-${index}`,
+      promotion_name:
+        readString(row, 'promotion_name', 'promotionName') ||
+        readString(promo, 'name') ||
+        readString(row, 'name') ||
+        '—',
+      code:
+        readString(row, 'code', 'promo_code', 'promoCode') ||
+        readString(promo, 'code') ||
+        '—',
+      total_uses: readNumber(row, 'total_uses', 'totalUses', 'uses', 'usage_count'),
+      total_discount: readNumber(
+        row,
+        'total_discount',
+        'totalDiscount',
+        'discount_amount',
+        'discountAmount',
+      ),
+      total_revenue: readNumber(row, 'total_revenue', 'totalRevenue', 'revenue'),
+      conversion_rate: readNumber(
+        row,
+        'conversion_rate',
+        'conversionRate',
+        'conversion',
       ),
     }
   })

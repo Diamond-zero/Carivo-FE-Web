@@ -1,7 +1,9 @@
 import { ArrowLeft, UserX } from 'lucide-react'
+import { useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { getApiErrorMessage } from '../../../api/client'
 import { AdminStaffForm } from '../../../components/admin/staff/AdminStaffForm'
+import { AdminStaffTypeChangeRequestModal } from '../../../components/admin/staff/AdminStaffTypeChangeRequestModal'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
@@ -13,7 +15,10 @@ import {
   useCreateAdminStaff,
   useUpdateAdminStaff,
 } from '../../../hooks/api/admin/useAdminStaff'
-import type { AdminStaffFormValues } from '../../../lib/validations/adminStaff'
+import type {
+  AdminStaffCreateFormValues,
+  AdminStaffEditFormValues,
+} from '../../../lib/validations/adminStaff'
 import type { StaffType } from '../../../types/staffProfile'
 
 export function AdminStaffFormPage() {
@@ -26,6 +31,7 @@ export function AdminStaffFormPage() {
   const profileQuery = useAdminStaffProfile(!isCreate ? profileId : undefined)
   const createMutation = useCreateAdminStaff()
   const updateMutation = useUpdateAdminStaff()
+  const [typeChangeOpen, setTypeChangeOpen] = useState(false)
 
   const record = profileQuery.data ?? undefined
   const isSubmitting = createMutation.isPending || updateMutation.isPending
@@ -63,38 +69,42 @@ export function AdminStaffFormPage() {
     )
   }
 
-  const handleSubmit = async (values: AdminStaffFormValues) => {
-    const garageId = values.garage_id && values.garage_id.length > 0 ? values.garage_id : null
-    if (isCreate) {
-      createMutation.mutate(
-        {
-          user_id: values.user_id,
-          staff_code: values.staff_code,
-          staff_type: values.staff_type as StaffType,
-          garage_id: garageId,
-          is_active: values.is_active,
+  const handleCreateSubmit = async (values: AdminStaffCreateFormValues) => {
+    const garageId =
+      values.garage_id && values.garage_id.length > 0 ? values.garage_id : null
+    createMutation.mutate(
+      {
+        user_id: values.user_id,
+        staff_code: values.staff_code,
+        staff_type: values.staff_type as StaffType,
+        garage_id: garageId,
+        is_active: values.is_active,
+      },
+      {
+        onSuccess: (created) => {
+          showToast(`Đã tạo hồ sơ ${created.profile.staff_code}.`, 'success')
+          navigate('/admin/users/staff')
         },
-        {
-          onSuccess: (created) => {
-            showToast(`Đã tạo hồ sơ ${created.profile.staff_code}.`, 'success')
-            navigate('/admin/users/staff')
-          },
-          onError: (error) => {
-            showToast(getApiErrorMessage(error, 'Không thể tạo hồ sơ nhân viên.'), 'error')
-          },
+        onError: (error) => {
+          showToast(
+            getApiErrorMessage(error, 'Không thể tạo hồ sơ nhân viên.'),
+            'error',
+          )
         },
-      )
-      return
-    }
+      },
+    )
+  }
 
+  const handleEditSubmit = async (values: AdminStaffEditFormValues) => {
     if (!profileId) return
-
+    const garageId =
+      values.garage_id && values.garage_id.length > 0 ? values.garage_id : null
+    // BE StaffProfileUpdateRequest KHÔNG nhận staff_type.
     updateMutation.mutate(
       {
         profileId,
         payload: {
           staff_code: values.staff_code,
-          staff_type: values.staff_type as StaffType,
           garage_id: garageId,
           is_active: values.is_active,
         },
@@ -105,7 +115,10 @@ export function AdminStaffFormPage() {
           navigate('/admin/users/staff')
         },
         onError: (error) => {
-          showToast(getApiErrorMessage(error, 'Không thể cập nhật hồ sơ nhân viên.'), 'error')
+          showToast(
+            getApiErrorMessage(error, 'Không thể cập nhật hồ sơ nhân viên.'),
+            'error',
+          )
         },
       },
     )
@@ -143,11 +156,31 @@ export function AdminStaffFormPage() {
               <AdminStaffForm
                 mode={isCreate ? 'create' : 'edit'}
                 initialRecord={record}
-                onSubmit={handleSubmit}
+                onSubmit={
+                  isCreate
+                    ? handleCreateSubmit
+                    : (handleEditSubmit as (
+                        values: AdminStaffEditFormValues,
+                      ) => Promise<void>)
+                }
                 isSubmitting={isSubmitting}
+                onRequestTypeChange={() => setTypeChangeOpen(true)}
               />
             </CardContent>
           </Card>
+
+          <AdminStaffTypeChangeRequestModal
+            open={typeChangeOpen}
+            record={record ?? null}
+            onClose={() => setTypeChangeOpen(false)}
+            onSubmitted={() => {
+              showToast(
+                'Đã gửi yêu cầu. Mở trang Yêu cầu đổi chức năng để theo dõi.',
+                'success',
+              )
+              navigate('/admin/staff-type-change-requests')
+            }}
+          />
         </>
       )}
     </div>

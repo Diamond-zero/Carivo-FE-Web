@@ -46,7 +46,10 @@ export function WalkInForm({
   isSubmitting = false,
   garage,
 }: WalkInFormProps) {
-  const { getServicePackagesByVehicleType } = useBookings()
+  const {
+    getServicePackagesByVehicleType,
+    setServicePackageVehicleType,
+  } = useBookings()
   const [timeSlot, setTimeSlot] = useState<WalkInTimeSlotOption>('now')
   const [customTime, setCustomTime] = useState('')
   const [selectedAddOnIds, setSelectedAddOnIds] = useState<string[]>([])
@@ -72,6 +75,30 @@ export function WalkInForm({
   })
 
   const vehicleType = watch('vehicle_type')
+
+  /**
+   * Quan trọng: phải đồng bộ vehicle_type với BookingContext để BE fetch
+   * lại `/service-packages?vehicle_type=...`. Nếu không truyền filter,
+   * BE mặc định chỉ trả về 1 gói MOTORBIKE ADDON → dropdown "Gói dịch vụ"
+   * sẽ trống khi staff chọn "Xe máy" (xem scripts/test-api2.cjs).
+   */
+  useEffect(() => {
+    if (vehicleType === 'CAR' || vehicleType === 'MOTORBIKE') {
+      setServicePackageVehicleType(vehicleType)
+    } else {
+      setServicePackageVehicleType(null)
+    }
+  }, [vehicleType, setServicePackageVehicleType])
+
+  /**
+   * Khi unmount form, reset filter về null để các trang khác (vd.
+   * WalkInForm khác, BookingList, ...) lấy được danh sách đầy đủ.
+   */
+  useEffect(() => {
+    return () => {
+      setServicePackageVehicleType(null)
+    }
+  }, [setServicePackageVehicleType])
   const servicePackageId = watch('service_package_id')
 
   const packages = useMemo(

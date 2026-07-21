@@ -38,4 +38,8 @@ export const staffQueryKeys = {
   serviceSteps: (bookingId: string) => ['staff', 'bookings', bookingId, 'service-steps'] as const,
   inspections: (bookingId: string) => ['staff', 'bookings', bookingId, 'inspections'] as const,
   settings: ['staff', 'settings'] as const,
+  capabilities: ['staff', 'capabilities'] as const,
+  myTypeChangeRequests: ['staff', 'type-change-requests'] as const,
+  waitlists: (garageId?: string) => ['staff', 'waitlists', garageId] as const,
+  customerVouchers: (garageId?: string) => ['staff', 'customer-vouchers', garageId] as const,
 }

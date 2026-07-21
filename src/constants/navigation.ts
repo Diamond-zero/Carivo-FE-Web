@@ -1,10 +1,15 @@
 import type { LucideIcon } from 'lucide-react'
 import {
-  Camera,
+  AlertTriangle,
+  Camera as CameraIcon,
   ClipboardList,
   History,
+  Hourglass,
   LayoutDashboard,
+  Search,
   Settings,
+  Ticket,
+  Truck,
   Users,
   Wrench,
 } from 'lucide-react'
@@ -56,8 +61,38 @@ export const staffNavItems: StaffNavItem[] = [
   {
     label: 'Kiểm tra xe',
     path: '/service/inspection',
-    icon: Camera,
+    icon: Search,
     section: 'operations',
+  },
+  {
+    label: 'Camera cổng',
+    path: '/staff/arrivals',
+    icon: CameraIcon,
+    section: 'operations',
+  },
+  {
+    label: 'Bàn giao xe',
+    path: '/bookings',
+    icon: Truck,
+    section: 'operations',
+  },
+  {
+    label: 'Danh sách chờ',
+    path: '/staff/waitlists',
+    icon: Hourglass,
+    section: 'operations',
+  },
+  {
+    label: 'Hồ sơ khiếu nại',
+    path: '/staff/cases',
+    icon: AlertTriangle,
+    section: 'records',
+  },
+  {
+    label: 'Voucher bồi thường',
+    path: '/staff/vouchers',
+    icon: Ticket,
+    section: 'records',
   },
   {
     label: 'Lịch sử rửa',

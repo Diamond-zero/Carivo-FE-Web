@@ -1,10 +1,12 @@
 import type { LucideIcon } from 'lucide-react'
 import {
+  ArrowRightLeft,
   BarChart3,
   Building2,
   ClipboardList,
   FileSearch,
   Gift,
+  History,
   LayoutDashboard,
   MessageSquare,
   Package,
@@ -101,6 +103,15 @@ export const adminNavItems: AdminNavItem[] = [
     section: 'management',
   },
   {
+    label: 'Đổi chức năng nhân viên',
+    icon: ArrowRightLeft,
+    section: 'management',
+    children: [
+      { label: 'Yêu cầu đổi loại nhân viên', path: '/admin/staff-type-change-requests' },
+      { label: 'Lịch sử đổi', path: '/admin/staff-type-change-history' },
+    ],
+  },
+  {
     label: 'Phân tích',
     icon: BarChart3,
     section: 'insights',
@@ -108,6 +119,9 @@ export const adminNavItems: AdminNavItem[] = [
       { label: 'Doanh thu', path: '/admin/analytics/revenue' },
       { label: 'Booking', path: '/admin/analytics/bookings' },
       { label: 'Hiệu suất buồng rửa', path: '/admin/analytics/wash-bay' },
+      { label: 'Hiệu suất chi nhánh', path: '/admin/analytics/garages' },
+      { label: 'Hiệu suất gói dịch vụ', path: '/admin/analytics/services' },
+      { label: 'Hiệu quả khuyến mãi', path: '/admin/analytics/promotions' },
     ],
   },
   {
@@ -147,4 +161,6 @@ export const ADMIN_NAV_EXPAND_PREFIXES: Array<{
   { prefix: '/admin/wash-histories', groupLabel: 'Đặt lịch' },
   { prefix: '/admin/loyalty', groupLabel: 'Loyalty' },
   { prefix: '/admin/analytics', groupLabel: 'Phân tích' },
+  { prefix: '/admin/staff-type-change-requests', groupLabel: 'Đổi chức năng nhân viên' },
+  { prefix: '/admin/staff-type-change-history', groupLabel: 'Đổi chức năng nhân viên' },
 ]
