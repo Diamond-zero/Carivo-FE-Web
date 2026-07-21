@@ -203,6 +203,74 @@ export interface ApiBooking {
   note: string | null
   created_at?: string
   updated_at?: string
+  // === Bổ sung theo BE (booking-incident-workflow.md + staff-api-changes.md section 6) ===
+  /** Trạng thái nghiệp vụ phái sinh — AWAITING_PAYMENT | AWAITING_CUSTOMER_DECISION | INCIDENT_HOLD | ... */
+  operation_status?: string | null
+  /** ID của incident đang hoạt động (nếu có). */
+  active_incident_id?: string | null
+  /** Chi tiết incident đang hoạt động. */
+  active_incident?: ApiBookingIncident | null
+  /** Nguồn hủy: CUSTOMER | GARAGE_INCIDENT | ADMIN | NO_SHOW | ... */
+  cancellation_source?: string | null
+  /** ID incident dẫn tới hủy booking (nếu cancellation_source = GARAGE_INCIDENT). */
+  cancellation_incident_id?: string | null
+  /** Voucher bồi thường (compensation) gắn với booking. */
+  customer_voucher_id?: string | null
+  customer_voucher?: ApiCustomerVoucher | null
+  /** Số tiền giảm từ voucher bồi thường (VND). */
+  voucher_discount_amount?: number | null
+  /** Staff hành chính phụ trách kiểm tra xe (admin assign). */
+  assigned_inspection_staff_id?: string | null
+  assigned_inspection_staff?: Record<string, unknown> | null
+}
+
+/** BE trả về trong `incident/active` và embedded trong `Booking.active_incident`. */
+export interface ApiBookingIncident {
+  id: string
+  booking_id: string
+  incident_type:
+    | 'WASH_BAY_FAILURE'
+    | 'STAFF_UNAVAILABLE'
+    | 'OTHER_GARAGE_INCIDENT'
+    | string
+  description?: string | null
+  affected_booking_item_key?: string | null
+  affected_wash_bay_id?: string | null
+  affected_care_staff_id?: string | null
+  status: 'OPEN' | 'AWAITING_CUSTOMER_DECISION' | 'RESOLVED' | string
+  resolution?: string | null
+  customer_decision?: string | null
+  new_start_time?: string | null
+  created_by_id?: string | null
+  resolved_at?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+/** Voucher bồi thường (compensation) — swagger `CustomerVoucher`. */
+export interface ApiCustomerVoucher {
+  id: string
+  code: string
+  voucher_type: 'FIXED_AMOUNT' | 'PERCENTAGE' | 'FREE_SERVICE' | string
+  value: number
+  max_discount_amount?: number | null
+  min_order_amount?: number | null
+  service_package_id?: string | null
+  status:
+    | 'PENDING_APPROVAL'
+    | 'ISSUED'
+    | 'RESERVED'
+    | 'REDEEMED'
+    | 'EXPIRED'
+    | 'REVOKED'
+    | string
+  expires_at?: string | null
+  source_customer_case_id?: string | null
+  source_booking_incident_id?: string | null
+  customer_id?: string | null
+  note?: string | null
+  created_at?: string
+  updated_at?: string
 }
 
 export interface ApiBookingListMeta {
@@ -265,6 +333,50 @@ export interface ApiBookingServiceStep {
   instructions: string[]
   started_at: string | null
   completed_at: string | null
+}
+
+/**
+ * Service workflow response — BE `GET /admin/bookings/:id/service-workflow`.
+ * Trả về danh sách item kèm countdown và quyền thao tác theo staff assignment.
+ */
+export type ApiServiceWorkflowPhase =
+  | 'PENDING'
+  | 'RUNNING'
+  | 'PAUSED'
+  | 'INCIDENT_HOLD'
+  | 'COMPLETED'
+
+export interface ApiServiceWorkflowItem {
+  item_key: string
+  step_name: string
+  step_code?: string
+  step_type?: string
+  sequence: number
+  status: 'PENDING' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'TIMED_OUT' | string
+  duration_seconds: number
+  started_at: string | null
+  ends_at: string | null
+  paused_at?: string | null
+  remaining_seconds?: number | null
+  /** Quyền thao tác mà BE trả về theo staff capability/assignment. */
+  controls: {
+    can_complete_early: boolean
+    can_confirm_complete: boolean
+    can_pause: boolean
+    can_resume: boolean
+  }
+  assigned_execution_staff?: ApiBookingAssignedCareStaff | null
+}
+
+export interface ApiServiceWorkflow {
+  booking_id: string
+  status: string
+  operation_status?: string | null
+  phase: ApiServiceWorkflowPhase
+  blocked_by_incident?: boolean
+  active_incident_id?: string | null
+  items: ApiServiceWorkflowItem[]
+  total_duration_seconds?: number | null
 }
 
 export interface ApiVehicleInspectionImage {
@@ -507,6 +619,21 @@ export interface ApiPaymentTransaction {
   created_by_staff_id?: string | null
   created_at: string
   updated_at: string
+  /** BE bổ sung: metadata về bên khởi tạo payment (staff-api-changes.md + payment workflow docs). */
+  initiator?: {
+    actor_type: 'CUSTOMER' | 'STAFF' | 'ADMIN' | 'WEBHOOK' | 'SYSTEM' | string
+    actor_id?: string | null
+    actor_name?: string | null
+    initiated_at?: string
+    source?: 'STAFF_PORTAL' | 'CUSTOMER_APP' | 'ADMIN_PORTAL' | string
+  } | null
+  /** Audit cho terminal/failure paths — BE không ghi đè transaction đã terminal. */
+  audit?: Array<{
+    event: 'CONFIRMED' | 'FAILED' | 'CANCELED' | 'EXPIRED' | string
+    at: string
+    by?: string | null
+    note?: string | null
+  }>
 }
 
 export interface ApiStaffCustomerVehicle {
@@ -529,4 +656,92 @@ export interface ApiStaffCustomer {
   vehicles: ApiStaffCustomerVehicle[]
   last_booking_at?: string | null
   total_bookings_at_garage?: number
+}
+
+// ============================================================
+// Service Workflow — BE PATCH /admin/bookings/:id/service-items/:itemKey/*
+// ============================================================
+
+export interface ApiServiceWorkflowItemPayload {
+  /** ISO 8601 local time. Chỉ cần với pause/resume trong một số trường hợp. */
+  note?: string
+}
+
+export type ApiServiceWorkflowItemResponse = ApiServiceWorkflow
+
+// ============================================================
+// Booking Incident — BE POST /admin/bookings/:id/incidents
+// ============================================================
+
+export type ApiBookingIncidentType =
+  | 'WASH_BAY_FAILURE'
+  | 'STAFF_UNAVAILABLE'
+  | 'OTHER_GARAGE_INCIDENT'
+
+export type ApiIncidentDecision =
+  | 'REASSIGN_AND_CONTINUE'
+  | 'RESCHEDULE_NEAREST'
+  | 'RESCHEDULE_CUSTOM'
+  | 'CANCEL_BY_GARAGE'
+
+export type ApiIncidentContactChannel = 'PHONE' | 'IN_PERSON'
+
+export interface ApiReportBookingIncidentPayload {
+  incident_type: ApiBookingIncidentType
+  /** Bắt buộc khi incident_type = OTHER_GARAGE_INCIDENT (BE validate). */
+  description?: string
+  affected_booking_item_key?: string
+  affected_wash_bay_id?: string
+  affected_care_staff_id?: string
+}
+
+export interface ApiBookingIncidentActive {
+  incident: ApiBookingIncident
+  /** Tùy chọn: danh sách outcome khả dĩ mà BE cung cấp sẵn. */
+  resolution_options?: Array<{
+    decision: ApiIncidentDecision
+    label: string
+    requires_new_start_time?: boolean
+  }>
+}
+
+export interface ApiIncidentResolutionOptions {
+  booking_id: string
+  incident_id: string
+  /** Slot gợi ý cho RESCHEDULE_NEAREST/RESCHEDULE_CUSTOM. */
+  suggested_slots?: Array<ApiLateArrivalSuggestedSlot>
+  /** Buồng rửa/staff đề xuất cho REASSIGN_AND_CONTINUE. */
+  reassignment_candidates?: {
+    wash_bays?: Array<{ id: string; name: string; bay_code: string }>
+    care_staff?: Array<{ staff_profile_id: string; full_name: string }>
+  }
+}
+
+export interface ApiRecordCustomerDecisionPayload {
+  decision: ApiIncidentDecision
+  /** Bắt buộc khi decision = RESCHEDULE_CUSTOM. */
+  new_start_time?: string
+  /** "RESUME_REMAINING" | "RESTART" — chính sách tiếp tục đếm. */
+  continuation_policy?: 'RESUME_REMAINING' | 'RESTART'
+  customer_note?: string
+  /** Bắt buộc khi staff ghi nhận thay: 'PHONE' | 'IN_PERSON'. */
+  contact_channel?: ApiIncidentContactChannel
+}
+
+export type ApiCompensationVoucherType =
+  | 'FIXED_AMOUNT'
+  | 'PERCENTAGE'
+  | 'FREE_SERVICE'
+
+export interface ApiIssueCompensationVoucherPayload {
+  voucher_type: ApiCompensationVoucherType
+  /** Số tiền hoặc phần trăm; FREE_SERVICE thì value = 0. */
+  value: number
+  min_order_amount?: number
+  /** Chỉ áp dụng cho PERCENTAGE. */
+  max_discount_amount?: number
+  expires_at: string
+  /** Bắt buộc khi voucher_type = FREE_SERVICE. */
+  service_package_id?: string
+  note?: string
 }

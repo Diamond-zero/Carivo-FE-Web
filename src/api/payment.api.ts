@@ -23,6 +23,14 @@ export interface CreatePayosPaymentResult {
   reused?: boolean
 }
 
+export interface PollingPayosPaymentResult {
+  booking_id: string
+  payment: ApiPaymentTransaction | null
+  has_active_payment: boolean
+  /** Người khởi tạo payment. BE trả null nếu payment không active. */
+  initiator?: ApiPaymentTransaction['initiator']
+}
+
 export async function createPayosPaymentApi(
   bookingId: string,
   payload?: CreatePayosPaymentPayload,
@@ -49,6 +57,9 @@ export async function markBookingPaidWithCashApi(
       throw error
     }
 
+    // BE payment workflow docs: khi staff muốn thu tiền mặt, BE đang giữ
+    // payment PayOS pending — staff hủy payment đó trước rồi mới mark-paid.
+    // Xem docs BE "Payment transaction lock" + payment.api.ts:44-58 (cũ).
     const { payment } = await createPayosPaymentApi(bookingId)
     await cancelPaymentApi(payment.id, {
       reason: note?.trim() || 'Staff confirmed cash payment',
@@ -80,6 +91,25 @@ export async function expirePaymentApi(paymentId: string) {
   const { data } = await apiClient.patch<ApiResponse<ApiPaymentDetailResult>>(
     `/admin/payments/${paymentId}/expire`,
     {},
+  )
+  return data.data
+}
+
+// ============================================================================
+// Polling — BE payment workflow docs (payment-by-role mục "API mới / thay đổi"):
+//   GET /api/v1/admin/payments/bookings/:bookingId/payos  — staff/admin polling
+//   GET /api/v1/payments/bookings/:bookingId/payos        — customer polling
+// Mỗi bên đều trả về payment active (nếu có). FE customer/admin dùng chung
+// helper này + truyền `endpoint` tương ứng.
+// ============================================================================
+
+export async function pollBookingPayosPaymentApi(
+  bookingId: string,
+  role: 'CUSTOMER' | 'STAFF',
+) {
+  const base = role === 'CUSTOMER' ? '/payments' : '/admin/payments'
+  const { data } = await apiClient.get<ApiResponse<PollingPayosPaymentResult>>(
+    `${base}/bookings/${bookingId}/payos`,
   )
   return data.data
 }

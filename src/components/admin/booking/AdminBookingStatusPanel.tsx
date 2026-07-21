@@ -1,4 +1,4 @@
-import { Ban, CircleDollarSign, Loader2, RotateCcw, ShieldAlert } from 'lucide-react'
+import { Ban, CircleDollarSign, Loader2, RotateCcw, ShieldAlert, Siren } from 'lucide-react'
 import { useState } from 'react'
 import { BOOKING_STATUS_LABELS } from '../../../constants/bookingStatus'
 import type { Booking, BookingStatus } from '../../../types/booking'
@@ -7,6 +7,7 @@ import { Button } from '../../ui/Button'
 import { Label } from '../../ui/Label'
 import { Modal } from '../../ui/Modal'
 import { Select } from '../../ui/Select'
+import { IncidentResolutionModal } from './IncidentResolutionModal'
 
 interface AdminBookingStatusPanelProps {
   booking: Booking
@@ -15,6 +16,17 @@ interface AdminBookingStatusPanelProps {
   onMarkPaidPayos?: () => Promise<{ ok: boolean; message: string; checkoutUrl?: string }>
   onReopenService?: () => Promise<{ ok: boolean; message: string }>
   onCancel: () => Promise<{ ok: boolean; message: string }>
+  /**
+   * BE booking-incident-workflow.md: Khi có active_incident, mọi thao tác
+   * dịch vụ trả 409 BOOKING_INCIDENT_DECISION_REQUIRED — phải xử lý sự cố trước.
+   * Callback này do parent truyền vào để mở modal xử lý.
+   */
+  onResolveIncident?: (incidentId: string) => void
+  /**
+   * Sau khi ghi nhận decision, parent refresh detail và truyền booking mới.
+   * Trigger refresh sau khi `onResolveIncident` gọi xong.
+   */
+  onIncidentResolved?: () => void
 }
 
 const editableStatuses: BookingStatus[] = [
@@ -34,6 +46,8 @@ export function AdminBookingStatusPanel({
   onMarkPaidPayos,
   onReopenService,
   onCancel,
+  onResolveIncident,
+  onIncidentResolved,
 }: AdminBookingStatusPanelProps) {
   const [selectedStatus, setSelectedStatus] = useState<BookingStatus>(booking.status)
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
@@ -43,12 +57,21 @@ export function AdminBookingStatusPanel({
   const [isCancelOpen, setIsCancelOpen] = useState(false)
   const [isCanceling, setIsCanceling] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isIncidentModalOpen, setIsIncidentModalOpen] = useState(false)
+
+  // BE set operation_status = AWAITING_CUSTOMER_DECISION + trả active_incident.
+  const rawBooking = booking.raw
+  const activeIncident = rawBooking?.active_incident ?? null
+  const hasOpenIncident = Boolean(activeIncident && !activeIncident.resolved_at)
+  const blockedByIncident = hasOpenIncident || rawBooking?.operation_status === 'INCIDENT_HOLD'
 
   const canMarkPaid =
-    booking.status === 'COMPLETED' && booking.payment_status === 'UNPAID'
-  const canReopen = Boolean(onReopenService) && canAdminReopenBooking(booking)
-  const canCancel = !['COMPLETED', 'CANCELED', 'NO_SHOW'].includes(booking.status)
-  const statusChanged = selectedStatus !== booking.status
+    booking.status === 'COMPLETED' && booking.payment_status === 'UNPAID' && !blockedByIncident
+  const canReopen =
+    Boolean(onReopenService) && canAdminReopenBooking(booking) && !blockedByIncident
+  const canCancel =
+    !['COMPLETED', 'CANCELED', 'NO_SHOW'].includes(booking.status) && !blockedByIncident
+  const statusChanged = selectedStatus !== booking.status && !blockedByIncident
 
   const handleUpdateStatus = async () => {
     setIsUpdatingStatus(true)
@@ -106,6 +129,36 @@ export function AdminBookingStatusPanel({
 
   return (
     <div className="space-y-4">
+      {blockedByIncident ? (
+        <div className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">
+          <div className="flex items-start gap-2">
+            <Siren className="mt-0.5 h-5 w-5 shrink-0 text-orange-600" />
+            <div className="flex-1">
+              <p className="font-semibold">Booking đang tạm dừng vì sự cố</p>
+              <p className="mt-1">
+                Hệ thống đã ghi nhận sự cố <strong>{activeIncident?.incident_type ?? '—'}</strong>
+                {activeIncident?.description ? `: ${activeIncident.description}` : ''}.
+                Mọi thao tác dịch vụ bị khóa cho đến khi khách hàng phản hồi.
+              </p>
+              {onResolveIncident && activeIncident ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => {
+                    onResolveIncident(activeIncident.id)
+                    setIsIncidentModalOpen(true)
+                  }}
+                >
+                  Ghi nhận quyết định xử lý
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="flex items-start gap-3 rounded-xl border border-violet-200/80 bg-violet-50/60 p-4">
         <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-violet-600" />
         <div className="text-sm text-violet-900">
@@ -129,6 +182,7 @@ export function AdminBookingStatusPanel({
           <Select
             id="admin-booking-status-select"
             value={selectedStatus}
+            disabled={blockedByIncident}
             onChange={(event) =>
               setSelectedStatus(event.target.value as BookingStatus)
             }
@@ -276,6 +330,19 @@ export function AdminBookingStatusPanel({
           </Button>
         </div>
       </Modal>
+
+      {activeIncident ? (
+        <IncidentResolutionModal
+          open={isIncidentModalOpen}
+          bookingId={booking.id}
+          incidentId={activeIncident.id}
+          onClose={() => setIsIncidentModalOpen(false)}
+          onResolved={() => {
+            setIsIncidentModalOpen(false)
+            onIncidentResolved?.()
+          }}
+        />
+      ) : null}
     </div>
   )
 }

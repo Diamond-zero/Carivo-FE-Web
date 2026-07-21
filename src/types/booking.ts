@@ -1,4 +1,5 @@
 import type { VehicleType } from './washBay'
+import type { ApiBookingIncident, ApiCustomerVoucher } from './api/staff'
 
 export type BookingStatus =
   | 'PENDING'
@@ -44,6 +45,17 @@ export interface Booking {
   wash_bay_name?: string
   wash_bay_code?: string
   wash_bay_status?: import('./washBay').WashBayStatus
+  // === Bổ sung theo BE (P0.1) ===
+  /** Trạng thái nghiệp vụ phái sinh — AWAITING_PAYMENT | AWAITING_CUSTOMER_DECISION | INCIDENT_HOLD. */
+  operation_status?: string | null
+  /** Incident đang hoạt động — nếu có thì các thao tác dịch vụ bị khóa. */
+  active_incident?: ApiBookingIncident | null
+  /** Nguồn hủy booking — CUSTOMER | GARAGE_INCIDENT | ADMIN | NO_SHOW. */
+  cancellation_source?: string | null
+  /** Voucher bồi thường gắn với booking (nếu có). */
+  customer_voucher?: ApiCustomerVoucher | null
+  /** Số tiền giảm từ voucher bồi thường (VND). */
+  voucher_discount_amount?: number | null
   /** Toàn bộ field từ BE — không render UI, dùng cho debug/tích hợp sau */
   raw?: import('./api/staff').ApiBooking
 }
