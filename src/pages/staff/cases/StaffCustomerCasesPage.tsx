@@ -1,17 +1,17 @@
 import { AlertTriangle, Clock, Loader2, ShieldCheck } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getApiErrorMessage } from '../../api/client'
-import { PageHeader } from '../../components/layout/PageHeader'
-import { Badge } from '../../components/ui/Badge'
-import { Button } from '../../components/ui/Button'
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card'
-import { EmptyState } from '../../components/ui/EmptyState'
-import { Label } from '../../components/ui/Label'
-import { Select } from '../../components/ui/Select'
-import { DashboardPageSkeleton } from '../../components/ui/Skeleton'
-import { StatCard } from '../../components/ui/StatCard'
-import { useToast } from '../../contexts/ToastContext'
+import { getApiErrorMessage } from '../../../api/client'
+import { PageHeader } from '../../../components/layout/PageHeader'
+import { Badge } from '../../../components/ui/Badge'
+import { Button } from '../../../components/ui/Button'
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
+import { EmptyState } from '../../../components/ui/EmptyState'
+import { Label } from '../../../components/ui/Label'
+import { Select } from '../../../components/ui/Select'
+import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
+import { StatCard } from '../../../components/ui/StatCard'
+import { useToast } from '../../../contexts/ToastContext'
 import {
   CASE_PRIORITY_LABELS,
   CASE_PRIORITY_VARIANT,
@@ -19,9 +19,9 @@ import {
   CASE_STATUS_VARIANT,
   useStaffCustomerCaseSlaDashboard,
   useStaffCustomerCases,
-} from '../../hooks/api/staff/useStaffCustomerCases'
-import type { ApiCustomerCase } from '../../types/api/customerCase'
-import { formatDateTime } from '../../utils/format'
+} from '../../../hooks/api/staff/useStaffCustomerCases'
+import type { ApiCustomerCase } from '../../../types/api/customerCase'
+import { formatDateTime } from '../../../utils/format'
 
 const PAGE_SIZE = 20
 

@@ -9,7 +9,6 @@ import {
   Search,
   Settings,
   Ticket,
-  Truck,
   Users,
   Wrench,
 } from 'lucide-react'
@@ -68,12 +67,6 @@ export const staffNavItems: StaffNavItem[] = [
     label: 'Camera cổng',
     path: '/staff/arrivals',
     icon: CameraIcon,
-    section: 'operations',
-  },
-  {
-    label: 'Bàn giao xe',
-    path: '/bookings',
-    icon: Truck,
     section: 'operations',
   },
   {

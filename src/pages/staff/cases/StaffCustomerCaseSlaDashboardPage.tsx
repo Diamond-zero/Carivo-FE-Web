@@ -1,23 +1,23 @@
 import { ArrowLeft, AlertTriangle, Clock, Loader2, ShieldCheck } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { PageHeader } from '../../components/layout/PageHeader'
-import { Badge } from '../../components/ui/Badge'
+import { PageHeader } from '../../../components/layout/PageHeader'
+import { Badge } from '../../../components/ui/Badge'
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from '../../components/ui/Card'
-import { DashboardPageSkeleton } from '../../components/ui/Skeleton'
-import { StatCard } from '../../components/ui/StatCard'
+} from '../../../components/ui/Card'
+import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
+import { StatCard } from '../../../components/ui/StatCard'
 import {
   CASE_PRIORITY_LABELS,
   CASE_PRIORITY_VARIANT,
   CASE_STATUS_LABELS,
   CASE_STATUS_VARIANT,
   useStaffCustomerCaseSlaDashboard,
-} from '../../hooks/api/staff/useStaffCustomerCases'
-import { formatDateTime } from '../../utils/format'
+} from '../../../hooks/api/staff/useStaffCustomerCases'
+import { formatDateTime } from '../../../utils/format'
 
 export function StaffCustomerCaseSlaDashboardPage() {
   const { data, isLoading, isError, error } = useStaffCustomerCaseSlaDashboard()

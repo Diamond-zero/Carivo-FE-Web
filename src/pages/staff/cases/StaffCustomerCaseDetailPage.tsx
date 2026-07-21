@@ -1,21 +1,21 @@
 import { ArrowLeft, Loader2, MessageCircle, ShieldCheck } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getApiErrorMessage } from '../../api/client'
-import { PageHeader } from '../../components/layout/PageHeader'
-import { Badge } from '../../components/ui/Badge'
-import { Button } from '../../components/ui/Button'
+import { getApiErrorMessage } from '../../../api/client'
+import { PageHeader } from '../../../components/layout/PageHeader'
+import { Badge } from '../../../components/ui/Badge'
+import { Button } from '../../../components/ui/Button'
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from '../../components/ui/Card'
-import { EmptyState } from '../../components/ui/EmptyState'
-import { Label } from '../../components/ui/Label'
-import { DashboardPageSkeleton } from '../../components/ui/Skeleton'
-import { Select } from '../../components/ui/Select'
-import { useToast } from '../../contexts/ToastContext'
+} from '../../../components/ui/Card'
+import { EmptyState } from '../../../components/ui/EmptyState'
+import { Label } from '../../../components/ui/Label'
+import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
+import { Select } from '../../../components/ui/Select'
+import { useToast } from '../../../contexts/ToastContext'
 import {
   CASE_PRIORITY_LABELS,
   CASE_PRIORITY_VARIANT,
@@ -26,13 +26,13 @@ import {
   useAssignCustomerCaseMutation,
   useSendCustomerCaseMessageMutation,
   useStaffCustomerCaseDetail,
-} from '../../hooks/api/staff/useStaffCustomerCases'
+} from '../../../hooks/api/staff/useStaffCustomerCases'
 import type {
   ApiCustomerCase,
   ApiCustomerCaseMessage,
   ApiCustomerCaseTimelineEvent,
-} from '../../types/api/customerCase'
-import { formatDateTime } from '../../utils/format'
+} from '../../../types/api/customerCase'
+import { formatDateTime } from '../../../utils/format'
 
 export function StaffCustomerCaseDetailPage() {
   const { caseId } = useParams()

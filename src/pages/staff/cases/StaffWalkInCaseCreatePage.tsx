@@ -1,26 +1,26 @@
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { getApiErrorMessage } from '../../api/client'
-import { PageHeader } from '../../components/layout/PageHeader'
-import { Button } from '../../components/ui/Button'
+import { getApiErrorMessage } from '../../../api/client'
+import { PageHeader } from '../../../components/layout/PageHeader'
+import { Button } from '../../../components/ui/Button'
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from '../../components/ui/Card'
-import { Input } from '../../components/ui/Input'
-import { Label } from '../../components/ui/Label'
-import { Select } from '../../components/ui/Select'
-import { useToast } from '../../contexts/ToastContext'
+} from '../../../components/ui/Card'
+import { Input } from '../../../components/ui/Input'
+import { Label } from '../../../components/ui/Label'
+import { Select } from '../../../components/ui/Select'
+import { useToast } from '../../../contexts/ToastContext'
 import {
   CASE_CATEGORY_OPTIONS,
   CASE_PRIORITY_LABELS,
   useCreateWalkInCustomerCaseMutation,
   useRequestWalkInOtpMutation,
   useVerifyWalkInOtpMutation,
-} from '../../hooks/api/staff/useStaffCustomerCases'
+} from '../../../hooks/api/staff/useStaffCustomerCases'
 
 type Step = 'booking' | 'otp' | 'details'
 

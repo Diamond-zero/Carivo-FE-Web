@@ -8,7 +8,8 @@ import {
   type CancelStaffTypeChangePayload,
 } from '../../../api/staffTypeChange.api'
 import { useAuth } from '../../../contexts/AuthContext'
-import { adminQueryKeys, staffQueryKeys } from '../queryKeys'
+import { adminQueryKeys } from '../admin/queryKeys'
+import { staffQueryKeys } from './queryKeys'
 
 /**
  * Hook STAFF: lấy capabilities của nhân viên hiện đang đăng nhập.

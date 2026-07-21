@@ -251,6 +251,23 @@ export function getCreateInspectionGuard(
   return { allowed: true }
 }
 
+export function getHandoverGuard(
+  booking: Booking,
+  staffGarageId?: string,
+): ActionGuardResult {
+  const garage = garageGuard(booking, staffGarageId)
+  if (garage) return garage
+
+  if (booking.status !== 'COMPLETED') {
+    return {
+      allowed: false,
+      reason: 'Chỉ booking COMPLETED mới bàn giao được.',
+    }
+  }
+
+  return { allowed: true }
+}
+
 export function getCancelBookingGuard(
   booking: Booking,
   staffGarageId?: string,
@@ -388,6 +405,15 @@ export function getBookingListAction(
       label: booking.payment_status === 'PENDING' ? 'Thu tiền mặt' : 'Thanh toán',
       type: 'mark_paid',
       guard: getMarkPaidGuard(booking, staffGarageId),
+    }
+  }
+
+  if (booking.status === 'COMPLETED' && booking.payment_status === 'PAID') {
+    return {
+      label: 'Bàn giao xe',
+      to: `/staff/handover/${booking.id}`,
+      type: 'link',
+      guard: getHandoverGuard(booking, staffGarageId),
     }
   }
 

@@ -1,26 +1,26 @@
 import { ArrowLeft, ClipboardList, Loader2, Play, Send } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getApiErrorMessage } from '../../api/client'
-import { PageHeader } from '../../components/layout/PageHeader'
-import { Badge } from '../../components/ui/Badge'
-import { Button } from '../../components/ui/Button'
+import { getApiErrorMessage } from '../../../api/client'
+import { PageHeader } from '../../../components/layout/PageHeader'
+import { Badge } from '../../../components/ui/Badge'
+import { Button } from '../../../components/ui/Button'
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from '../../components/ui/Card'
-import { DashboardPageSkeleton } from '../../components/ui/Skeleton'
-import { Label } from '../../components/ui/Label'
-import { useToast } from '../../contexts/ToastContext'
+} from '../../../components/ui/Card'
+import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
+import { Label } from '../../../components/ui/Label'
+import { useToast } from '../../../contexts/ToastContext'
 import {
   useAssignTechnicalAssessmentMutation,
   useMyTechnicalAssessment,
   useStartTechnicalAssessmentMutation,
   useSubmitTechnicalAssessmentMutation,
-} from '../../hooks/api/staff/useStaffCustomerCases'
-import { formatDateTime } from '../../utils/format'
+} from '../../../hooks/api/staff/useStaffCustomerCases'
+import { formatDateTime } from '../../../utils/format'
 
 const ASSESSMENT_STATUS_LABELS: Record<string, string> = {
   PENDING_ASSIGN: 'Chờ phân công inspector',
