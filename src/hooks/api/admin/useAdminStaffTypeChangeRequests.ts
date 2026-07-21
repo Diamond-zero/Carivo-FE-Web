@@ -12,7 +12,8 @@ import {
   type RejectStaffTypeChangePayload,
 } from '../../../api/staffTypeChange.api'
 import { useAdminAuth } from '../../../contexts/AdminAuthContext'
-import { adminQueryKeys, staffQueryKeys } from '../queryKeys'
+import { adminQueryKeys } from './queryKeys'
+import { staffQueryKeys } from '../staff/queryKeys'
 
 /**
  * ADMIN: danh sách yêu cầu đổi chức năng (toàn hệ thống).

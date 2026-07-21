@@ -26,7 +26,6 @@ const decisionSchema = z
         (val) => !val || !Number.isNaN(new Date(val).getTime()),
         'Thời điểm áp dụng không hợp lệ',
       ),
-    admin_note: z.string().max(1000).optional(),
   })
   .strict()
 
@@ -72,7 +71,6 @@ export function AdminStaffTypeChangeDecisionModal({
     resolver: zodResolver(decisionSchema),
     defaultValues: {
       effective_at: '',
-      admin_note: '',
     },
   })
 
@@ -85,7 +83,6 @@ export function AdminStaffTypeChangeDecisionModal({
     if (request) {
       decisionForm.reset({
         effective_at: toDateTimeLocalInputValue(request.effective_at),
-        admin_note: '',
       })
       rejectForm.reset({ reason: '' })
       setError(null)
@@ -98,11 +95,10 @@ export function AdminStaffTypeChangeDecisionModal({
     setSubmitting(true)
     setError(null)
     try {
-      const payload: { effective_at?: string; admin_note?: string } = {}
+      const payload: { effective_at?: string } = {}
       if (values.effective_at) {
         payload.effective_at = new Date(values.effective_at).toISOString()
       }
-      if (values.admin_note) payload.admin_note = values.admin_note
       await approveStaffTypeChangeRequestApi(request.id, payload)
       showToast('Đã duyệt yêu cầu đổi chức năng.', 'success')
       onCompleted?.()
@@ -193,16 +189,6 @@ export function AdminStaffTypeChangeDecisionModal({
                 {decisionForm.formState.errors.effective_at.message}
               </p>
             ) : null}
-          </div>
-
-          <div>
-            <Label htmlFor="admin_note">Ghi chú nội bộ (tùy chọn)</Label>
-            <Textarea
-              id="admin_note"
-              rows={3}
-              placeholder="Lý do duyệt, ghi chú bàn giao..."
-              {...decisionForm.register('admin_note')}
-            />
           </div>
 
           <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">

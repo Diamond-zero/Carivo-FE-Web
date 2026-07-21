@@ -50,17 +50,14 @@ export interface CreateStaffTypeChangePayload {
   handover_note?: string
 }
 
-/** PATCH /admin/.../approve body — chưa rõ schema cụ thể, optional fields. */
+/** PATCH /admin/.../approve body — BE chỉ chấp nhận `effective_at`. */
 export interface ApproveStaffTypeChangePayload {
   /** Nếu có, request chuyển sang SCHEDULED thay vì APPROVED. */
   effective_at?: string
-  /** Ghi chú nội bộ khi admin duyệt. */
-  admin_note?: string
 }
 
 export interface RejectStaffTypeChangePayload {
   reason?: string
-  admin_note?: string
 }
 
 export interface CancelStaffTypeChangePayload {

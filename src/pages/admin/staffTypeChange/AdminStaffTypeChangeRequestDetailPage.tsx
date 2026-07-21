@@ -13,13 +13,13 @@ import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { useToast } from '../../../contexts/ToastContext'
 import { useAdminStaffTypeChangeHistory, useAdminStaffTypeChangeImpact, useAdminStaffTypeChangeRequests, useCancelAdminStaffTypeChangeRequest } from '../../../hooks/api/admin/useAdminStaffTypeChangeRequests'
 import {
+  STAFF_TYPE_LABELS,
+} from '../../../constants/staffType'
+import {
   STAFF_TYPE_CHANGE_STATUS_COLORS,
   STAFF_TYPE_CHANGE_STATUS_LABELS,
-} from '../../../constants/staffTypeChange'
-import {
-  STAFF_TYPE_LABELS,
   STAFF_TYPE_TRANSITION_HINTS,
-} from '../../../constants/staffType'
+} from '../../../constants/staffTypeChange'
 import { cn } from '../../../lib/utils'
 
 function formatDateTime(value?: string | null) {
