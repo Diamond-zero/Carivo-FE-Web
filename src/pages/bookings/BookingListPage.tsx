@@ -34,6 +34,8 @@ import {
 import { formatPrice, formatTime } from '../../utils/format'
 import { getBookingCustomerName } from '../../utils/booking'
 import { getBookingListAction } from '../../utils/bookingActionGuards'
+import { useStaffCapabilities } from '../../hooks/useCan'
+import type { StaffCapability } from '../../constants/staffCapabilities'
 
 const PAGE_SIZE = 10
 
@@ -41,6 +43,7 @@ export function BookingListPage() {
   const { session } = useAuth()
   const { markBookingPaid, createPayosPayment } = useBookings()
   const { showToast } = useToast()
+  const staffCapabilities = useStaffCapabilities()
   const [filters, setFilters] = useState<BookingFilters>(
     DEFAULT_BOOKING_FILTERS,
   )
@@ -364,6 +367,7 @@ export function BookingListPage() {
                               <BookingTableAction
                                 booking={booking}
                                 staffGarageId={session?.staffProfile.garage_id}
+                                staffCapabilities={staffCapabilities}
                                 onMarkPaid={setMarkPaidBooking}
                               />
                             </td>
@@ -450,16 +454,21 @@ function SummaryCard({ label, value, icon: Icon, accent }: SummaryCardProps) {
 interface BookingTableActionProps {
   booking: Booking
   staffGarageId?: string
+  staffCapabilities: StaffCapability[]
   onMarkPaid: (booking: Booking) => void
 }
 
 function BookingTableAction({
   booking,
   staffGarageId,
+  staffCapabilities,
   onMarkPaid,
 }: BookingTableActionProps) {
   const action = getBookingListAction(booking, staffGarageId)
   if (!action) {
+    return <span className="text-xs text-slate-400">—</span>
+  }
+  if (!staffCapabilities.includes(action.requiredCapability)) {
     return <span className="text-xs text-slate-400">—</span>
   }
   if (action.type === 'mark_paid') {

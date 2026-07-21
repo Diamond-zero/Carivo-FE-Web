@@ -1,19 +1,19 @@
 import { AlertTriangle } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { Button } from '../../../ui/Button'
-import { Label } from '../../../ui/Label'
-import { Modal } from '../../../ui/Modal'
-import { Select } from '../../../ui/Select'
-import { useToast } from '../../../../contexts/ToastContext'
+import { Button } from '../../ui/Button'
+import { Label } from '../../ui/Label'
+import { Modal } from '../../ui/Modal'
+import { Select } from '../../ui/Select'
+import { useToast } from '../../../contexts/ToastContext'
 import {
   INCIDENT_TYPE_LABELS,
   reportBookingIncidentApi,
-} from '../../../../api/incident.api'
+} from '../../../api/incident.api'
 import type {
   ApiBookingItem,
   ApiBookingIncidentType,
   ApiWashBay,
-} from '../../../../types/api/staff'
+} from '../../../types/api/staff'
 
 interface IncidentReportModalProps {
   open: boolean

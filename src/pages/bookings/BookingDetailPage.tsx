@@ -40,6 +40,7 @@ import { formatDateTime, formatPrice, formatTime } from '../../utils/format'
 import { getAssignWashBayGuard } from '../../utils/bookingActionGuards'
 import { bookingRequiresWashBay } from '../../utils/washBay'
 import { useStaffBookingDetail } from '../../hooks/api/staff/useStaffBookingDetail'
+import { useStaffCapabilities } from '../../hooks/useCan'
 
 export function BookingDetailPage() {
   const { id } = useParams()
@@ -70,6 +71,7 @@ export function BookingDetailPage() {
   const detailQuery = useStaffBookingDetail(id)
   const cachedBooking = id ? getBookingById(id) : undefined
   const booking = detailQuery.data ?? cachedBooking
+  const staffCapabilities = useStaffCapabilities()
 
   const detailSyncedRef = useRef(false)
 
@@ -196,7 +198,7 @@ export function BookingDetailPage() {
         title={`Booking ${booking.id.replace('booking-', '#')}`}
         description={`${getServicePackageName(booking.service_package_id, booking.service_package_name)} — ${booking.booking_date.split('-').reverse().join('/')}`}
         action={
-          listAction ? (
+          listAction && staffCapabilities.includes(listAction.requiredCapability) ? (
             listAction.type === 'mark_paid' ? (
               <GuardedActionButton
                 guard={listAction.guard}

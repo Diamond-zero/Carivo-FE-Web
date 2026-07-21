@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { getApiErrorMessage } from '../../../api/client'
 import { AdminStaffForm } from '../../../components/admin/staff/AdminStaffForm'
-import { AdminStaffTypeChangeRequestModal } from '../../../components/admin/staff/AdminStaffTypeChangeRequestModal'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
@@ -31,7 +30,6 @@ export function AdminStaffFormPage() {
   const profileQuery = useAdminStaffProfile(!isCreate ? profileId : undefined)
   const createMutation = useCreateAdminStaff()
   const updateMutation = useUpdateAdminStaff()
-  const [typeChangeOpen, setTypeChangeOpen] = useState(false)
 
   const record = profileQuery.data ?? undefined
   const isSubmitting = createMutation.isPending || updateMutation.isPending
@@ -164,23 +162,9 @@ export function AdminStaffFormPage() {
                       ) => Promise<void>)
                 }
                 isSubmitting={isSubmitting}
-                onRequestTypeChange={() => setTypeChangeOpen(true)}
               />
             </CardContent>
           </Card>
-
-          <AdminStaffTypeChangeRequestModal
-            open={typeChangeOpen}
-            record={record ?? null}
-            onClose={() => setTypeChangeOpen(false)}
-            onSubmitted={() => {
-              showToast(
-                'Đã gửi yêu cầu. Mở trang Yêu cầu đổi chức năng để theo dõi.',
-                'success',
-              )
-              navigate('/admin/staff-type-change-requests')
-            }}
-          />
         </>
       )}
     </div>

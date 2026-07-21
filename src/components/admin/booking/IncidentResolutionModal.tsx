@@ -1,22 +1,22 @@
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Button } from '../../../ui/Button'
-import { Label } from '../../../ui/Label'
-import { Modal } from '../../../ui/Modal'
-import { Select } from '../../../ui/Select'
-import { useToast } from '../../../../contexts/ToastContext'
+import { Button } from '../../ui/Button'
+import { Label } from '../../ui/Label'
+import { Modal } from '../../ui/Modal'
+import { Select } from '../../ui/Select'
+import { useToast } from '../../../contexts/ToastContext'
 import {
   INCIDENT_CONTACT_LABELS,
   INCIDENT_DECISION_LABELS,
   getIncidentResolutionOptionsApi,
   recordCustomerDecisionApi,
-} from '../../../../api/incident.api'
+} from '../../../api/incident.api'
 import type {
   ApiIncidentContactChannel,
   ApiIncidentDecision,
   ApiLateArrivalSuggestedSlot,
-} from '../../../../types/api/staff'
-import { formatBookingLocalTime } from '../../../../utils/booking'
+} from '../../../types/api/staff'
+import { formatBookingLocalTime } from '../../../utils/booking'
 
 interface IncidentResolutionModalProps {
   open: boolean

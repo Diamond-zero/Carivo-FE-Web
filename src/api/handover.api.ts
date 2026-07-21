@@ -33,7 +33,7 @@ export interface ApiBookingHandover {
 }
 
 export interface ReadyHandoverPayload {
-  staff_notes?: string
+  note?: string
 }
 
 export interface ReleaseHandoverPayload {

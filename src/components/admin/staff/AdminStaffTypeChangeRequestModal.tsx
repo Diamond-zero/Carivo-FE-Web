@@ -15,9 +15,11 @@ import {
 import {
   STAFF_TYPE_LABELS,
   STAFF_TYPES,
+} from '../../../constants/staffType'
+import {
   STAFF_TYPE_TRANSITION_HINTS,
   STAFF_TYPE_TRANSITION_TASKS,
-} from '../../../constants/staffType'
+} from '../../../constants/staffTypeChange'
 import type { AdminStaffRecord } from '../../../types/admin'
 import { useToast } from '../../../contexts/ToastContext'
 import { Button } from '../../ui/Button'

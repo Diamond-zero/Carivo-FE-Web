@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Button } from '../../../ui/Button'
-import { Label } from '../../../ui/Label'
-import { Modal } from '../../../ui/Modal'
-import { Select } from '../../../ui/Select'
-import { useToast } from '../../../../contexts/ToastContext'
+import { Button } from '../../ui/Button'
+import { Label } from '../../ui/Label'
+import { Modal } from '../../ui/Modal'
+import { Select } from '../../ui/Select'
+import { useToast } from '../../../contexts/ToastContext'
 import {
   COMPENSATION_VOUCHER_TYPE_LABELS,
   issueCompensationVoucherApi,
-} from '../../../../api/incident.api'
-import type { ApiCompensationVoucherType } from '../../../../types/api/staff'
+} from '../../../api/incident.api'
+import type { ApiCompensationVoucherType } from '../../../types/api/staff'
 
 interface ServicePackageOption {
   id: string

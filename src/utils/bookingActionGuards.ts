@@ -1,3 +1,4 @@
+import type { StaffCapability } from '../constants/staffCapabilities'
 import type { Booking } from '../types/booking'
 import type { BookingServiceStep } from '../types/serviceStep'
 import {
@@ -17,6 +18,11 @@ export interface BookingListAction {
   to?: string
   type: 'link' | 'mark_paid'
   guard: ActionGuardResult
+  /**
+   * Capability yêu cầu để hiển thị nút hành động. Nếu Staff không có
+   * capability này thì action không render trên UI (kể cả khi status hợp lệ).
+   */
+  requiredCapability: StaffCapability
 }
 
 export function isBookingInStaffGarage(
@@ -241,10 +247,11 @@ export function getCreateInspectionGuard(
   const garage = garageGuard(booking, staffGarageId)
   if (garage) return garage
 
-  if (!['CHECKED_IN', 'IN_PROGRESS'].includes(booking.status)) {
+  if (!['CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS'].includes(booking.status)) {
     return {
       allowed: false,
-      reason: 'Chỉ booking CHECKED_IN hoặc IN_PROGRESS mới kiểm tra được.',
+      reason:
+        'Chỉ booking CONFIRMED, CHECKED_IN hoặc IN_PROGRESS mới kiểm tra được.',
     }
   }
 
@@ -376,6 +383,7 @@ export function getBookingListAction(
       to: `/bookings/check-in?bookingId=${booking.id}`,
       type: 'link',
       guard: getCheckInGuard(booking, staffGarageId),
+      requiredCapability: 'booking.check_in',
     }
   }
 
@@ -385,6 +393,7 @@ export function getBookingListAction(
       to: `/service/execution?bookingId=${booking.id}`,
       type: 'link',
       guard: getStartServiceGuard(booking, staffGarageId),
+      requiredCapability: 'service.start',
     }
   }
 
@@ -394,6 +403,7 @@ export function getBookingListAction(
       to: `/service/execution?bookingId=${booking.id}`,
       type: 'link',
       guard: getContinueServiceGuard(booking, staffGarageId),
+      requiredCapability: 'service.continue',
     }
   }
 
@@ -405,6 +415,7 @@ export function getBookingListAction(
       label: booking.payment_status === 'PENDING' ? 'Thu tiền mặt' : 'Thanh toán',
       type: 'mark_paid',
       guard: getMarkPaidGuard(booking, staffGarageId),
+      requiredCapability: 'payment.collect',
     }
   }
 
@@ -414,6 +425,7 @@ export function getBookingListAction(
       to: `/staff/handover/${booking.id}`,
       type: 'link',
       guard: getHandoverGuard(booking, staffGarageId),
+      requiredCapability: 'handover.prepare',
     }
   }
 

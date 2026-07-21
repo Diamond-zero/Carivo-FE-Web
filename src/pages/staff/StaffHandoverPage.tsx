@@ -68,7 +68,7 @@ export function StaffHandoverPage() {
   const handleReady = async () => {
     try {
       await readyMutation.mutateAsync({
-        staff_notes: staffNotes.trim() || undefined,
+        note: staffNotes.trim() || undefined,
       })
       showToast('Đã chuẩn bị bàn giao — chờ khách xác nhận.', 'success')
       setStaffNotes('')

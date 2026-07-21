@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronRight, Droplets, MapPin, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import {
   NAV_SECTION_LABELS,
@@ -8,6 +8,7 @@ import {
   type StaffNavItem,
 } from '../../constants/navigation'
 import { useAuth } from '../../contexts/AuthContext'
+import { useStaffCapabilities } from '../../hooks/useCan'
 import { cn } from '../../lib/utils'
 
 interface SidebarProps {
@@ -63,6 +64,29 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const location = useLocation()
   const { session } = useAuth()
   const [expandedGroups, setExpandedGroups] = useState<string[]>([])
+  const staffCapabilities = useStaffCapabilities()
+
+  const visibleNavItems = useMemo(() => {
+    return staffNavItems
+      .map((item) => {
+        if (item.requiredCapability && !staffCapabilities.includes(item.requiredCapability)) {
+          return null
+        }
+        const visibleChildren = item.children?.filter((child) => {
+          if (!child.requiredCapability) return true
+          return staffCapabilities.includes(child.requiredCapability)
+        })
+        // Nếu là group mà cả children đều ẩn → ẩn luôn group.
+        if (item.children && (!visibleChildren || visibleChildren.length === 0)) {
+          return null
+        }
+        return {
+          ...item,
+          children: item.children ? visibleChildren : undefined,
+        } satisfies StaffNavItem
+      })
+      .filter((item): item is StaffNavItem => item !== null)
+  }, [staffCapabilities])
 
   useEffect(() => {
     if (location.pathname.startsWith('/bookings')) {
@@ -174,7 +198,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       <nav className="sidebar-scroll relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-3 py-4">
         <div className="space-y-5 pb-2">
           {NAV_SECTION_ORDER.map((section) => {
-            const sectionItems = staffNavItems.filter(
+            const sectionItems = visibleNavItems.filter(
               (item) => item.section === section,
             )
             if (sectionItems.length === 0) return null
