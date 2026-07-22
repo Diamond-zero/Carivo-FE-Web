@@ -15,6 +15,7 @@ import { Link } from 'react-router-dom'
 import { BookingListFilters } from '../../components/booking/BookingListFilters'
 import { BookingStatusBadge } from '../../components/booking/BookingStatusBadge'
 import { MarkPaidModal } from '../../components/booking/MarkPaidModal'
+import { PaymentStatusBadge } from '../../components/booking/PaymentStatusBadge'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import {
@@ -25,7 +26,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useBookings } from '../../contexts/BookingContext'
 import { useToast } from '../../contexts/ToastContext'
 import { getApiErrorMessage } from '../../api/client'
-import { useStaffBookingList } from '../../hooks/api/staff/useStaffBookingList'
+import { useWorkspaceBookings } from '../../hooks/api/staff/useWorkspaceBookings'
 import type { Booking } from '../../types/booking'
 import {
   DEFAULT_BOOKING_FILTERS,
@@ -36,6 +37,7 @@ import { getBookingCustomerName } from '../../utils/booking'
 import { getBookingListAction } from '../../utils/bookingActionGuards'
 import { useStaffCapabilities } from '../../hooks/useCan'
 import type { StaffCapability } from '../../constants/staffCapabilities'
+import { mapWorkspaceBookings } from '../../lib/mappers/workspaceMappers'
 
 const PAGE_SIZE = 10
 
@@ -44,8 +46,6 @@ export function BookingListPage() {
   const { markBookingPaid, createPayosPayment } = useBookings()
   const { showToast } = useToast()
   const staffCapabilities = useStaffCapabilities()
-  const staffType = session?.staffProfile.staff_type
-  const showOperationsSummary = staffType !== 'VEHICLE_INSPECTION_STAFF'
   const [filters, setFilters] = useState<BookingFilters>(
     DEFAULT_BOOKING_FILTERS,
   )
@@ -60,9 +60,13 @@ export function BookingListPage() {
     isError,
     error,
     refetch,
-  } = useStaffBookingList(filters)
+  } = useWorkspaceBookings({
+    status: filters.status,
+    date: filters.date,
+  })
 
-  const allBookings = data?.bookings ?? []
+  const rawBookings = data?.bookings ?? []
+  const allBookings = useMemo(() => mapWorkspaceBookings(rawBookings), [rawBookings])
 
   const visibleBookings = useMemo(() => {
     const normalized = search.trim().toLowerCase()
@@ -205,14 +209,12 @@ export function BookingListPage() {
               icon={Clock3}
               accent="bg-amber-100 text-amber-700"
             />
-            {showOperationsSummary ? (
-              <SummaryCard
-                label="Đã hủy"
-                value={summary.canceled}
-                icon={XCircle}
-                accent="bg-rose-100 text-rose-700"
-              />
-            ) : null}
+            <SummaryCard
+              label="Đã hủy"
+              value={summary.canceled}
+              icon={XCircle}
+              accent="bg-rose-100 text-rose-700"
+            />
           </section>
 
           {/* Filter Row */}
@@ -243,14 +245,6 @@ export function BookingListPage() {
               <p className="text-xs text-slate-500">
                 {visibleBookings.length} kết quả
                 {isFiltered ? ' (đã lọc)' : ''}
-                {showOperationsSummary ? (
-                  <>
-                    {' · '}Doanh thu hoàn thành:{' '}
-                    <span className="font-semibold text-emerald-700">
-                      {formatPrice(summary.revenue)}
-                    </span>
-                  </>
-                ) : null}
               </p>
               </div>
               <div className="relative w-full sm:w-72">
@@ -301,6 +295,9 @@ export function BookingListPage() {
                           <th className="px-4 py-3">Phương tiện</th>
                           <th className="px-4 py-3">Loại dịch vụ</th>
                           <th className="px-4 py-3">Khung giờ</th>
+                          <th className="px-4 py-3">Thành tiền</th>
+                          <th className="px-4 py-3">Điểm</th>
+                          <th className="px-4 py-3">TT thanh toán</th>
                           <th className="px-4 py-3">Trạng thái</th>
                           <th className="px-4 py-3 text-right">Thao tác</th>
                         </tr>
@@ -326,37 +323,41 @@ export function BookingListPage() {
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-3">
                                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[11px] font-bold text-brand-800">
-                                  {getBookingCustomerName(booking)
+                                  {(getBookingCustomerName(booking) || 'KH')
                                     .split(' ')
                                     .map((p) => p.charAt(0))
                                     .slice(0, 2)
                                     .join('')
-                                    .toUpperCase() || 'KH'}
+                                    .toUpperCase()}
                                 </span>
                                 <div className="min-w-0">
                                   <p className="truncate text-sm font-semibold text-slate-900">
-                                    {getBookingCustomerName(booking)}
+                                    {getBookingCustomerName(booking) || '—'}
                                   </p>
                                   <p className="truncate text-xs text-slate-500">
-                                    {booking.customer_phone ?? 'Walk-in'}
+                                    {booking.customer_phone || '—'}
                                   </p>
                                 </div>
                               </div>
                             </td>
                             <td className="px-4 py-3">
                               <p className="text-sm font-semibold text-slate-900">
-                                {booking.license_plate}
+                                {booking.license_plate || '—'}
                               </p>
                               <p className="text-xs text-slate-500">
                                 {booking.vehicle_type === 'CAR'
                                   ? 'Ô tô'
-                                  : 'Xe máy'}
+                                  : booking.vehicle_type === 'MOTORBIKE'
+                                    ? 'Xe máy'
+                                    : 'Khác'}
                               </p>
                             </td>
                             <td className="px-4 py-3">
                               <span className="inline-block rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-                                {booking.service_package_name ??
-                                  'Chưa gán gói'}
+                                {booking.service_package_name ||
+                                  (booking.raw?.workflow_phase
+                                    ? booking.raw.workflow_phase.replace(/_/g, ' ')
+                                    : 'Chưa gán gói')}
                               </span>
                             </td>
                             <td className="px-4 py-3">
@@ -366,10 +367,25 @@ export function BookingListPage() {
                               </p>
                               <p className="text-xs text-slate-500">
                                 {booking.booking_date
-                                  .split('-')
-                                  .reverse()
-                                  .join('/')}
+                                  ? booking.booking_date
+                                      .split('-')
+                                      .reverse()
+                                      .join('/')
+                                  : '—'}
                               </p>
+                            </td>
+                            <td className="px-4 py-3">
+                              <p className="text-sm font-semibold text-slate-900">
+                                {booking.final_price > 0 ? formatPrice(booking.final_price) : '—'}
+                              </p>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600">
+                                {booking.earned_points ? `+${booking.earned_points}` : '—'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <PaymentStatusBadge status={booking.payment_status} />
                             </td>
                             <td className="px-4 py-3">
                               <BookingStatusBadge status={booking.status} />

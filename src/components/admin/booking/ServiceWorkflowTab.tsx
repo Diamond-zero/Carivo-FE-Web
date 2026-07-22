@@ -71,7 +71,7 @@ export function ServiceWorkflowTab({ bookingId }: ServiceWorkflowTabProps) {
 
   const workflow: ApiServiceWorkflow = workflowQuery.data
 
-  if (workflow.items.length === 0) {
+  if (workflow.items?.length === 0) {
     return (
       <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
         Gói dịch vụ này chưa có hạng mục nào.
@@ -109,7 +109,7 @@ export function ServiceWorkflowTab({ bookingId }: ServiceWorkflowTabProps) {
       ) : null}
 
       <div className="grid gap-3 lg:grid-cols-2">
-        {workflow.items.map((item) => (
+        {workflow.items?.map((item) => (
           <ServiceWorkflowItemCard
             key={item.item_key}
             item={item}

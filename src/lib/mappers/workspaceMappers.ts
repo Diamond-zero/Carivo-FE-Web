@@ -1,0 +1,55 @@
+/**
+ * Mapper functions để convert workspace API response sang Booking type
+ */
+
+import type { Booking } from '../types/booking'
+import type { ApiWorkspaceBooking } from '../types/api/workspace'
+
+/**
+ * Convert workspace booking sang Booking type cho list display
+ */
+export function mapWorkspaceBookingToBooking(
+  workspaceBooking: ApiWorkspaceBooking,
+): Booking {
+  return {
+    id: workspaceBooking.booking_id,
+    garage_id: workspaceBooking.garage_id,
+    customer_id: '',
+    customer_name: workspaceBooking.customer_name || '',
+    customer_phone: workspaceBooking.customer_phone || '',
+    license_plate: workspaceBooking.license_plate || '',
+    vehicle_type: workspaceBooking.vehicle_type,
+    vehicle_id: '',
+    booking_date: workspaceBooking.start_time.split('T')[0],
+    start_time: workspaceBooking.start_time,
+    end_time: workspaceBooking.end_time,
+    status: workspaceBooking.booking_status,
+    payment_status: workspaceBooking.payment_status,
+    arrival_status: workspaceBooking.arrival_status,
+    wash_bay_id: workspaceBooking.wash_bay_id,
+    assigned_inspection_staff_id: workspaceBooking.assigned_inspection_staff_id,
+    service_package_id: '',
+    service_package_name: workspaceBooking.service_package_name || '',
+    final_price: workspaceBooking.final_price ?? 0,
+    earned_points: workspaceBooking.earned_points,
+    service_package: undefined,
+    assigned_care_staff_ids: [],
+    requires_care_staff: false,
+    care_staff_required_count: 0,
+    raw: {
+      workflow_phase: workspaceBooking.workflow_phase,
+      current_service_item_key: workspaceBooking.current_service_item_key,
+      blocked_by_incident: workspaceBooking.blocked_by_incident,
+      arrival_status: workspaceBooking.arrival_status,
+      vehicle_brand: workspaceBooking.vehicle_brand,
+      vehicle_color: workspaceBooking.vehicle_color,
+    } as Booking['raw'],
+  }
+}
+
+/**
+ * Convert mảng workspace bookings sang mảng Bookings
+ */
+export function mapWorkspaceBookings(bookings: ApiWorkspaceBooking[]): Booking[] {
+  return bookings.map(mapWorkspaceBookingToBooking)
+}

@@ -44,3 +44,9 @@ export const staffQueryKeys = {
   waitlists: (garageId?: string) => ['staff', 'waitlists', garageId] as const,
   customerVouchers: (garageId?: string) => ['staff', 'customer-vouchers', garageId] as const,
 }
+
+export const workspaceQueryKeys = {
+  bookings: (garageId?: string, params?: unknown) =>
+    ['workspace', 'bookings', garageId, params] as const,
+  workflow: (bookingId: string) => ['workspace', 'bookings', bookingId, 'workflow'] as const,
+}
