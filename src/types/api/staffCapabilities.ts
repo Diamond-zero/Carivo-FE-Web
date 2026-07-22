@@ -12,6 +12,7 @@ export type StaffCapabilityKey =
   // Booking ops
   | 'booking.read_garage'
   | 'booking.read_assigned'
+  | 'booking.workflow.read_garage'
   | 'booking.walk_in.create'
   | 'booking.cancel_customer_request'
   | 'booking.arrival.manage'
@@ -24,14 +25,25 @@ export type StaffCapabilityKey =
   | 'booking.service.read_garage'
   | 'booking.service.complete'
   | 'booking.payment.collect_cash'
+  | 'booking.cancel'
+  | 'booking.mark_no_show'
   // Service tasks
   | 'service_task.read_assigned'
   | 'service_task.wash.execute_assigned'
   | 'service_task.care.execute_assigned'
+  | 'service_item.pause'
+  | 'service_item.resume'
+  | 'service_item.complete_early'
+  | 'service_item.confirm_complete'
   // Inspection
   | 'inspection.read_garage'
   | 'inspection.read_assigned'
   | 'inspection.create_assigned'
+  | 'inspection.before_wash.create'
+  | 'inspection.after_wash.create'
+  // Handover
+  | 'handover.prepare'
+  | 'handover.release'
   // Incidents
   | 'incident.read_garage'
   | 'incident.read_assigned'
