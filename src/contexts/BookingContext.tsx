@@ -58,6 +58,7 @@ import { getSelectableWashBays } from '../utils/washBay'
 import { buildWalkInBookingPayload, getStaffGarageId } from '../utils/walkIn'
 import { staffQueryKeys } from '../hooks/api/staff/queryKeys'
 import { mapWashHistoriesWithBookingFallback } from '../utils/washHistoryEnrichment'
+import { DEFAULT_BOOKING_FILTERS, toBookingListApiParams } from '../utils/bookingFilters'
 
 export interface ActionResult {
   success: boolean
@@ -177,10 +178,8 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   const bookingsQuery = useQuery({
     queryKey: staffQueryKeys.bookings(garageId),
     queryFn: async () => {
-      const result = await getStaffBookingsApi({
-        limit: 100,
-        garage_id: garageId,
-      })
+      const params = toBookingListApiParams(DEFAULT_BOOKING_FILTERS, garageId)
+      const result = await getStaffBookingsApi(params)
       return {
         raw: result.bookings,
         mapped: result.bookings.map(mapApiBooking),

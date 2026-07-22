@@ -1,124 +1,108 @@
-import type { StaffType } from '../types/staffProfile'
-
 /**
- * Capability-based permissions cho Staff.
+ * Canonical capability constants — đồng bộ 1-1 với
+ * BE `backend/src/shared/constants/staff.constant.js` STAFF_CAPABILITIES.
  *
- * Mỗi `staff_type` được Admin phân công có một tập capability cố định — xem
- * `STAFF_TYPE_TRANSITION_HINTS` trong `constants/staffTypeChange.ts` để đối
- * chiếu. Sidebar, action button và route guard của Staff PHẢI lọc qua
- * `useCan(capability)` / `<Can capability=...>` thay vì check trực tiếp
- * `staff_type`. BE vẫn là nơi enforce cuối — đây chỉ là lớp UI.
+ * UI components phải dùng `useMyCapabilities()` (hooks/api/staff/useStaffCapabilities.ts)
+ * thay vì hardcoded lookup theo staff_type.
+ * Capability check: `capabilities.includes('booking.check_in')`
  */
-export const STAFF_CAPABILITIES = [
-  // Booking — thao tác
-  'booking.view',
-  'booking.check_in',
-  'booking.walk_in',
-  'booking.mark_no_show',
-  'booking.cancel',
 
-  // Payment
-  'payment.collect',
+export const STAFF_CAPABILITIES = Object.freeze({
+  // Booking
+  BOOKING_READ_GARAGE: 'booking.read_garage',
+  BOOKING_READ_ASSIGNED: 'booking.read_assigned',
+  BOOKING_WALK_IN_CREATE: 'booking.walk_in.create',
+  BOOKING_CANCEL_CUSTOMER_REQUEST: 'booking.cancel_customer_request',
+  BOOKING_ARRIVAL_MANAGE: 'booking.arrival.manage',
+  BOOKING_CHECK_IN: 'booking.check_in',
+  BOOKING_PLATE_SCAN: 'booking.plate_scan',
+  BOOKING_ARRIVAL_QUEUE: 'booking.arrival_queue',
+  BOOKING_LATE_ARRIVAL_MANAGE: 'booking.late_arrival.manage',
+  BOOKING_WASH_BAY_ASSIGN: 'booking.wash_bay.assign',
+  BOOKING_SERVICE_START: 'booking.service.start',
+  BOOKING_SERVICE_READ_GARAGE: 'booking.service.read_garage',
+  BOOKING_SERVICE_COMPLETE: 'booking.service.complete',
+  BOOKING_PAYMENT_COLLECT_CASH: 'booking.payment.collect_cash',
+  // Service tasks
+  SERVICE_TASK_READ_ASSIGNED: 'service_task.read_assigned',
+  SERVICE_TASK_WASH_EXECUTE_ASSIGNED: 'service_task.wash.execute_assigned',
+  SERVICE_TASK_CARE_EXECUTE_ASSIGNED: 'service_task.care.execute_assigned',
+  // Inspection
+  INSPECTION_READ_GARAGE: 'inspection.read_garage',
+  INSPECTION_READ_ASSIGNED: 'inspection.read_assigned',
+  INSPECTION_CREATE_ASSIGNED: 'inspection.create_assigned',
+  // Incidents
+  INCIDENT_READ_GARAGE: 'incident.read_garage',
+  INCIDENT_READ_ASSIGNED: 'incident.read_assigned',
+  INCIDENT_REPORT_WASH_BAY_FAILURE: 'incident.report_wash_bay_failure',
+  INCIDENT_REPORT_STAFF_UNAVAILABLE: 'incident.report_staff_unavailable',
+  INCIDENT_REPORT_OTHER_GARAGE: 'incident.report_other_garage',
+  INCIDENT_RECORD_CUSTOMER_DECISION: 'incident.record_customer_decision',
+  INCIDENT_COMPENSATION_ISSUE: 'incident.compensation.issue',
+  // Customer / waitlist / payment / voucher
+  CUSTOMER_READ_GARAGE: 'customer.read_garage',
+  WAITLIST_MANAGE_GARAGE: 'waitlist.manage_garage',
+  PAYMENT_MANAGE_GARAGE: 'payment.manage_garage',
+  VOUCHER_READ_GARAGE: 'voucher.read_garage',
+  WASH_HISTORY_READ_GARAGE: 'wash_history.read_garage',
+  BOOKING_HANDOVER_MANAGE_GARAGE: 'booking_handover.manage_garage',
+  // Customer cases
+  CUSTOMER_CASE_READ_GARAGE: 'customer_case.read_garage',
+  CUSTOMER_CASE_ASSIGN_GARAGE: 'customer_case.assign_garage',
+  CUSTOMER_CASE_ACKNOWLEDGE: 'customer_case.acknowledge',
+  CUSTOMER_CASE_COMMUNICATE_ASSIGNED: 'customer_case.communicate_assigned',
+  CUSTOMER_CASE_CREATE_WALK_IN: 'customer_case.create_walk_in',
+  CUSTOMER_CASE_TECHNICAL_ASSESS_ASSIGNED: 'customer_case.technical_assess_assigned',
+  CUSTOMER_CASE_SLA_READ_GARAGE: 'customer_case.sla.read_garage',
+} as const)
 
-  // Service execution
-  'service.start',
-  'service.continue',
-  'service.complete',
-  'wash_bay.assign',
-  'step.complete',
+/** Tất cả capability keys dưới dạng union type. */
+export type StaffCapability = typeof STAFF_CAPABILITIES[keyof typeof STAFF_CAPABILITIES]
 
-  // Inspection (trước / sau khi rửa)
-  'inspection.create_before',
-  'inspection.create_after',
-
-  // Handover
-  'handover.prepare',
-  'handover.release',
-
-  // Hồ sơ khiếu nại & voucher
-  'case.view',
-  'case.create_walk_in',
-  'case.technical_assessment',
-  'sla.dashboard.view',
-  'voucher.issue',
-
-  // Waitlist & arrival
-  'waitlist.manage',
-  'arrival.camera.view',
-
-  // Lịch sử rửa / khách hàng
-  'wash_history.view',
-  'customer.view',
-] as const
-
-export type StaffCapability = (typeof STAFF_CAPABILITIES)[number]
-
-export const STAFF_TYPE_CAPABILITIES: Record<StaffType, StaffCapability[]> = {
-  CUSTOMER_SERVICE_STAFF: [
-    'booking.view',
-    'booking.check_in',
-    'booking.walk_in',
-    'booking.mark_no_show',
-    'payment.collect',
-    'handover.prepare',
-    'handover.release',
-    'case.view',
-    'case.create_walk_in',
-    'voucher.issue',
-    'waitlist.manage',
-    'wash_history.view',
-    'customer.view',
-  ],
-  VEHICLE_INSPECTION_STAFF: [
-    'booking.view',
-    'booking.check_in',
-    'inspection.create_before',
-    'inspection.create_after',
-    'wash_history.view',
-    'waitlist.manage',
-  ],
-  WASH_OPERATOR: [
-    'booking.view',
-    'service.start',
-    'service.continue',
-    'service.complete',
-    'wash_bay.assign',
-    'step.complete',
-    'wash_history.view',
-    'customer.view',
-  ],
-  VEHICLE_CARE_STAFF: [
-    'booking.view',
-    'service.continue',
-    'step.complete',
-    'wash_history.view',
-    'customer.view',
-  ],
-}
+/** Mảng tất cả giá trị — dùng cho enum validation phía BE. */
+export const STAFF_CAPABILITY_VALUES = Object.freeze(
+  Object.values(STAFF_CAPABILITIES),
+)
 
 export const CAPABILITY_LABELS: Record<StaffCapability, string> = {
-  'booking.view': 'Xem danh sách booking',
+  'booking.read_garage': 'Xem booking trong garage',
+  'booking.read_assigned': 'Xem booking được phân công',
+  'booking.walk_in.create': 'Tạo walk-in booking',
+  'booking.cancel_customer_request': 'Hủy booking theo yêu cầu khách',
+  'booking.arrival.manage': 'Quản lý đến xe (check-in, no-show)',
   'booking.check_in': 'Check-in khách',
-  'booking.walk_in': 'Tạo walk-in booking',
-  'booking.mark_no_show': 'Đánh dấu no-show',
-  'booking.cancel': 'Hủy booking',
-  'payment.collect': 'Thu tiền / xác nhận thanh toán',
-  'service.start': 'Bắt đầu dịch vụ',
-  'service.continue': 'Tiếp tục dịch vụ',
-  'service.complete': 'Hoàn tất dịch vụ',
-  'wash_bay.assign': 'Gán buồng rửa',
-  'step.complete': 'Hoàn thành bước',
-  'inspection.create_before': 'Kiểm tra trước khi rửa',
-  'inspection.create_after': 'Kiểm tra sau khi rửa',
-  'handover.prepare': 'Chuẩn bị bàn giao xe',
-  'handover.release': 'Phát xe cho khách',
-  'case.view': 'Xem hồ sơ khiếu nại',
-  'case.create_walk_in': 'Tạo case cho walk-in',
-  'case.technical_assessment': 'Đánh giá kỹ thuật case',
-  'sla.dashboard.view': 'Xem dashboard SLA case',
-  'voucher.issue': 'Phát voucher bồi thường',
-  'waitlist.manage': 'Quản lý danh sách chờ',
-  'arrival.camera.view': 'Xem camera cổng',
-  'wash_history.view': 'Xem lịch sử rửa',
-  'customer.view': 'Xem thông tin khách hàng',
+  'booking.plate_scan': 'Quét biển số xe',
+  'booking.arrival_queue': 'Xem hàng đợi xe đến',
+  'booking.late_arrival.manage': 'Quản lý xe đến trễ',
+  'booking.wash_bay.assign': 'Gán buồng rửa',
+  'booking.service.start': 'Bắt đầu dịch vụ',
+  'booking.service.read_garage': 'Xem tiến trình dịch vụ trong garage',
+  'booking.service.complete': 'Hoàn tất dịch vụ',
+  'booking.payment.collect_cash': 'Thu tiền mặt',
+  'service_task.read_assigned': 'Xem task được phân công',
+  'service_task.wash.execute_assigned': 'Thực hiện rửa xe',
+  'service_task.care.execute_assigned': 'Thực hiện care staff',
+  'inspection.read_garage': 'Xem kiểm tra xe trong garage',
+  'inspection.read_assigned': 'Xem kiểm tra được phân công',
+  'inspection.create_assigned': 'Tạo kiểm tra xe',
+  'incident.read_garage': 'Xem sự cố trong garage',
+  'incident.read_assigned': 'Xem sự cố được phân công',
+  'incident.report_wash_bay_failure': 'Báo sự cố buồng rửa',
+  'incident.report_staff_unavailable': 'Báo nhân viên không khả dụng',
+  'incident.report_other_garage': 'Báo sự cố khác',
+  'incident.record_customer_decision': 'Ghi nhận quyết định khách',
+  'incident.compensation.issue': 'Phát voucher bồi thường',
+  'customer.read_garage': 'Xem thông tin khách hàng',
+  'waitlist.manage_garage': 'Quản lý danh sách chờ',
+  'payment.manage_garage': 'Quản lý thanh toán',
+  'voucher.read_garage': 'Xem voucher trong garage',
+  'wash_history.read_garage': 'Xem lịch sử rửa xe',
+  'booking_handover.manage_garage': 'Quản lý bàn giao xe',
+  'customer_case.read_garage': 'Xem hồ sơ khiếu nại',
+  'customer_case.assign_garage': 'Phân công hồ sơ khiếu nại',
+  'customer_case.acknowledge': 'Xác nhận tiếp nhận case',
+  'customer_case.communicate_assigned': 'Liên lạc case được phân công',
+  'customer_case.create_walk_in': 'Tạo case cho walk-in',
+  'customer_case.technical_assess_assigned': 'Đánh giá kỹ thuật case được phân công',
+  'customer_case.sla.read_garage': 'Xem dashboard SLA case',
 }

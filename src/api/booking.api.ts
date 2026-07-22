@@ -16,7 +16,13 @@ import type {
 import { apiClient } from './client'
 
 export interface BookingListParams {
-  status?: string
+  /**
+   * Booking status. BE `GET /admin/bookings` chấp nhận query lặp lại
+   * (`?status=CONFIRMED&status=CHECKED_IN`) cho phép lọc nhiều status cùng
+   * lúc. Axios serialize `string[]` thành nhiều param, còn string đơn
+   * thành một param — vì vậy FE giữ kiểu union.
+   */
+  status?: string | string[]
   search?: string
   garage_id?: string
   customer_id?: string

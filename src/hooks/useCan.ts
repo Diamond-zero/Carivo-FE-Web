@@ -1,27 +1,30 @@
-import { useAuth } from '../contexts/AuthContext'
-import {
-  STAFF_TYPE_CAPABILITIES,
-  type StaffCapability,
-} from '../constants/staffCapabilities'
+/**
+ * @deprecated Dùng `useMyCapabilities()` và `useCanStaffCapability()` từ
+ * `hooks/api/staff/useStaffCapabilities.ts` thay vì file này.
+ *
+ * File này giữ lại để tránh break các import cũ, nhưng tất cả các
+ * hook ở đây giờ trỏ tới API-driven capabilities thay vì hardcoded.
+ */
+import { useCanStaffCapability, useMyCapabilities } from './api/staff/useStaffCapabilities'
+import type { StaffCapability } from '../constants/staffCapabilities'
+
+export { useMyCapabilities, useCanStaffCapability }
 
 /**
+ * @deprecated Dùng `useMyCapabilities()` thay vì hook này.
+ *
  * Hook kiểm tra Staff hiện tại có capability hay không.
- * Trả `false` nếu chưa đăng nhập hoặc staff_type không khớp mapping.
+ * Giờ dùng API `GET /staff-profiles/me/capabilities` thay vì hardcoded lookup.
  */
 export function useCan(capability: StaffCapability): boolean {
-  const { session } = useAuth()
-  const staffType = session?.staffProfile.staff_type
-  if (!staffType) return false
-  const allowed = STAFF_TYPE_CAPABILITIES[staffType]
-  return allowed?.includes(capability) ?? false
+  const { can } = useCanStaffCapability()
+  return can(capability)
 }
 
 /**
- * Hook lấy toàn bộ capability của Staff hiện tại (dùng cho sidebar filter).
+ * @deprecated Dùng `useMyCapabilities()` thay vì hook này.
+ *
+ * Hook lấy toàn bộ capability của Staff hiện tại.
+ * Giờ dùng API `GET /staff-profiles/me/capabilities` thay vì hardcoded lookup.
  */
-export function useStaffCapabilities(): StaffCapability[] {
-  const { session } = useAuth()
-  const staffType = session?.staffProfile.staff_type
-  if (!staffType) return []
-  return STAFF_TYPE_CAPABILITIES[staffType] ?? []
-}
+export { useMyCapabilities as useStaffCapabilities }

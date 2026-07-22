@@ -393,7 +393,7 @@ export function getBookingListAction(
       to: `/service/execution?bookingId=${booking.id}`,
       type: 'link',
       guard: getStartServiceGuard(booking, staffGarageId),
-      requiredCapability: 'service.start',
+      requiredCapability: 'service_task.wash.execute_assigned',
     }
   }
 
@@ -403,7 +403,7 @@ export function getBookingListAction(
       to: `/service/execution?bookingId=${booking.id}`,
       type: 'link',
       guard: getContinueServiceGuard(booking, staffGarageId),
-      requiredCapability: 'service.continue',
+      requiredCapability: 'service_task.wash.execute_assigned',
     }
   }
 
@@ -415,7 +415,7 @@ export function getBookingListAction(
       label: booking.payment_status === 'PENDING' ? 'Thu tiền mặt' : 'Thanh toán',
       type: 'mark_paid',
       guard: getMarkPaidGuard(booking, staffGarageId),
-      requiredCapability: 'payment.collect',
+      requiredCapability: 'booking.payment.collect_cash',
     }
   }
 
@@ -425,7 +425,7 @@ export function getBookingListAction(
       to: `/staff/handover/${booking.id}`,
       type: 'link',
       guard: getHandoverGuard(booking, staffGarageId),
-      requiredCapability: 'handover.prepare',
+      requiredCapability: 'booking_handover.manage_garage',
     }
   }
 

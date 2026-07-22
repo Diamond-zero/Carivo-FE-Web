@@ -500,7 +500,7 @@ function App() {
                     }
                   />
                 </Route>
-                <Route element={<CapabilityRoute capability="booking.walk_in" />}>
+                <Route element={<CapabilityRoute capability="booking.walk_in.create" />}>
                   <Route
                     path="/bookings/walk-in"
                     element={
@@ -518,7 +518,7 @@ function App() {
                     </LazyPage>
                   }
                 />
-                <Route element={<CapabilityRoute capability="service.start" />}>
+                <Route element={<CapabilityRoute capability="service_task.wash.execute_assigned" />}>
                   <Route
                     path="/service/execution"
                     element={
@@ -528,7 +528,7 @@ function App() {
                     }
                   />
                 </Route>
-                <Route element={<CapabilityRoute capability="inspection.create_before" />}>
+                <Route element={<CapabilityRoute capability="inspection.create_assigned" />}>
                   <Route
                     path="/service/inspection"
                     element={
@@ -538,7 +538,7 @@ function App() {
                     }
                   />
                 </Route>
-                <Route element={<CapabilityRoute capability="wash_history.view" />}>
+                <Route element={<CapabilityRoute capability="wash_history.read_garage" />}>
                   <Route
                     path="/history/wash"
                     element={
@@ -548,7 +548,7 @@ function App() {
                     }
                   />
                 </Route>
-                <Route element={<CapabilityRoute capability="customer.view" />}>
+                <Route element={<CapabilityRoute capability="customer.read_garage" />}>
                   <Route
                     path="/customers"
                     element={
@@ -574,7 +574,7 @@ function App() {
                     </LazyPage>
                   }
                 />
-                <Route element={<CapabilityRoute capability="waitlist.manage" />}>
+                <Route element={<CapabilityRoute capability="waitlist.manage_garage" />}>
                   <Route
                     path="/staff/waitlists"
                     element={
@@ -584,7 +584,7 @@ function App() {
                     }
                   />
                 </Route>
-                <Route element={<CapabilityRoute capability="voucher.issue" />}>
+                <Route element={<CapabilityRoute capability="incident.compensation.issue" />}>
                   <Route
                     path="/staff/vouchers"
                     element={
@@ -594,7 +594,7 @@ function App() {
                     }
                   />
                 </Route>
-                <Route element={<CapabilityRoute capability="handover.prepare" />}>
+                <Route element={<CapabilityRoute capability="booking_handover.manage_garage" />}>
                   <Route
                     path="/staff/handover/:bookingId"
                     element={
@@ -604,7 +604,7 @@ function App() {
                     }
                   />
                 </Route>
-                <Route element={<CapabilityRoute capability="case.view" />}>
+                <Route element={<CapabilityRoute capability="customer_case.read_garage" />}>
                   <Route
                     path="/staff/cases"
                     element={
@@ -613,7 +613,7 @@ function App() {
                       </LazyPage>
                     }
                   />
-                  <Route element={<CapabilityRoute capability="sla.dashboard.view" />}>
+                  <Route element={<CapabilityRoute capability="customer_case.sla.read_garage" />}>
                     <Route
                       path="/staff/cases/sla"
                       element={
@@ -623,7 +623,7 @@ function App() {
                       }
                     />
                   </Route>
-                  <Route element={<CapabilityRoute capability="case.create_walk_in" />}>
+                  <Route element={<CapabilityRoute capability="customer_case.create_walk_in" />}>
                     <Route
                       path="/staff/cases/walk-in"
                       element={
@@ -633,7 +633,7 @@ function App() {
                       }
                     />
                   </Route>
-                  <Route element={<CapabilityRoute capability="case.technical_assessment" />}>
+                  <Route element={<CapabilityRoute capability="customer_case.technical_assess_assigned" />}>
                     <Route
                       path="/staff/cases/:caseId/technical-assessment"
                       element={
@@ -652,7 +652,7 @@ function App() {
                     }
                   />
                 </Route>
-                <Route element={<CapabilityRoute capability="arrival.camera.view" />}>
+                <Route element={<CapabilityRoute capability="booking.plate_scan" />}>
                   <Route
                     path="/staff/arrivals"
                     element={

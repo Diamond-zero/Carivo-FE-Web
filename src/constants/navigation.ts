@@ -31,7 +31,7 @@ export interface StaffNavItem {
   section: NavSection
   /**
    * Capability yêu cầu để hiển thị mục này. Mục không có field này luôn
-   * hiển thị (ví dụ: Dashboard, Settings). FE lọc qua `useStaffCapabilities()`
+   * hiển thị (ví dụ: Dashboard, Settings). FE lọc qua `useMyCapabilities()`
    * của Staff hiện tại.
    */
   requiredCapability?: StaffCapability
@@ -53,7 +53,9 @@ export const staffNavItems: StaffNavItem[] = [
     label: 'Bookings',
     icon: ClipboardList,
     section: 'operations',
-    requiredCapability: 'booking.view',
+    // Không set requiredCapability ở đây — mỗi child tự check capability riêng.
+    // Nếu staff không có capability nào trong children thì children ẩn
+    // nhưng group vẫn hiển thị để user biết có mục Bookings.
     children: [
       { label: 'Danh sách', path: '/bookings' },
       {
@@ -64,7 +66,7 @@ export const staffNavItems: StaffNavItem[] = [
       {
         label: 'Đặt lịch',
         path: '/bookings/walk-in',
-        requiredCapability: 'booking.walk_in',
+        requiredCapability: 'booking.walk_in.create',
       },
     ],
   },
@@ -73,56 +75,56 @@ export const staffNavItems: StaffNavItem[] = [
     path: '/service/execution',
     icon: Wrench,
     section: 'operations',
-    requiredCapability: 'service.start',
+    requiredCapability: 'service_task.wash.execute_assigned',
   },
   {
     label: 'Kiểm tra xe',
     path: '/service/inspection',
     icon: Search,
     section: 'operations',
-    requiredCapability: 'inspection.create_before',
+    requiredCapability: 'inspection.create_assigned',
   },
   {
     label: 'Camera cổng',
     path: '/staff/arrivals',
     icon: CameraIcon,
     section: 'operations',
-    requiredCapability: 'arrival.camera.view',
+    requiredCapability: 'booking.plate_scan',
   },
   {
     label: 'Danh sách chờ',
     path: '/staff/waitlists',
     icon: Hourglass,
     section: 'operations',
-    requiredCapability: 'waitlist.manage',
+    requiredCapability: 'waitlist.manage_garage',
   },
   {
     label: 'Hồ sơ khiếu nại',
     path: '/staff/cases',
     icon: AlertTriangle,
     section: 'records',
-    requiredCapability: 'case.view',
+    requiredCapability: 'customer_case.read_garage',
   },
   {
     label: 'Voucher bồi thường',
     path: '/staff/vouchers',
     icon: Ticket,
     section: 'records',
-    requiredCapability: 'voucher.issue',
+    requiredCapability: 'incident.compensation.issue',
   },
   {
     label: 'Lịch sử rửa',
     path: '/history/wash',
     icon: History,
     section: 'records',
-    requiredCapability: 'wash_history.view',
+    requiredCapability: 'wash_history.read_garage',
   },
   {
     label: 'Thông tin khách hàng',
     path: '/customers',
     icon: Users,
     section: 'records',
-    requiredCapability: 'customer.view',
+    requiredCapability: 'customer.read_garage',
   },
   {
     label: 'Cài đặt',

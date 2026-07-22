@@ -2,6 +2,7 @@ import { ShieldCheck } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card'
 import type { StaffCapabilityKey } from '../../types/api/staffCapabilities'
+import { CAPABILITY_LABELS } from '../../constants/staffCapabilities'
 
 interface StaffCapabilitiesCardProps {
   capabilities: StaffCapabilityKey[]
@@ -11,57 +12,60 @@ interface StaffCapabilitiesCardProps {
 
 const CAPABILITY_GROUPS: Array<{
   label: string
-  keys: Array<{ key: StaffCapabilityKey; label: string }>
+  keys: StaffCapabilityKey[]
 }> = [
   {
     label: 'Quản lý booking',
     keys: [
-      { key: 'booking.create', label: 'Tạo booking (walk-in)' },
-      { key: 'booking.cancel', label: 'Hủy booking' },
-      { key: 'booking.check_in', label: 'Check-in khách' },
-      { key: 'booking.mark_no_show', label: 'Đánh dấu không đến' },
-      { key: 'booking.assign_wash_bay', label: 'Phân buồng rửa' },
-      { key: 'booking.mark_paid_cash', label: 'Xác nhận tiền mặt' },
-      { key: 'booking.initiate_payos', label: 'Tạo link PayOS' },
+      'booking.walk_in.create',
+      'booking.cancel_customer_request',
+      'booking.check_in',
+      'booking.arrival.manage',
+      'booking.wash_bay.assign',
+      'booking.payment.collect_cash',
     ],
   },
   {
     label: 'Sự cố & bồi thường',
     keys: [
-      { key: 'booking.report_incident', label: 'Báo cáo sự cố' },
-      { key: 'booking.resolve_incident', label: 'Xử lý sự cố' },
-      { key: 'booking.issue_compensation_voucher', label: 'Phát voucher bồi thường' },
+      'incident.read_garage',
+      'incident.read_assigned',
+      'incident.report_wash_bay_failure',
+      'incident.report_staff_unavailable',
+      'incident.report_other_garage',
+      'incident.record_customer_decision',
+      'incident.compensation.issue',
     ],
   },
   {
     label: 'Tiến trình dịch vụ',
     keys: [
-      { key: 'service_workflow.complete_early', label: 'Hoàn thành sớm' },
-      { key: 'service_workflow.confirm_complete', label: 'Xác nhận hoàn thành' },
-      { key: 'service_workflow.pause', label: 'Tạm dừng' },
-      { key: 'service_workflow.resume', label: 'Tiếp tục' },
+      'booking.service.start',
+      'booking.service.complete',
+      'booking.service.read_garage',
+      'service_task.read_assigned',
+      'service_task.wash.execute_assigned',
+      'service_task.care.execute_assigned',
     ],
   },
   {
     label: 'Kiểm tra xe',
     keys: [
-      { key: 'inspection.create_before_wash', label: 'Kiểm tra trước rửa' },
-      { key: 'inspection.create_after_wash', label: 'Kiểm tra sau rửa' },
+      'inspection.read_garage',
+      'inspection.read_assigned',
+      'inspection.create_assigned',
     ],
   },
   {
     label: 'Hồ sơ khiếu nại',
     keys: [
-      { key: 'customer_case.create', label: 'Tạo hồ sơ' },
-      { key: 'customer_case.update', label: 'Cập nhật hồ sơ' },
-      { key: 'customer_case.resolve', label: 'Giải quyết hồ sơ' },
-    ],
-  },
-  {
-    label: 'Đổi vị trí',
-    keys: [
-      { key: 'staff_type_change.request', label: 'Yêu cầu đổi vị trí' },
-      { key: 'staff_type_change.cancel', label: 'Hủy yêu cầu đổi' },
+      'customer_case.read_garage',
+      'customer_case.assign_garage',
+      'customer_case.acknowledge',
+      'customer_case.communicate_assigned',
+      'customer_case.create_walk_in',
+      'customer_case.technical_assess_assigned',
+      'customer_case.sla.read_garage',
     ],
   },
 ]
@@ -95,8 +99,8 @@ export function StaffCapabilitiesCard({
         ) : (
           <div className="space-y-4">
             {CAPABILITY_GROUPS.map((group) => {
-              const grantedInGroup = group.keys.filter((entry) =>
-                grantedKeys.has(entry.key),
+              const grantedInGroup = group.keys.filter((key) =>
+                grantedKeys.has(key),
               )
               if (grantedInGroup.length === 0) return null
               return (
@@ -105,9 +109,9 @@ export function StaffCapabilitiesCard({
                     {group.label}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {grantedInGroup.map((entry) => (
-                      <Badge key={entry.key} variant="info">
-                        {entry.label}
+                    {grantedInGroup.map((key) => (
+                      <Badge key={key} variant="info">
+                        {CAPABILITY_LABELS[key]}
                       </Badge>
                     ))}
                   </div>

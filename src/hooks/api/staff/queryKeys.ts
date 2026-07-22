@@ -18,7 +18,8 @@ export const customerQueryKeys = {
 }
 
 export const staffQueryKeys = {
-  bookings: (garageId?: string) => ['staff', 'bookings', garageId] as const,
+  bookings: (garageId?: string) =>
+    ['staff', 'bookings', garageId] as const,
   bookingList: (garageId?: string, params?: unknown) =>
     ['staff', 'bookings', garageId, 'list', params] as const,
   checkInSearch: (garageId?: string, query?: string) =>

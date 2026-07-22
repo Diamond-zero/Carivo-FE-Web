@@ -8,17 +8,21 @@ import type {
 import { staffQueryKeys } from './queryKeys'
 
 /**
- * Hook lấy workspace + capability của staff đang đăng nhập.
+ * Hook lấy workspace + capability của staff đang đăng nhập từ API.
  *
- * Capability là một "feature flag" server-driven: nếu staff không có
- * `booking.cancel` thì UI phải ẩn nút hủy, không phải ẩn sau khi bấm.
+ * Dùng hook này thay vì `useCan()` / `useStaffCapabilities()` trong hooks/useCan.ts
+ * (cái đó dùng hardcoded mapping theo staff_type — không còn được dùng nữa).
  *
- * Mặc định: chỉ fetch khi đã đăng nhập staff, stale 30s, refetch khi
- * mount để đảm bảo capability đồng bộ với phiên làm việc hiện tại.
+ * Capability là feature flag server-driven: nếu staff không có capability
+ * thì UI phải ẩn nút hành động tương ứng.
+ *
+ * Mặc định: chỉ fetch khi đã đăng nhập staff, stale 30s,
+ * refetch khi mount để đảm bảo capability đồng bộ với phiên làm việc hiện tại.
  */
-export function useStaffCapabilities() {
+export function useStaffCapabilityContext() {
   const { session } = useAuth()
-  const isStaff = Boolean(session) && !session?.user?.role || session?.user?.role === 'STAFF'
+  const isStaff =
+    Boolean(session) && (session?.user?.role === 'STAFF' || !session?.user?.role)
 
   const query = useQuery({
     queryKey: staffQueryKeys.capabilities,
@@ -37,11 +41,13 @@ export function useStaffCapabilities() {
  *
  * ```ts
  * const { can, capabilities } = useCanStaffCapability()
- * if (can('booking.cancel')) { ... }
+ * if (can('booking.check_in')) { ... }
  * ```
  */
 export function useCanStaffCapability() {
-  const query = useStaffCapabilities()
+  const query = useStaffCapabilityContext()
+  // apiClient.get() đã unwrap 1 lần (data.data → { is_admin, capabilities, ... })
+  // nên query.data là object đó, chỉ cần query.data?.capabilities
   const capabilities: StaffCapabilityKey[] = query.data?.capabilities ?? []
 
   return {
@@ -53,4 +59,19 @@ export function useCanStaffCapability() {
     refresh: query.refetch,
     data: query.data as ApiStaffCapabilitiesResponse | undefined,
   }
+}
+
+/**
+ * Hook lấy danh sách capability của staff hiện tại.
+ * Dùng cho sidebar filter, button visibility, route guards.
+ *
+ * ```ts
+ * const capabilities = useMyCapabilities()
+ * if (capabilities.includes('booking.check_in')) { ... }
+ * ```
+ */
+export function useMyCapabilities(): StaffCapabilityKey[] {
+  const query = useStaffCapabilityContext()
+  // apiClient.get() đã unwrap 1 lần (data.data → { is_admin, capabilities, ... })
+  return query.data?.capabilities ?? []
 }

@@ -55,7 +55,7 @@ import { STAFF_TYPE_COLORS, STAFF_TYPE_LABELS } from '../../constants/staffType'
 import { useAuth } from '../../contexts/AuthContext'
 
 import { useStaffSettings } from '../../hooks/api/staff/useStaffSettings'
-import { useStaffCapabilities } from '../../hooks/api/staff/useStaffTypeChangeRequests'
+import { useStaffCapabilityContext } from '../../hooks/api/staff/useStaffCapabilities'
 
 import { cn } from '../../lib/utils'
 
@@ -81,9 +81,8 @@ export function SettingsPage() {
 
   } = useStaffSettings()
 
-  const capabilitiesQuery = useStaffCapabilities()
-
-
+  const capabilitiesQuery = useStaffCapabilityContext()
+  const capabilities = capabilitiesQuery.data?.capabilities ?? []
 
   const handleLogout = () => {
 
@@ -511,7 +510,7 @@ export function SettingsPage() {
 
 
         <StaffCapabilitiesCard
-          capabilities={capabilitiesQuery.data?.capabilities ?? []}
+          capabilities={capabilities}
           isLoading={capabilitiesQuery.isLoading}
           errorMessage={
             capabilitiesQuery.isError

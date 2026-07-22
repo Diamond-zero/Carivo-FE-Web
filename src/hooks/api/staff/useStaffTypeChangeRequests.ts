@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getMyStaffCapabilitiesApi } from '../../../api/staffCapabilities.api'
 import {
   cancelStaffTypeChangeRequestApi,
   createStaffTypeChangeRequestApi,
@@ -10,26 +9,6 @@ import {
 import { useAuth } from '../../../contexts/AuthContext'
 import { adminQueryKeys } from '../admin/queryKeys'
 import { staffQueryKeys } from './queryKeys'
-
-/**
- * Hook STAFF: lấy capabilities của nhân viên hiện đang đăng nhập.
- *
- * Sử dụng thay thế cho việc gọi trực tiếp `/staff-profiles/me/capabilities`
- * (vốn đang bị 401/403 trong stack trace người dùng báo cáo).
- */
-export function useStaffCapabilities() {
-  const { session } = useAuth()
-  const isStaff = !!session && session.user.role === 'STAFF'
-
-  return useQuery({
-    queryKey: staffQueryKeys.capabilities,
-    queryFn: getMyStaffCapabilitiesApi,
-    enabled: isStaff,
-    staleTime: 30_000,
-    refetchOnMount: 'always',
-    retry: 0,
-  })
-}
 
 /**
  * Hook STAFF: danh sách yêu cầu đổi chức năng mà tôi đã gửi.

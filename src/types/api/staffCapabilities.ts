@@ -2,65 +2,75 @@
  * BE `GET /staff-profiles/me/capabilities` — trả về workspace của nhân viên hiện
  * tại cùng tập capability quyết định UI có hiển thị nút hành động hay không.
  *
- * BE không expose schema cụ thể (chỉ mô tả description). Type dưới đây dựa
- * trên BE docs `staff-api-changes.md` + `booking-incident-workflow.md` —
- * capability là các key snake_case mà frontend đọc để ẩn/hiện nút.
+ * Canonical capability keys được định nghĩa trong
+ * `BE/backend/src/shared/constants/staff.constant.js` STAFF_CAPABILITIES.
+ * FE phải dùng đúng keys snake_case từ BE.
  */
+
+/** Canonical capability keys — đồng bộ 1-1 với BE. */
 export type StaffCapabilityKey =
   // Booking ops
-  | 'booking.create'
-  | 'booking.cancel'
+  | 'booking.read_garage'
+  | 'booking.read_assigned'
+  | 'booking.walk_in.create'
+  | 'booking.cancel_customer_request'
+  | 'booking.arrival.manage'
   | 'booking.check_in'
-  | 'booking.mark_no_show'
-  | 'booking.assign_wash_bay'
-  | 'booking.mark_paid_cash'
-  | 'booking.initiate_payos'
-  | 'booking.report_incident'
-  | 'booking.resolve_incident'
-  | 'booking.issue_compensation_voucher'
-  // Service workflow
-  | 'service_workflow.complete_early'
-  | 'service_workflow.confirm_complete'
-  | 'service_workflow.pause'
-  | 'service_workflow.resume'
+  | 'booking.plate_scan'
+  | 'booking.arrival_queue'
+  | 'booking.late_arrival.manage'
+  | 'booking.wash_bay.assign'
+  | 'booking.service.start'
+  | 'booking.service.read_garage'
+  | 'booking.service.complete'
+  | 'booking.payment.collect_cash'
+  // Service tasks
+  | 'service_task.read_assigned'
+  | 'service_task.wash.execute_assigned'
+  | 'service_task.care.execute_assigned'
   // Inspection
-  | 'inspection.create_before_wash'
-  | 'inspection.create_after_wash'
-  // Customer case (handover)
-  | 'customer_case.create'
-  | 'customer_case.update'
-  | 'customer_case.resolve'
-  // Type-change
-  | 'staff_type_change.request'
-  | 'staff_type_change.cancel'
+  | 'inspection.read_garage'
+  | 'inspection.read_assigned'
+  | 'inspection.create_assigned'
+  // Incidents
+  | 'incident.read_garage'
+  | 'incident.read_assigned'
+  | 'incident.report_wash_bay_failure'
+  | 'incident.report_staff_unavailable'
+  | 'incident.report_other_garage'
+  | 'incident.record_customer_decision'
+  | 'incident.compensation.issue'
+  // Customer / waitlist / payment / voucher
+  | 'customer.read_garage'
+  | 'waitlist.manage_garage'
+  | 'payment.manage_garage'
+  | 'voucher.read_garage'
+  | 'wash_history.read_garage'
+  | 'booking_handover.manage_garage'
+  // Customer cases
+  | 'customer_case.read_garage'
+  | 'customer_case.assign_garage'
+  | 'customer_case.acknowledge'
+  | 'customer_case.communicate_assigned'
+  | 'customer_case.create_walk_in'
+  | 'customer_case.technical_assess_assigned'
+  | 'customer_case.sla.read_garage'
 
-export interface ApiStaffWorkspace {
-  /** Staff id đang đăng nhập. */
-  staff_profile_id: string
+export interface ApiStaffCapabilityContext {
+  /** Admin bypass tất cả capability checks. */
+  is_admin: boolean
   user_id: string
-  /** Vai trò hiện tại. */
-  staff_type: string
+  staff_profile_id: string | null
+  staff_type: string | null
+  staff_group: string | null
   /** Garage được phân công (null = staff chưa gán garage). */
   garage_id: string | null
-  /** Danh sách capability đang active. */
+  /** Danh sách capability đang active — keys snake_case từ BE. */
   capabilities: StaffCapabilityKey[]
-  /** Chỉ số tổng quát — dùng cho dashboard. */
-  permissions?: {
-    can_manage_garage?: boolean
-    can_manage_wash_bays?: boolean
-    can_manage_service_packages?: boolean
-    can_view_analytics?: boolean
-  }
-  /** Metadata bổ sung (vd. version của policy, last updated). */
-  meta?: {
-    policy_version?: string
-    evaluated_at?: string
-  }
 }
 
-/**
- * Type "open" cho response vì BE không công bố schema cụ thể. FE dùng
- * `ApiStaffWorkspace` cho những trường biết trước, các trường khác vẫn
- * truy cập được qua index signature.
- */
-export type ApiStaffCapabilitiesResponse = ApiStaffWorkspace & Record<string, unknown>
+export interface ApiStaffCapabilitiesResponse {
+  success: boolean
+  message: string
+  data: ApiStaffCapabilityContext
+}

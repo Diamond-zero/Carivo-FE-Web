@@ -44,6 +44,8 @@ export function BookingListPage() {
   const { markBookingPaid, createPayosPayment } = useBookings()
   const { showToast } = useToast()
   const staffCapabilities = useStaffCapabilities()
+  const staffType = session?.staffProfile.staff_type
+  const showOperationsSummary = staffType !== 'VEHICLE_INSPECTION_STAFF'
   const [filters, setFilters] = useState<BookingFilters>(
     DEFAULT_BOOKING_FILTERS,
   )
@@ -172,12 +174,14 @@ export function BookingListPage() {
                 )}
                 Làm mới
               </Button>
-              <Link to="/bookings/walk-in">
-                <Button>
-                  <Plus className="h-4 w-4" />
-                  Tạo lịch mới
-                </Button>
-              </Link>
+              {staffCapabilities.includes('booking.walk_in.create') ? (
+                <Link to="/bookings/walk-in">
+                  <Button>
+                    <Plus className="h-4 w-4" />
+                    Tạo lịch mới
+                  </Button>
+                </Link>
+              ) : null}
             </div>
           </header>
 
@@ -201,12 +205,14 @@ export function BookingListPage() {
               icon={Clock3}
               accent="bg-amber-100 text-amber-700"
             />
-            <SummaryCard
-              label="Đã hủy"
-              value={summary.canceled}
-              icon={XCircle}
-              accent="bg-rose-100 text-rose-700"
-            />
+            {showOperationsSummary ? (
+              <SummaryCard
+                label="Đã hủy"
+                value={summary.canceled}
+                icon={XCircle}
+                accent="bg-rose-100 text-rose-700"
+              />
+            ) : null}
           </section>
 
           {/* Filter Row */}
@@ -234,13 +240,18 @@ export function BookingListPage() {
                 <h2 className="text-base font-semibold text-slate-900">
                   Lịch hẹn sắp tới
                 </h2>
-                <p className="text-xs text-slate-500">
-                  {visibleBookings.length} kết quả
-                  {isFiltered ? ' (đã lọc)' : ''} · Doanh thu hoàn thành:{' '}
-                  <span className="font-semibold text-emerald-700">
-                    {formatPrice(summary.revenue)}
-                  </span>
-                </p>
+              <p className="text-xs text-slate-500">
+                {visibleBookings.length} kết quả
+                {isFiltered ? ' (đã lọc)' : ''}
+                {showOperationsSummary ? (
+                  <>
+                    {' · '}Doanh thu hoàn thành:{' '}
+                    <span className="font-semibold text-emerald-700">
+                      {formatPrice(summary.revenue)}
+                    </span>
+                  </>
+                ) : null}
+              </p>
               </div>
               <div className="relative w-full sm:w-72">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
