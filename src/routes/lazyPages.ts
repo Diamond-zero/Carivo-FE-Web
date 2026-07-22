@@ -71,6 +71,27 @@ export const AdminStaffListPage = lazyNamed(
   'AdminStaffListPage',
 )
 
+export const AdminStaffTypeChangeRequestsPage = lazyNamed(
+  () => import('../pages/admin/staffTypeChange/AdminStaffTypeChangeRequestsPage'),
+  'AdminStaffTypeChangeRequestsPage',
+)
+
+export const AdminStaffTypeChangeRequestDetailPage = lazyNamed(
+  () =>
+    import(
+      '../pages/admin/staffTypeChange/AdminStaffTypeChangeRequestDetailPage'
+    ),
+  'AdminStaffTypeChangeRequestDetailPage',
+)
+
+export const AdminStaffTypeChangeHistoryPage = lazyNamed(
+  () =>
+    import(
+      '../pages/admin/staffTypeChange/AdminStaffTypeChangeHistoryPage'
+    ),
+  'AdminStaffTypeChangeHistoryPage',
+)
+
 export const AdminUsersListPage = lazyNamed(
   () => import('../pages/admin/users/AdminUsersListPage'),
   'AdminUsersListPage',
@@ -166,6 +187,21 @@ export const AdminAnalyticsWashBayPage = lazyNamed(
   'AdminAnalyticsWashBayPage',
 )
 
+export const AdminAnalyticsGaragesPage = lazyNamed(
+  () => import('../pages/admin/analytics/AdminAnalyticsGaragesPage'),
+  'AdminAnalyticsGaragesPage',
+)
+
+export const AdminAnalyticsServicesPage = lazyNamed(
+  () => import('../pages/admin/analytics/AdminAnalyticsServicesPage'),
+  'AdminAnalyticsServicesPage',
+)
+
+export const AdminAnalyticsPromotionsPage = lazyNamed(
+  () => import('../pages/admin/analytics/AdminAnalyticsPromotionsPage'),
+  'AdminAnalyticsPromotionsPage',
+)
+
 export const AdminAuditLogsPage = lazyNamed(
   () => import('../pages/admin/audit/AdminAuditLogsPage'),
   'AdminAuditLogsPage',
@@ -184,6 +220,11 @@ export const AdminResearchExportPage = lazyNamed(
 export const AdminSettingsPage = lazyNamed(
   () => import('../pages/admin/settings/AdminSettingsPage'),
   'AdminSettingsPage',
+)
+
+export const AdminCustomerVouchersPage = lazyNamed(
+  () => import('../pages/admin/vouchers/AdminCustomerVouchersPage'),
+  'AdminCustomerVouchersPage',
 )
 
 export const DashboardPage = lazyNamed(
@@ -239,4 +280,55 @@ export const CustomerDetailPage = lazyNamed(
 export const SettingsPage = lazyNamed(
   () => import('../pages/settings/SettingsPage'),
   'SettingsPage',
+)
+
+// Staff FE feature pages
+export const StaffWaitlistListPage = lazyNamed(
+  () => import('../pages/staff/StaffWaitlistListPage'),
+  'StaffWaitlistListPage',
+)
+
+export const StaffCompensationVouchersPage = lazyNamed(
+  () => import('../pages/staff/StaffCompensationVouchersPage'),
+  'StaffCompensationVouchersPage',
+)
+
+export const StaffHandoverPage = lazyNamed(
+  () => import('../pages/staff/StaffHandoverPage'),
+  'StaffHandoverPage',
+)
+
+export const StaffCustomerCasesPage = lazyNamed(
+  () => import('../pages/staff/cases/StaffCustomerCasesPage'),
+  'StaffCustomerCasesPage',
+)
+
+export const StaffCustomerCaseDetailPage = lazyNamed(
+  () => import('../pages/staff/cases/StaffCustomerCaseDetailPage'),
+  'StaffCustomerCaseDetailPage',
+)
+
+export const StaffCustomerCaseSlaDashboardPage = lazyNamed(
+  () => import('../pages/staff/cases/StaffCustomerCaseSlaDashboardPage'),
+  'StaffCustomerCaseSlaDashboardPage',
+)
+
+export const StaffWalkInCaseCreatePage = lazyNamed(
+  () => import('../pages/staff/cases/StaffWalkInCaseCreatePage'),
+  'StaffWalkInCaseCreatePage',
+)
+
+export const StaffTechnicalAssessmentPage = lazyNamed(
+  () => import('../pages/staff/cases/StaffTechnicalAssessmentPage'),
+  'StaffTechnicalAssessmentPage',
+)
+
+export const StaffArrivalQueuePage = lazyNamed(
+  () => import('../pages/staff/arrivals/StaffArrivalQueuePage'),
+  'StaffArrivalQueuePage',
+)
+
+export const StaffPlateScanDetailPage = lazyNamed(
+  () => import('../pages/staff/arrivals/StaffPlateScanDetailPage'),
+  'StaffPlateScanDetailPage',
 )

@@ -34,6 +34,30 @@ export async function getAnalyticsWashBaysApi(params?: ApiAnalyticsParams) {
   return data.data
 }
 
+export async function getAnalyticsGaragesApi(params?: ApiAnalyticsParams) {
+  const { data } = await apiClient.get<ApiResponse<Record<string, unknown>>>(
+    '/admin/analytics/garages',
+    { params },
+  )
+  return data.data
+}
+
+export async function getAnalyticsServicesApi(params?: ApiAnalyticsParams) {
+  const { data } = await apiClient.get<ApiResponse<Record<string, unknown>>>(
+    '/admin/analytics/services',
+    { params },
+  )
+  return data.data
+}
+
+export async function getAnalyticsPromotionsApi(params?: ApiAnalyticsParams) {
+  const { data } = await apiClient.get<ApiResponse<Record<string, unknown>>>(
+    '/admin/analytics/promotions',
+    { params },
+  )
+  return data.data
+}
+
 export interface AuditLogListParams {
   page?: number
   limit?: number

@@ -18,7 +18,8 @@ export const customerQueryKeys = {
 }
 
 export const staffQueryKeys = {
-  bookings: (garageId?: string) => ['staff', 'bookings', garageId] as const,
+  bookings: (garageId?: string) =>
+    ['staff', 'bookings', garageId] as const,
   bookingList: (garageId?: string, params?: unknown) =>
     ['staff', 'bookings', garageId, 'list', params] as const,
   checkInSearch: (garageId?: string, query?: string) =>
@@ -38,4 +39,8 @@ export const staffQueryKeys = {
   serviceSteps: (bookingId: string) => ['staff', 'bookings', bookingId, 'service-steps'] as const,
   inspections: (bookingId: string) => ['staff', 'bookings', bookingId, 'inspections'] as const,
   settings: ['staff', 'settings'] as const,
+  capabilities: ['staff', 'capabilities'] as const,
+  myTypeChangeRequests: ['staff', 'type-change-requests'] as const,
+  waitlists: (garageId?: string) => ['staff', 'waitlists', garageId] as const,
+  customerVouchers: (garageId?: string) => ['staff', 'customer-vouchers', garageId] as const,
 }

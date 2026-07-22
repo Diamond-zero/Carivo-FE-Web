@@ -61,3 +61,32 @@ export interface WashBayPerformanceRow {
   avg_session_minutes: number
   avg_wait_minutes: number
 }
+
+export interface GaragePerformanceRow {
+  garage_id: string
+  garage_name: string
+  total_bookings: number
+  total_revenue: number
+  utilization_percent: number
+  average_rating?: number
+  customer_count: number
+}
+
+export interface ServicePerformanceRow {
+  service_package_id: string
+  service_name: string
+  total_bookings: number
+  total_revenue: number
+  average_price: number
+  customer_satisfaction?: number
+}
+
+export interface PromotionPerformanceRow {
+  promotion_id: string
+  promotion_name: string
+  code: string
+  total_uses: number
+  total_discount: number
+  total_revenue: number
+  conversion_rate: number
+}

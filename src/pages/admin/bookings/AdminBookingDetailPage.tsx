@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowLeft,
   Bike,
@@ -7,11 +7,14 @@ import {
   CheckCircle2,
   Mail,
   Phone,
+  Siren,
   User,
 } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { getApiErrorMessage } from '../../../api/client'
 import { AdminBookingStatusPanel } from '../../../components/admin/booking/AdminBookingStatusPanel'
+import { IncidentReportModal } from '../../../components/admin/booking/IncidentReportModal'
+import { ServiceWorkflowTab } from '../../../components/admin/booking/ServiceWorkflowTab'
 import { ArrivalStatusBadge } from '../../../components/booking/ArrivalStatusBadge'
 import { BookingStatusBadge } from '../../../components/booking/BookingStatusBadge'
 import { BookingTimeline } from '../../../components/booking/BookingTimeline'
@@ -27,6 +30,7 @@ import {
   useAdminBookingDetail,
   useAdminBookingMutations,
 } from '../../../hooks/api/admin/useAdminBookings'
+import { useAdminWashBays } from '../../../hooks/api/admin/useAdminWashBays'
 import type { BookingStatus } from '../../../types/booking'
 import type { ApiBookingItem } from '../../../types/api/staff'
 import {
@@ -42,9 +46,14 @@ import { formatDateTime, formatPrice, formatTime } from '../../../utils/format'
 export function AdminBookingDetailPage() {
   const { bookingId } = useParams<{ bookingId: string }>()
   const { showToast } = useToast()
-  const { data: booking, isLoading, isError, error } = useAdminBookingDetail(bookingId)
+  const { data: booking, isLoading, isError, error, refetch } =
+    useAdminBookingDetail(bookingId)
   const { cancelMutation, markPaidMutation, payosMutation, reopenServiceMutation } =
     useAdminBookingMutations(bookingId)
+  const { allWashBays } = useAdminWashBays({})
+  const [isIncidentReportOpen, setIsIncidentReportOpen] = useState(false)
+  // refetch token dùng để force-refetch booking detail sau khi incident resolved
+  const [refreshToken, setRefreshToken] = useState(0)
 
   useEffect(() => {
     if (isError) {
@@ -57,6 +66,10 @@ export function AdminBookingDetailPage() {
     [booking?.raw?.booking_items],
   )
   const isCombo = booking?.raw?.service_package?.service_type === 'COMBO'
+  // Chỉ show ServiceWorkflowTab khi booking có IN_PROGRESS trở đi (workflow có ý nghĩa).
+  const showWorkflowTab =
+    booking != null &&
+    ['CHECKED_IN', 'IN_PROGRESS', 'COMPLETED'].includes(booking.status)
 
   const statusEvents = useMemo(() => {
     if (!booking) return [] as Array<{ key: string; label: string; at: string | null }>
@@ -200,12 +213,22 @@ export function AdminBookingDetailPage() {
             title={`Booking ${booking.id.replace('booking-', 'BK-')}`}
             description={`${booking.service_package_name ?? booking.service_package_id} · ${booking.garage_id}`}
             action={
-              <Link to="/admin/bookings">
-                <Button variant="secondary">
-                  <ArrowLeft className="h-4 w-4" />
-                  Danh sách booking
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => setIsIncidentReportOpen(true)}
+                  disabled={booking.active_incident != null}
+                >
+                  <Siren className="h-4 w-4" />
+                  Báo cáo sự cố
                 </Button>
-              </Link>
+                <Link to="/admin/bookings">
+                  <Button variant="secondary">
+                    <ArrowLeft className="h-4 w-4" />
+                    Danh sách booking
+                  </Button>
+                </Link>
+              </div>
             }
           />
 
@@ -226,13 +249,14 @@ export function AdminBookingDetailPage() {
               </CardHeader>
               <CardContent>
                 <AdminBookingStatusPanel
-                  key={`${booking.id}-${booking.status}-${booking.payment_status}`}
+                  key={`${booking.id}-${booking.status}-${booking.payment_status}-${refreshToken}`}
                   booking={booking}
                   onUpdateStatus={handleUpdateStatus}
                   onMarkPaid={handleMarkPaid}
                   onMarkPaidPayos={handleMarkPaidPayos}
                   onReopenService={handleReopenService}
                   onCancel={handleCancel}
+                  onIncidentResolved={() => setRefreshToken((value) => value + 1)}
                 />
               </CardContent>
             </Card>
@@ -498,8 +522,35 @@ export function AdminBookingDetailPage() {
               </CardContent>
             </Card>
           ) : null}
+
+          {showWorkflowTab && bookingId ? (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="text-base">Tiến trình dịch vụ realtime</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ServiceWorkflowTab
+                  key={`workflow-${bookingId}-${refreshToken}`}
+                  bookingId={bookingId}
+                />
+              </CardContent>
+            </Card>
+          ) : null}
         </>
       )}
+
+      <IncidentReportModal
+        open={isIncidentReportOpen}
+        bookingId={bookingId ?? ''}
+        bookingItems={bookingItems}
+        washBays={allWashBays}
+        onClose={() => setIsIncidentReportOpen(false)}
+        onReported={() => {
+          setIsIncidentReportOpen(false)
+          setRefreshToken((value) => value + 1)
+          void refetch()
+        }}
+      />
     </div>
   )
 }

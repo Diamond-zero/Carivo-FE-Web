@@ -1,8 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import {
   getAnalyticsBookingsApi,
+  getAnalyticsGaragesApi,
   getAnalyticsOverviewApi,
+  getAnalyticsPromotionsApi,
   getAnalyticsRevenueApi,
+  getAnalyticsServicesApi,
   getAnalyticsWashBaysApi,
 } from '../../../api/analytics.api'
 import type { ApiAnalyticsParams } from '../../../types/api/admin'
@@ -11,8 +14,11 @@ import {
   mapAnalyticsOverview,
   mapBookingStatusStats,
   mapDailyBookingStats,
+  mapGaragePerformanceRows,
   mapGarageRevenueStats,
   mapMonthlyRevenueStats,
+  mapPromotionPerformanceRows,
+  mapServicePerformanceRows,
   mapVehicleTypeBookingStats,
   mapWashBayPerformanceRows,
 } from '../../../lib/mappers/adminAnalyticsMappers'
@@ -84,6 +90,57 @@ export function useAdminAnalyticsWashBays(params?: ApiAnalyticsParams) {
       const data = await getAnalyticsWashBaysApi(params)
       return {
         rows: mapWashBayPerformanceRows(data),
+        raw: data,
+      }
+    },
+    enabled: isAuthenticated,
+    staleTime: 60_000,
+  })
+}
+
+export function useAdminAnalyticsGarages(params?: ApiAnalyticsParams) {
+  const { isAuthenticated } = useAdminAuth()
+
+  return useQuery({
+    queryKey: adminQueryKeys.analyticsGarages(params),
+    queryFn: async () => {
+      const data = await getAnalyticsGaragesApi(params)
+      return {
+        rows: mapGaragePerformanceRows(data),
+        raw: data,
+      }
+    },
+    enabled: isAuthenticated,
+    staleTime: 60_000,
+  })
+}
+
+export function useAdminAnalyticsServices(params?: ApiAnalyticsParams) {
+  const { isAuthenticated } = useAdminAuth()
+
+  return useQuery({
+    queryKey: adminQueryKeys.analyticsServices(params),
+    queryFn: async () => {
+      const data = await getAnalyticsServicesApi(params)
+      return {
+        rows: mapServicePerformanceRows(data),
+        raw: data,
+      }
+    },
+    enabled: isAuthenticated,
+    staleTime: 60_000,
+  })
+}
+
+export function useAdminAnalyticsPromotions(params?: ApiAnalyticsParams) {
+  const { isAuthenticated } = useAdminAuth()
+
+  return useQuery({
+    queryKey: adminQueryKeys.analyticsPromotions(params),
+    queryFn: async () => {
+      const data = await getAnalyticsPromotionsApi(params)
+      return {
+        rows: mapPromotionPerformanceRows(data),
         raw: data,
       }
     },

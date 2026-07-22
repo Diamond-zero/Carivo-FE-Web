@@ -31,6 +31,21 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+// Single-flight guard cho việc init session. React 19 StrictMode + Vite dev
+// sẽ double-invoke useEffect mount khiến `restoreStaffSession` chạy 2 lần
+// liên tiếp, mỗi lần gọi BE. Nếu BE trả 401/403 (token hết hạn hoặc role
+// request không hợp lệ), component bị remount liên tục và UI văng.
+// Module-scope promise đảm bảo chỉ có 1 lần restore thực sự bay tới BE.
+let staffInitPromise: Promise<StaffAuthSession | null> | null = null
+function initStaffSession(): Promise<StaffAuthSession | null> {
+  if (!staffInitPromise) {
+    staffInitPromise = restoreStaffSession().finally(() => {
+      staffInitPromise = null
+    })
+  }
+  return staffInitPromise
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<StaffAuthSession | null>(null)
   const [isInitializing, setIsInitializing] = useState(true)
@@ -38,20 +53,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false
 
-    async function init() {
-      try {
-        const restored = await restoreStaffSession()
-        if (!cancelled) {
-          setSession(restored)
-        }
-      } finally {
-        if (!cancelled) {
-          setIsInitializing(false)
-        }
-      }
-    }
-
-    void init()
+    void initStaffSession().then((restored) => {
+      if (cancelled) return
+      setSession(restored)
+      setIsInitializing(false)
+    })
 
     return () => {
       cancelled = true

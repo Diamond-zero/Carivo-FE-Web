@@ -1,6 +1,7 @@
 import { Suspense, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AdminProtectedRoute } from './components/auth/AdminProtectedRoute'
+import { CapabilityRoute } from './components/auth/CapabilityRoute'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { PlaceholderPage } from './components/layout/PlaceholderPage'
 import { RouteLoadingFallback } from './components/ui/RouteLoadingFallback'
@@ -12,6 +13,9 @@ import {
   AdminAnalyticsBookingsPage,
   AdminAnalyticsRevenuePage,
   AdminAnalyticsWashBayPage,
+  AdminAnalyticsGaragesPage,
+  AdminAnalyticsServicesPage,
+  AdminAnalyticsPromotionsPage,
   AdminAuditLogsPage,
   AdminBookingDetailPage,
   AdminBookingListPage,
@@ -31,8 +35,12 @@ import {
   AdminServicePackageListPage,
   AdminServicePackageStepsPage,
   AdminSettingsPage,
+  AdminCustomerVouchersPage,
   AdminStaffFormPage,
   AdminStaffListPage,
+  AdminStaffTypeChangeHistoryPage,
+  AdminStaffTypeChangeRequestDetailPage,
+  AdminStaffTypeChangeRequestsPage,
   AdminSurveysPage,
   AdminLoyaltyOverviewPage,
   AdminWaitlistsPage,
@@ -53,6 +61,16 @@ import {
   ServiceExecutionPage,
   SettingsPage,
   StaffLayout,
+  StaffWaitlistListPage,
+  StaffCompensationVouchersPage,
+  StaffHandoverPage,
+  StaffCustomerCasesPage,
+  StaffCustomerCaseDetailPage,
+  StaffCustomerCaseSlaDashboardPage,
+  StaffWalkInCaseCreatePage,
+  StaffTechnicalAssessmentPage,
+  StaffArrivalQueuePage,
+  StaffPlateScanDetailPage,
   WalkInCreatePage,
   WashHistoryPage,
 } from './routes/lazyPages'
@@ -178,6 +196,30 @@ function App() {
                   element={
                     <LazyPage>
                       <AdminStaffFormPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/staff-type-change-requests"
+                  element={
+                    <LazyPage>
+                      <AdminStaffTypeChangeRequestsPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/staff-type-change-requests/:requestId"
+                  element={
+                    <LazyPage>
+                      <AdminStaffTypeChangeRequestDetailPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/staff-type-change-history"
+                  element={
+                    <LazyPage>
+                      <AdminStaffTypeChangeHistoryPage />
                     </LazyPage>
                   }
                 />
@@ -342,6 +384,30 @@ function App() {
                   }
                 />
                 <Route
+                  path="/admin/analytics/garages"
+                  element={
+                    <LazyPage>
+                      <AdminAnalyticsGaragesPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/analytics/services"
+                  element={
+                    <LazyPage>
+                      <AdminAnalyticsServicesPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/analytics/promotions"
+                  element={
+                    <LazyPage>
+                      <AdminAnalyticsPromotionsPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
                   path="/admin/audit-logs"
                   element={
                     <LazyPage>
@@ -354,6 +420,14 @@ function App() {
                   element={
                     <LazyPage>
                       <AdminSurveysPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/customer-vouchers"
+                  element={
+                    <LazyPage>
+                      <AdminCustomerVouchersPage />
                     </LazyPage>
                   }
                 />
@@ -416,22 +490,26 @@ function App() {
                     </LazyPage>
                   }
                 />
-                <Route
-                  path="/bookings/check-in"
-                  element={
-                    <LazyPage>
-                      <CheckInPage />
-                    </LazyPage>
-                  }
-                />
-                <Route
-                  path="/bookings/walk-in"
-                  element={
-                    <LazyPage>
-                      <WalkInCreatePage />
-                    </LazyPage>
-                  }
-                />
+                <Route element={<CapabilityRoute capability="booking.check_in" />}>
+                  <Route
+                    path="/bookings/check-in"
+                    element={
+                      <LazyPage>
+                        <CheckInPage />
+                      </LazyPage>
+                    }
+                  />
+                </Route>
+                <Route element={<CapabilityRoute capability="booking.walk_in.create" />}>
+                  <Route
+                    path="/bookings/walk-in"
+                    element={
+                      <LazyPage>
+                        <WalkInCreatePage />
+                      </LazyPage>
+                    }
+                  />
+                </Route>
                 <Route
                   path="/bookings/:id"
                   element={
@@ -440,46 +518,54 @@ function App() {
                     </LazyPage>
                   }
                 />
-                <Route
-                  path="/service/execution"
-                  element={
-                    <LazyPage>
-                      <ServiceExecutionPage />
-                    </LazyPage>
-                  }
-                />
-                <Route
-                  path="/service/inspection"
-                  element={
-                    <LazyPage>
-                      <InspectionPage />
-                    </LazyPage>
-                  }
-                />
-                <Route
-                  path="/history/wash"
-                  element={
-                    <LazyPage>
-                      <WashHistoryPage />
-                    </LazyPage>
-                  }
-                />
-                <Route
-                  path="/customers"
-                  element={
-                    <LazyPage>
-                      <CustomerListPage />
-                    </LazyPage>
-                  }
-                />
-                <Route
-                  path="/customers/:id"
-                  element={
-                    <LazyPage>
-                      <CustomerDetailPage />
-                    </LazyPage>
-                  }
-                />
+                <Route element={<CapabilityRoute capability="service_task.wash.execute_assigned" />}>
+                  <Route
+                    path="/service/execution"
+                    element={
+                      <LazyPage>
+                        <ServiceExecutionPage />
+                      </LazyPage>
+                    }
+                  />
+                </Route>
+                <Route element={<CapabilityRoute capability="inspection.create_assigned" />}>
+                  <Route
+                    path="/service/inspection"
+                    element={
+                      <LazyPage>
+                        <InspectionPage />
+                      </LazyPage>
+                    }
+                  />
+                </Route>
+                <Route element={<CapabilityRoute capability="wash_history.read_garage" />}>
+                  <Route
+                    path="/history/wash"
+                    element={
+                      <LazyPage>
+                        <WashHistoryPage />
+                      </LazyPage>
+                    }
+                  />
+                </Route>
+                <Route element={<CapabilityRoute capability="customer.read_garage" />}>
+                  <Route
+                    path="/customers"
+                    element={
+                      <LazyPage>
+                        <CustomerListPage />
+                      </LazyPage>
+                    }
+                  />
+                  <Route
+                    path="/customers/:id"
+                    element={
+                      <LazyPage>
+                        <CustomerDetailPage />
+                      </LazyPage>
+                    }
+                  />
+                </Route>
                 <Route
                   path="/settings"
                   element={
@@ -488,6 +574,102 @@ function App() {
                     </LazyPage>
                   }
                 />
+                <Route element={<CapabilityRoute capability="waitlist.manage_garage" />}>
+                  <Route
+                    path="/staff/waitlists"
+                    element={
+                      <LazyPage>
+                        <StaffWaitlistListPage />
+                      </LazyPage>
+                    }
+                  />
+                </Route>
+                <Route element={<CapabilityRoute capability="incident.compensation.issue" />}>
+                  <Route
+                    path="/staff/vouchers"
+                    element={
+                      <LazyPage>
+                        <StaffCompensationVouchersPage />
+                      </LazyPage>
+                    }
+                  />
+                </Route>
+                <Route element={<CapabilityRoute capability="booking_handover.manage_garage" />}>
+                  <Route
+                    path="/staff/handover/:bookingId"
+                    element={
+                      <LazyPage>
+                        <StaffHandoverPage />
+                      </LazyPage>
+                    }
+                  />
+                </Route>
+                <Route element={<CapabilityRoute capability="customer_case.read_garage" />}>
+                  <Route
+                    path="/staff/cases"
+                    element={
+                      <LazyPage>
+                        <StaffCustomerCasesPage />
+                      </LazyPage>
+                    }
+                  />
+                  <Route element={<CapabilityRoute capability="customer_case.sla.read_garage" />}>
+                    <Route
+                      path="/staff/cases/sla"
+                      element={
+                        <LazyPage>
+                          <StaffCustomerCaseSlaDashboardPage />
+                        </LazyPage>
+                      }
+                    />
+                  </Route>
+                  <Route element={<CapabilityRoute capability="customer_case.create_walk_in" />}>
+                    <Route
+                      path="/staff/cases/walk-in"
+                      element={
+                        <LazyPage>
+                          <StaffWalkInCaseCreatePage />
+                        </LazyPage>
+                      }
+                    />
+                  </Route>
+                  <Route element={<CapabilityRoute capability="customer_case.technical_assess_assigned" />}>
+                    <Route
+                      path="/staff/cases/:caseId/technical-assessment"
+                      element={
+                        <LazyPage>
+                          <StaffTechnicalAssessmentPage />
+                        </LazyPage>
+                      }
+                    />
+                  </Route>
+                  <Route
+                    path="/staff/cases/:caseId"
+                    element={
+                      <LazyPage>
+                        <StaffCustomerCaseDetailPage />
+                      </LazyPage>
+                    }
+                  />
+                </Route>
+                <Route element={<CapabilityRoute capability="booking.plate_scan" />}>
+                  <Route
+                    path="/staff/arrivals"
+                    element={
+                      <LazyPage>
+                        <StaffArrivalQueuePage />
+                      </LazyPage>
+                    }
+                  />
+                  <Route
+                    path="/staff/arrivals/:scanId"
+                    element={
+                      <LazyPage>
+                        <StaffPlateScanDetailPage />
+                      </LazyPage>
+                    }
+                  />
+                </Route>
               </Route>
             </Route>
 

@@ -27,6 +27,18 @@ interface AdminAuthContextValue {
 
 const AdminAuthContext = createContext<AdminAuthContextValue | null>(null)
 
+// Cùng single-flight guard với staff: tránh gọi restoreAdminSession 2 lần
+// trong dev mode (React 19 StrictMode double-invoke useEffect).
+let adminInitPromise: Promise<AdminAuthSession | null> | null = null
+function initAdminSession(): Promise<AdminAuthSession | null> {
+  if (!adminInitPromise) {
+    adminInitPromise = restoreAdminSession().finally(() => {
+      adminInitPromise = null
+    })
+  }
+  return adminInitPromise
+}
+
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AdminAuthSession | null>(null)
   const [isInitializing, setIsInitializing] = useState(true)
@@ -34,20 +46,11 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false
 
-    async function init() {
-      try {
-        const restored = await restoreAdminSession()
-        if (!cancelled) {
-          setSession(restored)
-        }
-      } finally {
-        if (!cancelled) {
-          setIsInitializing(false)
-        }
-      }
-    }
-
-    void init()
+    void initAdminSession().then((restored) => {
+      if (cancelled) return
+      setSession(restored)
+      setIsInitializing(false)
+    })
 
     return () => {
       cancelled = true

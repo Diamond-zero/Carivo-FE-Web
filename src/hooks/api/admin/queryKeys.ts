@@ -29,6 +29,12 @@ export const adminQueryKeys = {
     [...adminQueryKeys.all, 'analytics-revenue', params] as const,
   analyticsWashBays: (params?: unknown) =>
     [...adminQueryKeys.all, 'analytics-wash-bays', params] as const,
+  analyticsGarages: (params?: unknown) =>
+    [...adminQueryKeys.all, 'analytics-garages', params] as const,
+  analyticsServices: (params?: unknown) =>
+    [...adminQueryKeys.all, 'analytics-services', params] as const,
+  analyticsPromotions: (params?: unknown) =>
+    [...adminQueryKeys.all, 'analytics-promotions', params] as const,
   auditLogs: (params?: unknown) => [...adminQueryKeys.all, 'audit-logs', params] as const,
   surveys: (params?: unknown) => [...adminQueryKeys.all, 'surveys', params] as const,
   surveyResponses: (surveyId: string) =>
@@ -50,4 +56,12 @@ export const adminQueryKeys = {
     [...adminQueryKeys.all, 'uploads', params] as const,
   notifications: (customerId?: string) =>
     [...adminQueryKeys.all, 'customer-notifications', customerId] as const,
+  staffTypeChangeRequests: (params?: unknown) =>
+    [...adminQueryKeys.all, 'staff-type-change-requests', params] as const,
+  staffTypeChangeHistory: (staffProfileId: string) =>
+    [...adminQueryKeys.all, 'staff-type-change-history', staffProfileId] as const,
+  staffTypeChangeImpact: (staffProfileId: string) =>
+    [...adminQueryKeys.all, 'staff-type-change-impact', staffProfileId] as const,
+  customerVouchers: (params?: unknown) =>
+    [...adminQueryKeys.all, 'customer-vouchers', params] as const,
 }

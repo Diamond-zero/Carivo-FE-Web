@@ -68,6 +68,16 @@ export function mapApiBooking(booking: ApiBooking): Booking {
     wash_bay_name: booking.wash_bay?.name,
     wash_bay_code: booking.wash_bay?.bay_code,
     wash_bay_status: booking.wash_bay?.status as Booking['wash_bay_status'],
+    // === P0.1 — các field mới từ BE ===
+    operation_status: booking.operation_status ?? null,
+    active_incident: booking.active_incident ?? null,
+    cancellation_source: booking.cancellation_source ?? null,
+    customer_voucher: booking.customer_voucher ?? null,
+    voucher_discount_amount: booking.voucher_discount_amount ?? null,
+    // === Care-staff assignment (BE enriched fields) ===
+    requires_care_staff: booking.requires_care_staff ?? booking.service_package?.requires_care_staff,
+    care_staff_required_count: booking.care_staff_required_count ?? null,
+    assigned_care_staff_ids: booking.assigned_care_staff_ids ?? [],
     raw: booking,
   }
 }

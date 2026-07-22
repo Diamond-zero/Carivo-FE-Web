@@ -1,3 +1,4 @@
+import type { StaffCapability } from '../constants/staffCapabilities'
 import type { Booking } from '../types/booking'
 import type { BookingServiceStep } from '../types/serviceStep'
 import {
@@ -7,7 +8,6 @@ import {
   WASH_BAY_REQUIRED_FOR_AUTOMATED_STEP_MESSAGE,
 } from './serviceSteps'
 import { bookingRequiresWashBay } from './washBay'
-
 export interface ActionGuardResult {
   allowed: boolean
   reason?: string
@@ -18,6 +18,11 @@ export interface BookingListAction {
   to?: string
   type: 'link' | 'mark_paid'
   guard: ActionGuardResult
+  /**
+   * Capability yêu cầu để hiển thị nút hành động. Nếu Staff không có
+   * capability này thì action không render trên UI (kể cả khi status hợp lệ).
+   */
+  requiredCapability: StaffCapability
 }
 
 export function isBookingInStaffGarage(
@@ -26,6 +31,42 @@ export function isBookingInStaffGarage(
 ): boolean {
   if (!staffGarageId) return true
   return booking.garage_id === staffGarageId
+}
+
+/**
+ * Service package có yêu cầu care_staff hay không. Một số gói (đặc biệt là
+ * detailing / interior) cần ít nhất một nhân viên care được chỉ định trước
+ * khi service bắt đầu và trước khi hoàn thành. BE sẽ từ chối với 403 nếu
+ * staff hiện tại không nằm trong danh sách `assigned_care_staff_ids` —
+ * đây là dạng 403 mà user hay gặp với thông báo
+ * "You do not have the required staff capability".
+ */
+export function bookingRequiresCareStaff(booking: Booking): boolean {
+  if (booking.requires_care_staff != null) {
+    return booking.requires_care_staff
+  }
+  const rawRequires = booking.raw?.requires_care_staff
+  if (rawRequires != null) return rawRequires
+  return booking.raw?.service_package?.requires_care_staff === true
+}
+
+/**
+ * Staff hiện tại đã được gán cho booking chưa?
+ *
+ * Quy ước:
+ *  - Nếu service không yêu cầu care_staff → không cần check, cho qua.
+ *  - Nếu yêu cầu và chưa có ai được gán → trả 0, FE sẽ yêu cầu assign.
+ *  - Nếu yêu cầu và đã có assignee mà staff hiện tại không thuộc nhóm →
+ *    staff phải được admin (hoặc manager) gán vào danh sách trước.
+ */
+export function isCareStaffAssignedToBooking(
+  booking: Booking,
+  staffProfileId?: string,
+): boolean {
+  if (!staffProfileId) return false
+  if (!bookingRequiresCareStaff(booking)) return true
+  const ids = new Set(booking.assigned_care_staff_ids ?? [])
+  return ids.has(staffProfileId)
 }
 
 function garageGuard(
@@ -96,6 +137,7 @@ export function getCompleteServiceGuard(
   booking: Booking,
   steps: BookingServiceStep[],
   staffGarageId?: string,
+  staffProfileId?: string,
 ): ActionGuardResult {
   const garage = garageGuard(booking, staffGarageId)
   if (garage) return garage
@@ -111,6 +153,25 @@ export function getCompleteServiceGuard(
     return {
       allowed: false,
       reason: 'Cần gán buồng rửa trước khi hoàn thành dịch vụ.',
+    }
+  }
+
+  if (
+    bookingRequiresCareStaff(booking) &&
+    !isCareStaffAssignedToBooking(booking, staffProfileId)
+  ) {
+    const totalRequired = booking.care_staff_required_count ?? 0
+    const assigned = booking.assigned_care_staff_ids?.length ?? 0
+    if (assigned < Math.max(totalRequired, 1)) {
+      return {
+        allowed: false,
+        reason: `Cần phân công đủ ${Math.max(totalRequired, 1)} nhân viên care trước khi hoàn thành (hiện đã có ${assigned}).`,
+      }
+    }
+    return {
+      allowed: false,
+      reason:
+        'Bạn không thuộc nhóm care_staff được phân công cho booking này. Liên hệ admin/manager để được gán.',
     }
   }
 
@@ -186,10 +247,28 @@ export function getCreateInspectionGuard(
   const garage = garageGuard(booking, staffGarageId)
   if (garage) return garage
 
-  if (!['CHECKED_IN', 'IN_PROGRESS'].includes(booking.status)) {
+  if (!['CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS'].includes(booking.status)) {
     return {
       allowed: false,
-      reason: 'Chỉ booking CHECKED_IN hoặc IN_PROGRESS mới kiểm tra được.',
+      reason:
+        'Chỉ booking CONFIRMED, CHECKED_IN hoặc IN_PROGRESS mới kiểm tra được.',
+    }
+  }
+
+  return { allowed: true }
+}
+
+export function getHandoverGuard(
+  booking: Booking,
+  staffGarageId?: string,
+): ActionGuardResult {
+  const garage = garageGuard(booking, staffGarageId)
+  if (garage) return garage
+
+  if (booking.status !== 'COMPLETED') {
+    return {
+      allowed: false,
+      reason: 'Chỉ booking COMPLETED mới bàn giao được.',
     }
   }
 
@@ -304,6 +383,7 @@ export function getBookingListAction(
       to: `/bookings/check-in?bookingId=${booking.id}`,
       type: 'link',
       guard: getCheckInGuard(booking, staffGarageId),
+      requiredCapability: 'booking.check_in',
     }
   }
 
@@ -313,6 +393,7 @@ export function getBookingListAction(
       to: `/service/execution?bookingId=${booking.id}`,
       type: 'link',
       guard: getStartServiceGuard(booking, staffGarageId),
+      requiredCapability: 'service_task.wash.execute_assigned',
     }
   }
 
@@ -322,6 +403,7 @@ export function getBookingListAction(
       to: `/service/execution?bookingId=${booking.id}`,
       type: 'link',
       guard: getContinueServiceGuard(booking, staffGarageId),
+      requiredCapability: 'service_task.wash.execute_assigned',
     }
   }
 
@@ -333,6 +415,17 @@ export function getBookingListAction(
       label: booking.payment_status === 'PENDING' ? 'Thu tiền mặt' : 'Thanh toán',
       type: 'mark_paid',
       guard: getMarkPaidGuard(booking, staffGarageId),
+      requiredCapability: 'booking.payment.collect_cash',
+    }
+  }
+
+  if (booking.status === 'COMPLETED' && booking.payment_status === 'PAID') {
+    return {
+      label: 'Bàn giao xe',
+      to: `/staff/handover/${booking.id}`,
+      type: 'link',
+      guard: getHandoverGuard(booking, staffGarageId),
+      requiredCapability: 'booking_handover.manage_garage',
     }
   }
 

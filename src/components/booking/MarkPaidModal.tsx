@@ -1,4 +1,4 @@
-import { CheckCircle2, Loader2, ExternalLink } from 'lucide-react'
+import { CheckCircle2, Loader2, ExternalLink, Sparkles, Ticket } from 'lucide-react'
 import { useState } from 'react'
 import type { Booking } from '../../types/booking'
 import { getBookingCustomerName } from '../../utils/booking'
@@ -104,6 +104,38 @@ export function MarkPaidModal({
             className="mt-1.5 font-semibold text-brand-700"
           />
         </div>
+
+        {/* BE payment workflow docs: voucher bồi thường từ incident sẽ giảm
+            một phần final_price. Hiển thị minh bạch cho staff khi thu tiền. */}
+        {booking.customer_voucher && booking.voucher_discount_amount ? (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            <div className="flex items-center gap-2 font-medium">
+              <Ticket className="h-4 w-4" />
+              Đã áp dụng voucher bồi thường {booking.customer_voucher.code}
+            </div>
+            <p className="mt-1">
+              Khách được giảm {formatPrice(booking.voucher_discount_amount)}.{' '}
+              <span className="font-semibold">
+                Không được hủy hoặc thu thêm phần này.
+              </span>
+            </p>
+          </div>
+        ) : null}
+
+        {/* BE PATCH /admin/bookings/:id/complete-service → PAYMENT_READY */}
+        {booking.operation_status === 'AWAITING_PAYMENT' ? (
+          <div className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-900">
+            <div className="flex items-center gap-2 font-medium">
+              <Sparkles className="h-4 w-4" />
+              Dịch vụ hoàn tất — sẵn sàng thu tiền
+            </div>
+            <p className="mt-1">
+              Hệ thống vừa nhận tín hiệu <code>PAYMENT_READY</code>. Khách có
+              thể đã hoặc chưa tạo QR; staff tạo QR sẽ dùng chung payment với
+              khách.
+            </p>
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-2 gap-2">
           {(['CASH', 'PAYOS'] as const).map((option) => (

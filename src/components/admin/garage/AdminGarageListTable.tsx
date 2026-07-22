@@ -59,8 +59,16 @@ export function AdminGarageListTable({
         id: 'washBays',
         header: 'Buồng rửa',
         cell: ({ row }) => (
-          <span className="text-sm text-slate-700">
-            {row.original.activeWashBayCount}/{row.original.washBayCount} hoạt động
+          <span
+            className="text-sm text-slate-700"
+            title={`${row.original.availableWashBayCount} buồng đang trống / ${row.original.activeWashBayCount} buồng còn hoạt động`}
+          >
+            <span className="font-semibold text-emerald-700">
+              {row.original.availableWashBayCount}
+            </span>
+            <span className="text-slate-400"> / </span>
+            <span className="font-medium">{row.original.activeWashBayCount}</span>
+            <span className="ml-1 text-slate-500">khả dụng</span>
           </span>
         ),
       }),

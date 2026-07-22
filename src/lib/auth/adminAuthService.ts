@@ -95,7 +95,7 @@ async function performAdminLogin(
     })
 
     assertAdminUser(loginData.user)
-    setAccessToken(loginData.access_token)
+    setAccessToken(loginData.access_token, { role: 'ADMIN' })
     clearStaffSessionStorage()
 
     const session: AdminAuthSession = {
@@ -105,7 +105,7 @@ async function performAdminLogin(
     return session
   } catch (error) {
     clearAdminSession()
-    clearAccessToken()
+    clearAccessToken('ADMIN')
 
     if (error instanceof MockLoginError) {
       throw error
@@ -146,7 +146,7 @@ export async function restoreAdminSession(): Promise<AdminAuthSession | null> {
     return session
   } catch {
     clearAdminSession()
-    clearAccessToken()
+    clearAccessToken('ADMIN')
     return null
   }
 }
@@ -166,5 +166,5 @@ export async function adminLogout() {
     }
   }
   clearAdminSession()
-  clearAccessToken()
+  clearAccessToken('ADMIN')
 }

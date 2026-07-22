@@ -74,10 +74,18 @@ async function fetchAdminGarageSummaries(): Promise<AdminGarageSummary[]> {
     .map((garage) => {
       const mapped = mapApiGarage(garage)
       const bays = baysByGarage.get(mapped.id) ?? []
+      // Rule hiển thị "x/y buồng" trên dashboard/list:
+      // - Tử = số buồng có trạng thái hiện tại AVAILABLE (khả dụng nhận xe)
+      // - Mẫu = tổng buồng còn hoạt động (is_active=true)
+      // Trước đây tử đang dùng `is_active` (cờ garage khởi tạo), nên luôn trả
+      // cùng số với mẫu — sai về mặt ngữ nghĩa.
       return {
         ...mapped,
         washBayCount: bays.length,
         activeWashBayCount: bays.filter((bay) => bay.is_active).length,
+        availableWashBayCount: bays.filter(
+          (bay) => bay.is_active && bay.status === 'AVAILABLE',
+        ).length,
       }
     })
     .sort((a, b) => a.name.localeCompare(b.name, 'vi'))

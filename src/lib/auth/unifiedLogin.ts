@@ -50,12 +50,11 @@ export async function unifiedLogin(
       password,
     })
 
-    setAccessToken(loginData.access_token)
-
     if (loginData.user.role === 'ADMIN') {
       if (!loginData.user.is_active) {
         throw new MockLoginError('USER_INACTIVE')
       }
+      setAccessToken(loginData.access_token, { role: 'ADMIN' })
       clearStaffSessionStorage()
       clearAdminSession()
       const session: AdminAuthSession = {
@@ -69,6 +68,7 @@ export async function unifiedLogin(
       if (!loginData.user.is_active) {
         throw new MockLoginError('USER_INACTIVE')
       }
+      setAccessToken(loginData.access_token, { role: 'STAFF' })
       clearAdminSession()
       clearStaffSessionStorage()
       const session = await buildStaffSessionFromProfile()
@@ -79,6 +79,8 @@ export async function unifiedLogin(
     clearAccessToken()
     throw new MockLoginError('NOT_STAFF_ROLE')
   } catch (error) {
+    // Token cũ có thể vẫn còn trong sessionStorage từ phiên trước — xóa sạch
+    // cả hai role để role mới không bị "thừa hưởng" token rác.
     clearAccessToken()
     clearAdminSession()
     clearStaffSessionStorage()
