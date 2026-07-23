@@ -26,18 +26,18 @@ import {
   requestAlternateVehicleApi,
   retryPlateScanApi,
 } from '../../../api/plateScan.api'
-import type {
-  ApiCameraDeviceListParams,
-  ApiConfirmPlateScanPayload,
-  ApiCreateCameraDevicePayload,
-  ApiCreatePlateScanPayload,
-  ApiPlateScanListParams,
-  ApiPlateScanMetricsParams,
-  ApiRejectPlateScanPayload,
-  ApiRequestAlternateVehiclePayload,
-  ApiRetryPlateScanPayload,
-  ApiReviewAlternateVehiclePayload,
-  ApiUpdateCameraDevicePayload,
+import {
+  type ApiCameraDeviceListParams,
+  type ApiConfirmPlateScanPayload,
+  type ApiCreateCameraDevicePayload,
+  type ApiCreatePlateScanPayload,
+  type ApiPlateScanListParams,
+  type ApiPlateScanMetricsParams,
+  type ApiRejectPlateScanPayload,
+  type ApiRequestAlternateVehiclePayload,
+  type ApiRetryPlateScanPayload,
+  type ApiReviewAlternateVehiclePayload,
+  type ApiUpdateCameraDevicePayload,
 } from '../../../types/api/plateScan'
 
 // ---------------------------------------------------------------------------

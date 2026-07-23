@@ -1,9 +1,25 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, CheckCircle2, History, ShieldAlert, ShieldCheck, XCircle } from 'lucide-react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import {
+  ArrowLeft,
+  CheckCircle2,
+  History,
+  RefreshCw,
+  ShieldAlert,
+  ShieldCheck,
+  XCircle,
+} from 'lucide-react'
+import { Link, useParams } from 'react-router-dom'
 import { getApiErrorMessage } from '../../../api/client'
-import type { ApiStaffTypeChangeRequest } from '../../../api/staffTypeChange.api'
-import { AdminStaffTypeChangeDecisionModal } from '../../../components/admin/staffTypeChange/AdminStaffTypeChangeDecisionModal'
+import {
+  getStaffTypeChangeImpactApi,
+  type ApiStaffTypeChangeRequest,
+} from '../../../api/staffTypeChange.api'
+import {
+  AdminStaffTypeChangeDecisionModal,
+  type StaffTypeChangeDecisionMode,
+} from '../../../components/admin/staffTypeChange/AdminStaffTypeChangeDecisionModal'
+import { ImpactPreviewBlock } from '../../../components/admin/staffTypeChange/ImpactPreviewBlock'
+import { StaffTypeChangeTimeline } from '../../../components/admin/staffTypeChange/StaffTypeChangeTimeline'
 import { StaffTypeChangeImpactPreviewModal } from '../../../components/admin/staffTypeChange/StaffTypeChangeImpactPreviewModal'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Button } from '../../../components/ui/Button'
@@ -11,10 +27,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { useToast } from '../../../contexts/ToastContext'
-import { useAdminStaffTypeChangeHistory, useAdminStaffTypeChangeImpact, useAdminStaffTypeChangeRequests, useCancelAdminStaffTypeChangeRequest } from '../../../hooks/api/admin/useAdminStaffTypeChangeRequests'
 import {
-  STAFF_TYPE_LABELS,
-} from '../../../constants/staffType'
+  useAdminStaffTypeChangeHistory,
+  useAdminStaffTypeChangeImpact,
+  useAdminStaffTypeChangeRequests,
+  useCancelAdminStaffTypeChangeRequest,
+} from '../../../hooks/api/admin/useAdminStaffTypeChangeRequests'
+import { STAFF_TYPE_LABELS } from '../../../constants/staffType'
 import {
   STAFF_TYPE_CHANGE_STATUS_COLORS,
   STAFF_TYPE_CHANGE_STATUS_LABELS,
@@ -37,20 +56,28 @@ function formatDateTime(value?: string | null) {
 
 export function AdminStaffTypeChangeRequestDetailPage() {
   const { requestId } = useParams<{ requestId: string }>()
-  const navigate = useNavigate()
   const { showToast } = useToast()
-  const [decisionMode, setDecisionMode] = useState<'approve' | 'reject' | null>(null)
+  const [decisionMode, setDecisionMode] =
+    useState<StaffTypeChangeDecisionMode | null>(null)
   const [impactOpen, setImpactOpen] = useState(false)
 
   const listQuery = useAdminStaffTypeChangeRequests({})
   const request = useMemo<ApiStaffTypeChangeRequest | null>(() => {
     if (!requestId) return null
-    return (
-      listQuery.data?.data.find((r) => r.id === requestId) ?? null
-    )
+    const list: ApiStaffTypeChangeRequest[] = listQuery.data?.data ?? []
+    return list.find((r: ApiStaffTypeChangeRequest) => r.id === requestId) ?? null
   }, [listQuery.data, requestId])
 
-  const impactQuery = useAdminStaffTypeChangeImpact(request?.staff_profile_id)
+  const impactQuery = useAdminStaffTypeChangeImpact(
+    request?.staff_profile_id,
+    request
+      ? {
+          to_staff_type: request.to_staff_type as Parameters<
+            typeof getStaffTypeChangeImpactApi
+          >[1]['to_staff_type'],
+        }
+      : undefined,
+  )
   const historyQuery = useAdminStaffTypeChangeHistory(request?.staff_profile_id)
   const cancelMutation = useCancelAdminStaffTypeChangeRequest()
 
@@ -68,6 +95,7 @@ export function AdminStaffTypeChangeRequestDetailPage() {
       <div>
         <PageHeader title="Không tìm thấy yêu cầu" />
         <EmptyState
+          icon={ShieldAlert}
           title="Thiếu mã yêu cầu"
           description="Vui lòng mở lại danh sách và chọn một yêu cầu hợp lệ."
           action={
@@ -174,9 +202,16 @@ export function AdminStaffTypeChangeRequestDetailPage() {
                   <XCircle className="h-4 w-4 text-red-600" />
                   Từ chối
                 </Button>
-                <Button onClick={() => setDecisionMode('approve')}>
+                <Button onClick={() => setDecisionMode('apply-now')}>
                   <CheckCircle2 className="h-4 w-4" />
-                  Duyệt
+                  Duyệt & áp dụng
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setDecisionMode('schedule')}
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  Lên lịch
                 </Button>
               </>
             ) : null}
@@ -192,6 +227,17 @@ export function AdminStaffTypeChangeRequestDetailPage() {
           </div>
         }
       />
+
+      {/* Banner thất bại nổi bật */}
+      {request.status === 'FAILED' && request.failure_reason ? (
+        <div className="mb-4 flex items-start gap-2 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <ShieldAlert className="mt-0.5 h-4 w-4" />
+          <div>
+            <p className="font-semibold">Yêu cầu áp dụng thất bại</p>
+            <p className="mt-0.5">{request.failure_reason}</p>
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
@@ -209,6 +255,14 @@ export function AdminStaffTypeChangeRequestDetailPage() {
               >
                 {STAFF_TYPE_CHANGE_STATUS_LABELS[request.status] ?? request.status}
               </span>
+              {request.request_source ? (
+                <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 ring-1 ring-inset ring-slate-200">
+                  Nguồn:{' '}
+                  {request.request_source === 'ADMIN_DIRECTED'
+                    ? 'Admin điều chuyển'
+                    : 'Nhân viên đề nghị'}
+                </span>
+              ) : null}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -284,6 +338,17 @@ export function AdminStaffTypeChangeRequestDetailPage() {
                 </p>
               </div>
             ) : null}
+
+            {request.emergency_override && request.override_reason ? (
+              <div>
+                <p className="text-xs font-semibold uppercase text-red-700">
+                  Emergency override
+                </p>
+                <p className="mt-1 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                  {request.override_reason}
+                </p>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 
@@ -292,60 +357,87 @@ export function AdminStaffTypeChangeRequestDetailPage() {
             <CardTitle className="text-base">
               <span className="inline-flex items-center gap-2">
                 <History className="h-4 w-4" />
-                Lịch sử đổi chức năng
+                Timeline & lịch sử
               </span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm">
+          <CardContent className="space-y-6 text-sm">
+            <StaffTypeChangeTimeline request={request} />
+
             {historyQuery.isLoading ? (
-              <p className="text-sm text-slate-500">Đang tải...</p>
+              <p className="text-sm text-slate-500">Đang tải lịch sử...</p>
             ) : historyQuery.isError ? (
               <p className="text-sm text-red-600">
                 {getApiErrorMessage(historyQuery.error, 'Không tải được lịch sử.')}
               </p>
             ) : historyQuery.data && historyQuery.data.length > 0 ? (
-              <ul className="space-y-3">
-                {historyQuery.data.map((entry) => (
-                  <li
-                    key={entry.id}
-                    className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
-                  >
-                    <p className="text-xs text-slate-500">
-                      {formatDateTime(entry.applied_at)}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-800">
-                      <strong>
-                        {STAFF_TYPE_LABELS[
-                          entry.from_staff_type as keyof typeof STAFF_TYPE_LABELS
-                        ] ?? entry.from_staff_type}
-                      </strong>
-                      {' → '}
-                      <strong>
-                        {STAFF_TYPE_LABELS[
-                          entry.to_staff_type as keyof typeof STAFF_TYPE_LABELS
-                        ] ?? entry.to_staff_type}
-                      </strong>
-                    </p>
-                    {entry.note ? (
-                      <p className="mt-1 text-xs text-slate-600">{entry.note}</p>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-slate-500">
-                Nhân viên chưa có lịch sử đổi chức năng.
-              </p>
-            )}
+              <div>
+                <p className="text-xs font-semibold uppercase text-slate-500">
+                  Các lần đổi trước
+                </p>
+                <ul className="mt-2 space-y-2">
+                  {historyQuery.data.map((entry) => (
+                    <li
+                      key={entry.id}
+                      className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
+                    >
+                      <p className="text-xs text-slate-500">
+                        {formatDateTime(entry.applied_at)}
+                      </p>
+                      <p className="mt-0.5 text-sm text-slate-800">
+                        <strong>
+                          {STAFF_TYPE_LABELS[
+                            entry.from_staff_type as keyof typeof STAFF_TYPE_LABELS
+                          ] ?? entry.from_staff_type}
+                        </strong>
+                        {' → '}
+                        <strong>
+                          {STAFF_TYPE_LABELS[
+                            entry.to_staff_type as keyof typeof STAFF_TYPE_LABELS
+                          ] ?? entry.to_staff_type}
+                        </strong>
+                      </p>
+                      {entry.note ? (
+                        <p className="mt-1 text-xs text-slate-600">{entry.note}</p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       </div>
 
+      {/* Card impact snapshot */}
+      {request.impact_snapshot ? (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="text-base">
+              <span className="inline-flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4" />
+                Ảnh hưởng đã snapshot
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ImpactPreviewBlock
+              impact={request.impact_snapshot}
+              fromStaffType={request.from_staff_type}
+              toStaffType={request.to_staff_type}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
+
       <AdminStaffTypeChangeDecisionModal
-        mode={decisionMode ?? 'approve'}
+        mode={decisionMode}
         request={decisionMode ? request : null}
         onClose={() => setDecisionMode(null)}
-        onCompleted={() => navigate('/admin/staff-type-change-requests')}
+        onCompleted={() => {
+          setDecisionMode(null)
+          void listQuery.refetch()
+        }}
       />
 
       <StaffTypeChangeImpactPreviewModal
@@ -355,6 +447,23 @@ export function AdminStaffTypeChangeRequestDetailPage() {
         isLoading={impactQuery.isLoading}
         error={impactQuery.error}
       />
+
+      {/* Nút phụ: refresh nhanh */}
+      <div className="mt-6 flex justify-end">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => void listQuery.refetch()}
+          disabled={listQuery.isFetching}
+        >
+          <RefreshCw
+            className={
+              listQuery.isFetching ? 'h-4 w-4 animate-spin' : 'h-4 w-4'
+            }
+          />
+          Tải lại
+        </Button>
+      </div>
     </div>
   )
 }

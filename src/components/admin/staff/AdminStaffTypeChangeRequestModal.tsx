@@ -1,16 +1,19 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowRightLeft, Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, type Resolver } from 'react-hook-form'
 import { z } from 'zod'
 import { getApiErrorMessage } from '../../../api/client'
 import {
+  createAdminStaffTypeChangeRequestApi,
   createStaffTypeChangeRequestApi,
+  getStaffTypeChangeImpactApi,
+  type ApiStaffTypeChangeImpact,
   type ApiStaffTypeChangeRequest,
 } from '../../../api/staffTypeChange.api'
+import { ImpactPreviewBlock } from '../staffTypeChange/ImpactPreviewBlock'
 import {
   STAFF_TYPE_CHANGE_STATUS_COLORS,
-  STAFF_TYPE_CHANGE_STATUS_LABELS,
 } from '../../../constants/staffTypeChange'
 import {
   STAFF_TYPE_LABELS,
@@ -46,8 +49,22 @@ const requestSchema = z
       .max(1000),
     effective_at: z.string().optional(),
     handover_note: z.string().max(2000).optional(),
+    emergency_override: z.boolean().default(false),
+    override_reason: z.string().max(1000).optional(),
   })
   .strict()
+  .superRefine((data, ctx) => {
+    if (data.emergency_override) {
+      if (!data.override_reason || data.override_reason.trim().length < 5) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['override_reason'],
+          message:
+            'Vui lòng nhập lý do emergency override (tối thiểu 5 ký tự).',
+        })
+      }
+    }
+  })
 
 type RequestFormValues = z.infer<typeof requestSchema>
 
@@ -56,6 +73,15 @@ interface AdminStaffTypeChangeRequestModalProps {
   record: AdminStaffRecord | null
   onClose: () => void
   onSubmitted?: (request: ApiStaffTypeChangeRequest) => void
+  /**
+   * Cờ chuyển hướng endpoint tạo request.
+   * - `true` → gọi `POST /staff-profiles/:id/type-change-requests` (admin directed, BE MVP).
+   * - `false` → gọi `POST /staff-profiles/me/type-change-requests` (staff self, fallback).
+   *
+   * Mặc định `true` vì modal này do admin sử dụng; khi BE chưa sẵn sàng,
+   * bật prop `useAdminDirectedEndpoint={false}` ở nơi gọi.
+   */
+  useAdminDirectedEndpoint?: boolean
 }
 
 export function AdminStaffTypeChangeRequestModal({
@@ -63,24 +89,29 @@ export function AdminStaffTypeChangeRequestModal({
   record,
   onClose,
   onSubmitted,
+  useAdminDirectedEndpoint = true,
 }: AdminStaffTypeChangeRequestModalProps) {
   const { showToast } = useToast()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [impact, setImpact] = useState<ApiStaffTypeChangeImpact | null>(null)
+  const [impactLoading, setImpactLoading] = useState(false)
+  const [impactError, setImpactError] = useState<unknown>(null)
 
-  const form = useForm<RequestFormValues>({
-    resolver: zodResolver(requestSchema),
+  const form = useForm<z.infer<typeof requestSchema>>({
+    resolver: zodResolver(requestSchema) as Resolver<z.infer<typeof requestSchema>>,
     defaultValues: {
       to_staff_type: 'CUSTOMER_SERVICE_STAFF',
       reason: '',
       effective_at: '',
       handover_note: '',
+      emergency_override: false,
+      override_reason: '',
     },
   })
 
   useEffect(() => {
     if (open && record) {
-      // Mặc định chọn giá trị KHÁC vai trò hiện tại.
       const current = record.profile.staff_type
       const fallback =
         STAFF_TYPES.find((type) => type !== current) ?? 'CUSTOMER_SERVICE_STAFF'
@@ -89,12 +120,61 @@ export function AdminStaffTypeChangeRequestModal({
         reason: '',
         effective_at: '',
         handover_note: '',
+        emergency_override: false,
+        override_reason: '',
       })
       setError(null)
+      setImpact(null)
+      setImpactError(null)
     }
   }, [open, record, form])
 
   const toStaffType = form.watch('to_staff_type')
+  const effectiveAt = form.watch('effective_at')
+  const emergencyOverride = form.watch('emergency_override')
+
+  // Debounce 400ms gọi impact khi đổi vai trò / thời điểm áp dụng.
+  useEffect(() => {
+    if (!open || !record) return
+    if (record.profile.staff_type === toStaffType) {
+      setImpact(null)
+      return
+    }
+    const timer = window.setTimeout(() => {
+      let cancelled = false
+      setImpactLoading(true)
+      setImpactError(null)
+      const isoEffectiveAt = effectiveAt
+        ? new Date(effectiveAt).toISOString()
+        : new Date().toISOString()
+      getStaffTypeChangeImpactApi(record.profile.id, {
+        to_staff_type: toStaffType as
+          | 'CUSTOMER_SERVICE_STAFF'
+          | 'VEHICLE_INSPECTION_STAFF'
+          | 'WASH_OPERATOR'
+          | 'VEHICLE_CARE_STAFF',
+        effective_at: isoEffectiveAt,
+      })
+        .then((data) => {
+          if (!cancelled) setImpact(data)
+        })
+        .catch((err) => {
+          if (!cancelled) setImpactError(err)
+        })
+        .finally(() => {
+          if (!cancelled) setImpactLoading(false)
+        })
+      return () => {
+        cancelled = true
+      }
+    }, 400)
+    return () => window.clearTimeout(timer)
+  }, [
+    open,
+    record,
+    toStaffType,
+    effectiveAt,
+  ])
 
   if (!record) return null
 
@@ -112,10 +192,18 @@ export function AdminStaffTypeChangeRequestModal({
   ]
 
   const sameType = record.profile.staff_type === toStaffType
+  const hasBlockers =
+    (impact?.blockers?.length ?? 0) > 0 && !emergencyOverride
 
   const handleSubmit = async (values: RequestFormValues) => {
     if (sameType) {
       setError('Vai trò mới phải khác vai trò hiện tại.')
+      return
+    }
+    if (hasBlockers) {
+      setError(
+        'BE phát hiện vấn đề cản trở. Bật "Emergency override" và nhập lý do để tiếp tục.',
+      )
       return
     }
     setSubmitting(true)
@@ -129,8 +217,10 @@ export function AdminStaffTypeChangeRequestModal({
           : {}),
         ...(values.handover_note ? { handover_note: values.handover_note } : {}),
       }
-      const created = await createStaffTypeChangeRequestApi(payload)
-      showToast('Đã gửi yêu cầu đổi chức năng.', 'success')
+      const created = useAdminDirectedEndpoint
+        ? await createAdminStaffTypeChangeRequestApi(record.profile.id, payload)
+        : await createStaffTypeChangeRequestApi(payload)
+      showToast('Đã tạo yêu cầu điều chuyển vị trí.', 'success')
       onSubmitted?.(created)
       onClose()
     } catch (err) {
@@ -144,8 +234,8 @@ export function AdminStaffTypeChangeRequestModal({
     <Modal
       open={open}
       onClose={submitting ? () => undefined : onClose}
-      title="Yêu cầu chuyển chức năng"
-      description={`Đối với ${record.user.full_name} (${record.profile.staff_code}). BE sẽ tạo yêu cầu để admin khác duyệt.`}
+      title="Tạo yêu cầu điều chuyển vị trí"
+      description={`Đối với ${record.user.full_name} (${record.profile.staff_code}). Hệ thống sẽ kiểm tra ảnh hưởng trước khi tạo; admin vẫn cần duyệt riêng để điều chuyển có hiệu lực.`}
     >
       <div className="mb-4 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
         <span
@@ -221,7 +311,7 @@ export function AdminStaffTypeChangeRequestModal({
           <Textarea
             id="reason"
             rows={3}
-            placeholder="Nhu cầu phát triển, phù hợp với vị trí mới, v.v."
+            placeholder="Điều chuyển theo nhu cầu vận hành, phù hợp với vị trí mới, v.v."
             {...form.register('reason')}
           />
           {form.formState.errors.reason ? (
@@ -240,6 +330,9 @@ export function AdminStaffTypeChangeRequestModal({
               className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
               {...form.register('effective_at')}
             />
+            <p className="mt-1 text-xs text-slate-500">
+              Để trống = áp dụng ngay sau khi admin duyệt.
+            </p>
           </div>
           <div>
             <Label htmlFor="handover_note">Ghi chú bàn giao (tùy chọn)</Label>
@@ -252,6 +345,52 @@ export function AdminStaffTypeChangeRequestModal({
           </div>
         </div>
 
+        {/* Impact preview block */}
+        <div>
+          <Label>Ảnh hưởng dự kiến</Label>
+          <div className="mt-1">
+            <ImpactPreviewBlock
+              impact={impact}
+              isLoading={impactLoading}
+              error={impactError}
+              fromStaffType={record.profile.staff_type}
+              toStaffType={toStaffType}
+            />
+          </div>
+        </div>
+
+        {/* Emergency override (chỉ hiện khi có blocker) */}
+        {impact && (impact.blockers?.length ?? 0) > 0 ? (
+          <div className="space-y-2 rounded-xl border border-red-200 bg-red-50/60 px-4 py-3">
+            <label className="flex items-center gap-2 text-sm font-medium text-red-800">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-red-300 text-red-600 focus:ring-red-400"
+                {...form.register('emergency_override')}
+              />
+              Bật Emergency override
+              <span className="text-xs font-normal text-red-700">
+                (BE sẽ cho phép tạo request dù có vấn đề cản trở)
+              </span>
+            </label>
+            {emergencyOverride ? (
+              <div>
+                <Textarea
+                  id="override_reason"
+                  rows={2}
+                  placeholder="Lý do bắt buộc: giải thích vì sao cần bỏ qua blocker"
+                  {...form.register('override_reason')}
+                />
+                {form.formState.errors.override_reason ? (
+                  <p className="mt-1 text-xs text-red-600">
+                    {form.formState.errors.override_reason.message}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
         <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-4">
           <Button
             type="button"
@@ -261,16 +400,19 @@ export function AdminStaffTypeChangeRequestModal({
           >
             Hủy
           </Button>
-          <Button type="submit" disabled={submitting || sameType}>
+          <Button
+            type="submit"
+            disabled={submitting || sameType || hasBlockers}
+          >
             {submitting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Đang gửi...
+                Đang tạo...
               </>
             ) : (
               <>
                 <ArrowRightLeft className="h-4 w-4" />
-                Gửi yêu cầu
+                Tạo yêu cầu điều chuyển
               </>
             )}
           </Button>

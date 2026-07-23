@@ -254,6 +254,33 @@ export interface ApiCameraDevice {
   updated_at: string | null
 }
 
+/**
+ * Response từ `POST /admin/booking-arrivals/camera-devices` và
+ * `POST /admin/booking-arrivals/camera-devices/:id/rotate-key`.
+ *
+ * BE trả về object này (BE controller → cameraDevice.service → createDevice/rotateDeviceKey)
+ * chứ không nhét `api_key` vào device để tránh lộ key qua list.
+ */
+export interface ApiCameraDeviceWithKey {
+  device: ApiCameraDevice
+  /** Plain API key — chỉ hiển thị ở modal create/rotate, copy ngay. */
+  api_key: string
+}
+
+/**
+ * Body của `scan.alternate_vehicle` khi staff request một xe khác.
+ * Shape lỏng (BE populate theo alternate vehicle object), FE chỉ đọc một số field.
+ */
+export interface ApiAlternateVehicleValue {
+  license_plate?: string | null
+  vehicle_type?: 'CAR' | 'MOTORBIKE' | null
+  brand?: string | null
+  model?: string | null
+  color?: string | null
+  reason?: string | null
+  [key: string]: unknown
+}
+
 // ----- Metrics DTO ---------------------------------------------------------
 
 /** Dimension breakdown trong metrics response. */

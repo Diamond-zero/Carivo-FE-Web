@@ -1,4 +1,7 @@
-import type { StaffTypeChangeStatus } from '../api/staffTypeChange.api'
+import type {
+  StaffTypeChangeRequestSource,
+  StaffTypeChangeStatus,
+} from '../api/staffTypeChange.api'
 import type { StaffType } from '../types/staffProfile'
 
 /**
@@ -34,6 +37,25 @@ export const STAFF_TYPE_CHANGE_STATUS_COLORS: Record<
 }
 
 /**
+ * Nhãn tiếng Việt cho nguồn khởi tạo yêu cầu (BE field `request_source`).
+ */
+export const STAFF_TYPE_CHANGE_SOURCE_LABELS: Record<
+  StaffTypeChangeRequestSource,
+  string
+> = {
+  STAFF_SELF_REQUEST: 'Nhân viên đề nghị',
+  ADMIN_DIRECTED: 'Admin điều chuyển',
+}
+
+export const STAFF_TYPE_CHANGE_SOURCE_COLORS: Record<
+  StaffTypeChangeRequestSource,
+  string
+> = {
+  STAFF_SELF_REQUEST: 'bg-sky-100 text-sky-800 ring-sky-200',
+  ADMIN_DIRECTED: 'bg-violet-100 text-violet-800 ring-violet-200',
+}
+
+/**
  * Các trạng thái cho phép admin duyệt / từ chối.
  */
 export const APPROVABLE_STATUSES: StaffTypeChangeStatus[] = [
@@ -41,7 +63,7 @@ export const APPROVABLE_STATUSES: StaffTypeChangeStatus[] = [
 ]
 
 /**
- * Trạng thái còn có thể bị hủy (REQUESTED hoặc APPROVED chưa APPLIED).
+ * Trạng thái còn có thể bị hủy (REQUESTED hoặc APPROVED/SCHEDULED chưa APPLIED).
  */
 export const CANCELLABLE_STATUSES: StaffTypeChangeStatus[] = [
   'REQUESTED',

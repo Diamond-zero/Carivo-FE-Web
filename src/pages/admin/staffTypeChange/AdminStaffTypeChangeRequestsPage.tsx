@@ -4,12 +4,14 @@ import { Link } from 'react-router-dom'
 import { getApiErrorMessage } from '../../../api/client'
 import { AdminStaffTypeChangeRequestListTable } from '../../../components/admin/staffTypeChange/AdminStaffTypeChangeRequestListTable'
 import {
-  DEFAULT_ADMIN_STAFF_TYPE_CHANGE_REQUEST_FILTERS,
-  filterAdminStaffTypeChangeRequests,
-  hasActiveAdminStaffTypeChangeRequestFilters,
   AdminStaffTypeChangeRequestFiltersPanel,
   type AdminStaffTypeChangeRequestFilters,
 } from '../../../components/admin/staffTypeChange/AdminStaffTypeChangeRequestFiltersPanel'
+import {
+  DEFAULT_ADMIN_STAFF_TYPE_CHANGE_REQUEST_FILTERS,
+  filterAdminStaffTypeChangeRequests,
+  hasActiveAdminStaffTypeChangeRequestFilters,
+} from '../../../components/admin/staffTypeChange/AdminStaffTypeChangeRequestFilters.helpers'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
@@ -44,13 +46,21 @@ export function AdminStaffTypeChangeRequestsPage() {
     [filters, allRequests],
   )
 
-  const pendingCount = allRequests.filter((r) => r.status === 'REQUESTED').length
-  const approvedCount = allRequests.filter(
-    (r) => r.status === 'APPROVED' || r.status === 'SCHEDULED',
+  const pendingCount = allRequests.filter(
+    (r: { status: string }) => r.status === 'REQUESTED',
   ).length
-  const appliedCount = allRequests.filter((r) => r.status === 'APPLIED').length
+  const approvedCount = allRequests.filter(
+    (r: { status: string }) =>
+      r.status === 'APPROVED' || r.status === 'SCHEDULED',
+  ).length
+  const appliedCount = allRequests.filter(
+    (r: { status: string }) => r.status === 'APPLIED',
+  ).length
   const rejectedCount = allRequests.filter(
-    (r) => r.status === 'REJECTED' || r.status === 'CANCELLED' || r.status === 'FAILED',
+    (r: { status: string }) =>
+      r.status === 'REJECTED' ||
+      r.status === 'CANCELLED' ||
+      r.status === 'FAILED',
   ).length
 
   const hasActiveFilter = hasActiveAdminStaffTypeChangeRequestFilters(filters)

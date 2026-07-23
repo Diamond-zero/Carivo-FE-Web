@@ -6,10 +6,10 @@ import {
   ClipboardList,
   FileSearch,
   Gift,
-  History,
   LayoutDashboard,
   MessageSquare,
   Package,
+  ScanLine,
   ScrollText,
   Settings,
   Star,
@@ -86,6 +86,16 @@ export const adminNavItems: AdminNavItem[] = [
       { label: 'Danh sách booking', path: '/admin/bookings' },
       { label: 'Danh sách chờ', path: '/admin/waitlists' },
       { label: 'Lịch sử rửa', path: '/admin/wash-histories' },
+    ],
+  },
+  {
+    label: 'Vận hành cổng',
+    icon: ScanLine,
+    section: 'management',
+    children: [
+      { label: 'Camera cổng', path: '/admin/arrivals/cameras' },
+      { label: 'Lượt quét biển số', path: '/admin/arrivals/scans' },
+      { label: 'Metrics nhận diện', path: '/admin/arrivals/metrics' },
     ],
   },
   {
@@ -171,4 +181,5 @@ export const ADMIN_NAV_EXPAND_PREFIXES: Array<{
   { prefix: '/admin/staff-type-change-requests', groupLabel: 'Đổi chức năng nhân viên' },
   { prefix: '/admin/staff-type-change-history', groupLabel: 'Đổi chức năng nhân viên' },
   { prefix: '/admin/customer-vouchers', groupLabel: 'Voucher bồi thường' },
+  { prefix: '/admin/arrivals', groupLabel: 'Vận hành cổng' },
 ]

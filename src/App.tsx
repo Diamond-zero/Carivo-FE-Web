@@ -48,6 +48,10 @@ import {
   AdminTierRulesPage,
   AdminUsersListPage,
   AdminWashBayManagementPage,
+  AdminCameraDevicesPage,
+  AdminPlateScansPage,
+  AdminPlateScanReviewPage,
+  AdminPlateScanMetricsPage,
   BookingDetailPage,
   BookingListPage,
   CheckInPage,
@@ -460,6 +464,38 @@ function App() {
                   element={
                     <LazyPage>
                       <AdminSettingsPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/arrivals/cameras"
+                  element={
+                    <LazyPage>
+                      <AdminCameraDevicesPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/arrivals/scans"
+                  element={
+                    <LazyPage>
+                      <AdminPlateScansPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/arrivals/scans/:scanId"
+                  element={
+                    <LazyPage>
+                      <AdminPlateScanReviewPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/arrivals/metrics"
+                  element={
+                    <LazyPage>
+                      <AdminPlateScanMetricsPage />
                     </LazyPage>
                   }
                 />

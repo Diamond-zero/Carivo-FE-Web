@@ -332,3 +332,24 @@ export const StaffPlateScanDetailPage = lazyNamed(
   () => import('../pages/staff/arrivals/StaffPlateScanDetailPage'),
   'StaffPlateScanDetailPage',
 )
+
+// Admin Arrivals feature pages (Phase 4)
+export const AdminCameraDevicesPage = lazyNamed(
+  () => import('../pages/admin/arrivals/AdminCameraDevicesPage'),
+  'AdminCameraDevicesPage',
+)
+
+export const AdminPlateScansPage = lazyNamed(
+  () => import('../pages/admin/arrivals/AdminPlateScansPage'),
+  'AdminPlateScansPage',
+)
+
+export const AdminPlateScanReviewPage = lazyNamed(
+  () => import('../pages/admin/arrivals/AdminPlateScanReviewPage'),
+  'AdminPlateScanReviewPage',
+)
+
+export const AdminPlateScanMetricsPage = lazyNamed(
+  () => import('../pages/admin/arrivals/AdminPlateScanMetricsPage'),
+  'AdminPlateScanMetricsPage',
+)

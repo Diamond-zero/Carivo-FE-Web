@@ -1,8 +1,9 @@
 import { Plus, UserCheck, UserCog, Users } from 'lucide-react'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { getApiErrorMessage } from '../../../api/client'
 import { AdminStaffListTable } from '../../../components/admin/staff/AdminStaffListTable'
+import { AdminStaffTypeChangeRequestModal } from '../../../components/admin/staff/AdminStaffTypeChangeRequestModal'
 import { CustomerSearchPanel } from '../../../components/customer/CustomerSearchPanel'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Button } from '../../../components/ui/Button'
@@ -29,6 +30,7 @@ import {
 import type { StaffType } from '../../../types/staffProfile'
 
 export function AdminStaffListPage() {
+  const navigate = useNavigate()
   const { showToast } = useToast()
   const [query, setQuery] = useState('')
   const [garageFilter, setGarageFilter] = useState<string | 'ALL'>('ALL')
@@ -36,6 +38,7 @@ export function AdminStaffListPage() {
   const [isActiveFilter, setIsActiveFilter] = useState<boolean | 'ALL'>('ALL')
   const [confirmProfileId, setConfirmProfileId] = useState<string | null>(null)
   const [deleteProfileId, setDeleteProfileId] = useState<string | null>(null)
+  const [transferProfileId, setTransferProfileId] = useState<string | null>(null)
 
   const { allGarages: garages } = useAdminGarages()
   const { staff, allStaff, isLoading, isError, error } = useAdminStaff({
@@ -61,6 +64,9 @@ export function AdminStaffListPage() {
     : undefined
   const deletingRecord = deleteProfileId
     ? allStaff.find((record) => record.profile.id === deleteProfileId)
+    : undefined
+  const transferRecord = transferProfileId
+    ? allStaff.find((record) => record.profile.id === transferProfileId)
     : undefined
 
   const handleConfirmToggle = () => {
@@ -245,6 +251,7 @@ export function AdminStaffListPage() {
             hasActiveFilter={hasActiveFilter}
             onToggleActive={setConfirmProfileId}
             onDelete={setDeleteProfileId}
+            onTransfer={setTransferProfileId}
           />
         </CardContent>
       </Card>
@@ -306,6 +313,20 @@ export function AdminStaffListPage() {
           </div>
         </div>
       </Modal>
+
+      <AdminStaffTypeChangeRequestModal
+        open={Boolean(transferRecord)}
+        record={transferRecord ?? null}
+        onClose={() => setTransferProfileId(null)}
+        onSubmitted={(created) => {
+          setTransferProfileId(null)
+          showToast(
+            `Đã tạo yêu cầu điều chuyển ${created.id.slice(0, 8)} — chuyển sang duyệt.`,
+            'success',
+          )
+          navigate(`/admin/staff-type-change-requests/${created.id}`)
+        }}
+      />
     </div>
   )
 }

@@ -2,13 +2,17 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   approveStaffTypeChangeRequestApi,
   cancelStaffTypeChangeRequestApi,
+  createAdminStaffTypeChangeRequestApi,
   getStaffTypeChangeHistoryApi,
   getStaffTypeChangeImpactApi,
   listAdminStaffTypeChangeRequestsApi,
   rejectStaffTypeChangeRequestApi,
   type AdminStaffTypeChangeListParams,
+  type ApiStaffTypeChangeRequest,
   type ApproveStaffTypeChangePayload,
   type CancelStaffTypeChangePayload,
+  type CreateStaffTypeChangePayload,
+  type GetStaffTypeChangeImpactParams,
   type RejectStaffTypeChangePayload,
 } from '../../../api/staffTypeChange.api'
 import { useAdminAuth } from '../../../contexts/AdminAuthContext'
@@ -32,15 +36,24 @@ export function useAdminStaffTypeChangeRequests(
 
 /**
  * ADMIN: xem ảnh hưởng trước khi duyệt đổi.
+ *
+ * BE yêu cầu query `to_staff_type` (và tuỳ chọn `effective_at`). Hook nhận
+ * `params` tương ứng; component dùng `enabled` để bật/tắt khi đã chọn xong.
  */
-export function useAdminStaffTypeChangeImpact(staffProfileId?: string) {
+export function useAdminStaffTypeChangeImpact(
+  staffProfileId?: string,
+  params?: GetStaffTypeChangeImpactParams,
+) {
   const { isAuthenticated } = useAdminAuth()
   return useQuery({
     queryKey: staffProfileId
-      ? adminQueryKeys.staffTypeChangeImpact(staffProfileId)
+      ? adminQueryKeys.staffTypeChangeImpact(staffProfileId, params)
       : ['admin', 'staff-type-change-impact', 'disabled'],
-    queryFn: () => getStaffTypeChangeImpactApi(staffProfileId!),
-    enabled: isAuthenticated && !!staffProfileId,
+    queryFn: () => getStaffTypeChangeImpactApi(staffProfileId!, params!),
+    enabled:
+      isAuthenticated &&
+      !!staffProfileId &&
+      !!params?.to_staff_type,
     staleTime: 30_000,
   })
 }
@@ -61,6 +74,42 @@ export function useAdminStaffTypeChangeHistory(staffProfileId?: string) {
 }
 
 /**
+ * ADMIN: tạo yêu cầu điều chuyển (admin directed).
+ * Endpoint BE đề xuất: `POST /staff-profiles/:staffProfileId/type-change-requests`.
+ */
+export function useCreateAdminStaffTypeChangeRequest() {
+  const qc = useQueryClient()
+  return useMutation<
+    ApiStaffTypeChangeRequest,
+    Error,
+    { staffProfileId: string; payload: CreateStaffTypeChangePayload }
+  >({
+    mutationFn: ({ staffProfileId, payload }) =>
+      createAdminStaffTypeChangeRequestApi(staffProfileId, payload),
+    onSuccess: (data) => {
+      void qc.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'staff-type-change-requests'],
+      })
+      void qc.invalidateQueries({
+        queryKey: staffQueryKeys.myTypeChangeRequests,
+      })
+      if (data?.staff_profile_id) {
+        void qc.invalidateQueries({
+          queryKey: adminQueryKeys.staffTypeChangeHistory(
+            data.staff_profile_id,
+          ),
+        })
+        void qc.invalidateQueries({
+          queryKey: adminQueryKeys.staffTypeChangeImpact(
+            data.staff_profile_id,
+          ),
+        })
+      }
+    },
+  })
+}
+
+/**
  * ADMIN: duyệt yêu cầu đổi.
  */
 export function useApproveAdminStaffTypeChangeRequest() {
@@ -73,12 +122,16 @@ export function useApproveAdminStaffTypeChangeRequest() {
       requestId: string
       payload?: ApproveStaffTypeChangePayload
     }) => approveStaffTypeChangeRequestApi(requestId, payload),
-    onSuccess: () => {
+    onSuccess: (data) => {
       void qc.invalidateQueries({
         queryKey: [...adminQueryKeys.all, 'staff-type-change-requests'],
       })
       void qc.invalidateQueries({ queryKey: staffQueryKeys.myTypeChangeRequests })
-      void qc.invalidateQueries({ queryKey: adminQueryKeys.staffTypeChangeHistory('any') })
+      if (data?.staff_profile_id) {
+        void qc.invalidateQueries({
+          queryKey: adminQueryKeys.staffTypeChangeHistory(data.staff_profile_id),
+        })
+      }
     },
   })
 }
@@ -96,11 +149,16 @@ export function useRejectAdminStaffTypeChangeRequest() {
       requestId: string
       payload?: RejectStaffTypeChangePayload
     }) => rejectStaffTypeChangeRequestApi(requestId, payload),
-    onSuccess: () => {
+    onSuccess: (data) => {
       void qc.invalidateQueries({
         queryKey: [...adminQueryKeys.all, 'staff-type-change-requests'],
       })
       void qc.invalidateQueries({ queryKey: staffQueryKeys.myTypeChangeRequests })
+      if (data?.staff_profile_id) {
+        void qc.invalidateQueries({
+          queryKey: adminQueryKeys.staffTypeChangeHistory(data.staff_profile_id),
+        })
+      }
     },
   })
 }
@@ -119,11 +177,16 @@ export function useCancelAdminStaffTypeChangeRequest() {
       requestId: string
       payload?: CancelStaffTypeChangePayload
     }) => cancelStaffTypeChangeRequestApi(requestId, payload),
-    onSuccess: () => {
+    onSuccess: (data) => {
       void qc.invalidateQueries({
         queryKey: [...adminQueryKeys.all, 'staff-type-change-requests'],
       })
       void qc.invalidateQueries({ queryKey: staffQueryKeys.myTypeChangeRequests })
+      if (data?.staff_profile_id) {
+        void qc.invalidateQueries({
+          queryKey: adminQueryKeys.staffTypeChangeHistory(data.staff_profile_id),
+        })
+      }
     },
   })
 }

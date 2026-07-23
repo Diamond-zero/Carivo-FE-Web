@@ -4,19 +4,14 @@
 // FE side chỉ cần gọi; shape payload đã canonical trong types/api/plateScan.ts.
 // ============================================================================
 
-import type {
-  ApiListResponse,
-  ApiResponse,
-} from '../types/api'
-import type { ApiPaginationMeta } from '../types/api/admin'
-import type {
-  ApiAlternateVehiclePayload as _DeprecatedAlternateVehiclePayload,
-} from '../types/api/staff'
+import type { ApiResponse } from '../types/api'
+import type { ApiListResponse, ApiPaginationMeta } from '../types/api/admin'
 import type {
   ApiArrivalQueueItem,
   ApiArrivalQueueParams,
   ApiCameraDevice,
   ApiCameraDeviceListParams,
+  ApiCameraDeviceWithKey,
   ApiConfirmPlateScanPayload,
   ApiCreateCameraDevicePayload,
   ApiCreatePlateScanPayload,
@@ -163,7 +158,7 @@ export async function adminListCameraDevicesApi(
 export async function adminCreateCameraDeviceApi(
   payload: ApiCreateCameraDevicePayload,
 ) {
-  const { data } = await apiClient.post<ApiResponse<ApiCameraDevice>>(
+  const { data } = await apiClient.post<ApiResponse<ApiCameraDeviceWithKey>>(
     `${ADMIN_BASE}/camera-devices`,
     payload,
   )
@@ -182,7 +177,7 @@ export async function adminUpdateCameraDeviceApi(
 }
 
 export async function adminRotateCameraDeviceKeyApi(id: string) {
-  const { data } = await apiClient.post<ApiResponse<ApiCameraDevice>>(
+  const { data } = await apiClient.post<ApiResponse<ApiCameraDeviceWithKey>>(
     `${ADMIN_BASE}/camera-devices/${id}/rotate-key`,
   )
   return data.data
@@ -303,14 +298,10 @@ export const CAMERA_DEVICE_HEALTH_LABELS: Record<
 }
 
 // ----- Backward-compat shims ------------------------------------------------
-// `ApiAlternateVehiclePayload` (legacy shape) trong types/api/staff.ts dùng
-// `vehicle_id` (BE đổi sang `license_plate + vehicle_type + reason + ...`).
+// `ApiAlternateVehiclePayload` (legacy shape) từng nằm trong types/api/staff.ts
+// với `vehicle_id` (BE đổi sang `license_plate + vehicle_type + reason + ...`).
 // Re-export một adapter type để code cũ import được mà không vỡ compile,
 // đồng thời ép runtime phải dùng canonical `ApiRequestAlternateVehiclePayload`.
 
 /** @deprecated dùng `ApiRequestAlternateVehiclePayload` (license_plate + vehicle_type). */
 export type ApiAlternateVehiclePayload = ApiRequestAlternateVehiclePayload
-
-// Tránh unused import warning — `_DeprecatedAlternateVehiclePayload` chỉ ở đây
-// để nhắc nhở rằng FE đã migrate xong.
-export type _LegacyAlternateVehiclePayload = _DeprecatedAlternateVehiclePayload
