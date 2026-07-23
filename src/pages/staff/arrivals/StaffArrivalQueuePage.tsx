@@ -1,7 +1,30 @@
-import { ArrowRight, Camera, Loader2 } from 'lucide-react'
+// ============================================================================
+// Staff Arrival Queue — BE base `/staff/booking-arrivals`.
+// Phase 2: rewrite theo canonical hooks + fields. Phase 2.1 sẽ bổ sung
+// getUserMedia + upload flow ở đây (camera capture panel).
+// ============================================================================
+
+import {
+  ArrowRight,
+  Camera,
+  History,
+  Loader2,
+  ScanLine,
+} from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+
+import {
+  useCreatePlateScanMutation,
+  useStaffArrivalQueue,
+  useStaffPlateScans,
+} from '../../../hooks/api/staff/useStaffPlateScans'
 import { getApiErrorMessage } from '../../../api/client'
+import { uploadFileApi } from '../../../api/upload.api'
+import {
+  PLATE_SCAN_STATUS_LABELS,
+  PLATE_SCAN_STATUS_VARIANT,
+} from '../../../api/plateScan.api'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Badge } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
@@ -15,38 +38,44 @@ import { EmptyState } from '../../../components/ui/EmptyState'
 import { Label } from '../../../components/ui/Label'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { useToast } from '../../../contexts/ToastContext'
-import {
-  useStaffArrivalQueue,
-  useStaffPlateScans,
-  useRecognizePlateMutation,
-} from '../../../hooks/api/staff/useStaffPlateScans'
-import { uploadFileApi } from '../../../api/upload.api'
+import type {
+  ApiCreatePlateScanPayload,
+  ApiPlateScan,
+} from '../../../types/api/plateScan'
 import { formatDateTime } from '../../../utils/format'
 
 export function StaffArrivalQueuePage() {
   const { showToast } = useToast()
-  const [frameUrls, setFrameUrls] = useState('')
-  const [isUploading, setIsUploading] = useState(false)
-
   const queueQuery = useStaffArrivalQueue()
   const scansQuery = useStaffPlateScans()
-  const recognizeMutation = useRecognizePlateMutation()
+  const createScanMutation = useCreatePlateScanMutation()
 
-  const queue = queueQuery.data ?? []
-  const recentScans = scansQuery.data?.data ?? []
+  const [pendingUploadIds, setPendingUploadIds] = useState<string[]>([])
+  const [isUploading, setIsUploading] = useState(false)
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+  const queueItems: ApiPlateScan[] =
+    (queueQuery.data?.data ?? []) as ApiPlateScan[]
+  const recentScans: ApiPlateScan[] = scansQuery.data?.data ?? []
+
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = event.target.files
+    if (!files || files.length === 0) return
     setIsUploading(true)
+    const uploaded: string[] = []
     try {
-      const upload = await uploadFileApi(file, { purpose: 'GENERAL' })
-      setFrameUrls((current) => {
-        const trimmed = current.trim()
-        if (!trimmed) return upload.url
-        return `${trimmed}\n${upload.url}`
-      })
-      showToast('Đã upload ảnh. Bạn có thể upload thêm hoặc nhấn "Nhận diện".', 'success')
+      for (const file of Array.from(files)) {
+        const upload = await uploadFileApi(file, {
+          purpose: 'BOOKING_PLATE_SCAN',
+        })
+        uploaded.push(upload.id)
+      }
+      setPendingUploadIds((current) => [...current, ...uploaded])
+      showToast(
+        `Đã upload ${uploaded.length} ảnh. Nhấn "Nhận diện" để BE xử lý.`,
+        'success',
+      )
     } catch (error) {
       showToast(getApiErrorMessage(error, 'Không thể upload ảnh.'), 'error')
     } finally {
@@ -55,27 +84,56 @@ export function StaffArrivalQueuePage() {
     }
   }
 
+  const handleRemovePending = (id: string) => {
+    setPendingUploadIds((current) => current.filter((x) => x !== id))
+  }
+
   const handleRecognize = async () => {
-    const urls = frameUrls
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0)
-    if (urls.length === 0) {
+    if (pendingUploadIds.length === 0) {
       showToast('Vui lòng upload ít nhất một ảnh biển số.', 'error')
       return
     }
+    if (pendingUploadIds.length > 5) {
+      showToast('Tối đa 5 ảnh mỗi lượt quét.', 'error')
+      return
+    }
+    // Tạm lấy garage từ 1 scan trước (fallback). Phase 2.1 sẽ có dropdown
+    // chọn garage cho staff multi-garage.
+    const fallbackGarageId =
+      queueItems[0]?.garage_id ?? recentScans[0]?.garage_id
+
+    if (!fallbackGarageId) {
+      showToast(
+        'Không xác định được garage. Vui lòng thử lại sau khi đã có lượt quét.',
+        'error',
+      )
+      return
+    }
+
+    const isBatch = pendingUploadIds.length > 1
+    const payload: ApiCreatePlateScanPayload = {
+      garage_id: fallbackGarageId,
+      upload_ids: pendingUploadIds,
+      mode: isBatch ? 'LIVE_BATCH' : 'SINGLE',
+      capture_source: isBatch ? 'LIVE_CAMERA' : 'STAFF_CAMERA',
+    }
+
     try {
-      await recognizeMutation.mutateAsync({
-        frame_upload_ids: urls,
-      })
-      showToast('Đã gửi ảnh nhận diện. Hệ thống sẽ xử lý trong giây lát.', 'success')
-      setFrameUrls('')
+      const scan = await createScanMutation.mutateAsync(payload)
+      setPendingUploadIds([])
+      const last6 = scan.id.slice(-6)
+      showToast(
+        `Đã gửi ${pendingUploadIds.length} ảnh nhận diện. Mã lượt quét: …${last6}.`,
+        'success',
+      )
     } catch (error) {
       showToast(getApiErrorMessage(error, 'Không thể nhận diện.'), 'error')
     }
   }
 
-  if (queueQuery.isLoading && scansQuery.isLoading) return <DashboardPageSkeleton />
+  if (queueQuery.isLoading && scansQuery.isLoading) {
+    return <DashboardPageSkeleton />
+  }
 
   return (
     <div>
@@ -94,39 +152,42 @@ export function StaffArrivalQueuePage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {queue.length === 0 ? (
+            {queueItems.length === 0 ? (
               <EmptyState
                 icon={Camera}
                 title="Chưa có xe đến"
-                description="Khi camera cổng nhận diện được biển số, lượt quét sẽ xuất hiện ở đây để staff xác nhận."
+                description="Khi camera cổng nhận diện được biển số với độ khớp cao, lượt quét sẽ xuất hiện ở đây để staff xác nhận check-in."
               />
             ) : (
               <ul className="space-y-2">
-                {queue.map((item) => (
+                {queueItems.map((scan) => (
                   <li
-                    key={item.scan_id}
-                    className="flex items-center justify-between rounded-xl border border-slate-200 p-3"
+                    key={scan.id}
+                    className="flex items-center justify-between rounded-xl border border-slate-200 p-3 hover:bg-slate-50/50"
                   >
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <p className="font-mono text-base font-bold text-slate-900">
-                        {item.detected_plate ?? '?'}
+                        {scan.normalized_plate ?? scan.raw_plate_text ?? '?'}
                       </p>
                       <p className="text-xs text-slate-500">
-                        Độ khớp:{' '}
-                        {item.best_confidence
-                          ? `${(item.best_confidence * 100).toFixed(0)}%`
+                        Độ khớp{' '}
+                        {scan.confidence
+                          ? `${(scan.confidence * 100).toFixed(0)}%`
                           : '—'}
+                        {scan.matched_booking_id
+                          ? ` · Booking #${scan.matched_booking_id.slice(-6)}`
+                          : ''}
                       </p>
-                      {item.captured_at ? (
+                      {scan.captured_at ? (
                         <p className="text-xs text-slate-500">
-                          Lúc {formatDateTime(item.captured_at)}
+                          Lúc {formatDateTime(scan.captured_at)}
                         </p>
                       ) : null}
                     </div>
-                    <Link to={`/staff/arrivals/${item.scan_id}`}>
+                    <Link to={`/staff/arrivals/${scan.id}`}>
                       <Button size="sm" variant="secondary">
-                        <ArrowRight className="h-4 w-4" />
                         Mở
+                        <ArrowRight className="h-4 w-4" />
                       </Button>
                     </Link>
                   </li>
@@ -138,15 +199,19 @@ export function StaffArrivalQueuePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Upload ảnh nhận diện thủ công</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ScanLine className="h-5 w-5 text-slate-500" />
+              Upload ảnh nhận diện thủ công
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-slate-600">
-              Upload ảnh chụp biển số (1 hoặc nhiều ảnh) để BE nhận diện và đối chiếu
-              với booking trong ngày.
+              Upload 1 ảnh (SINGLE) hoặc 2–5 ảnh chụp liên tiếp (LIVE_BATCH).
+              Hệ thống sẽ tự nhận diện biển số và đối chiếu với booking.
             </p>
+
             <div>
-              <Label htmlFor="frame-upload">Ảnh biển số</Label>
+              <Label htmlFor="frame-upload">Ảnh biển số (tối đa 5 ảnh)</Label>
               <input
                 id="frame-upload"
                 type="file"
@@ -163,67 +228,122 @@ export function StaffArrivalQueuePage() {
                 </div>
               ) : null}
             </div>
-            <div>
-              <Label htmlFor="frame-urls">URLs sau upload (mỗi dòng một URL)</Label>
-              <textarea
-                id="frame-urls"
-                rows={4}
-                className="min-h-[100px] w-full rounded-xl border border-slate-200/90 bg-white px-4 py-2.5 text-sm shadow-[var(--shadow-carivo-sm)] outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15"
-                placeholder="https://cdn.carivo.vn/uploads/abc.jpg"
-                value={frameUrls}
-                onChange={(event) => setFrameUrls(event.target.value)}
-              />
-            </div>
+
+            {pendingUploadIds.length > 0 ? (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs font-medium text-slate-700">
+                  Đã upload {pendingUploadIds.length} ảnh — sẵn sàng nhận diện:
+                </p>
+                <ul className="mt-2 space-y-1">
+                  {pendingUploadIds.map((id) => (
+                    <li
+                      key={id}
+                      className="flex items-center justify-between gap-2 font-mono text-xs text-slate-600"
+                    >
+                      <span className="truncate">…{id.slice(-12)}</span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleRemovePending(id)}
+                      >
+                        Bỏ
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
             <Button
               onClick={handleRecognize}
-              disabled={recognizeMutation.isPending || isUploading}
+              disabled={
+                createScanMutation.isPending ||
+                isUploading ||
+                pendingUploadIds.length === 0
+              }
+              className="w-full sm:w-auto"
             >
-              {recognizeMutation.isPending ? (
+              {createScanMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
-              ) : null}
-              Gửi nhận diện
+              ) : (
+                <ScanLine className="h-4 w-4" />
+              )}
+              Gửi nhận diện ({pendingUploadIds.length || 0})
             </Button>
+            {pendingUploadIds.length > 1 ? (
+              <p className="text-xs text-slate-500">
+                Chế độ LIVE_BATCH — BE sẽ vote kết quả theo biển số.
+              </p>
+            ) : null}
           </CardContent>
         </Card>
       </div>
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle className="text-base">Lịch sử quét gần đây</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <History className="h-5 w-5 text-slate-500" />
+            Lịch sử quét gần đây
+          </CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto p-0">
           {recentScans.length === 0 ? (
-            <p className="px-6 py-4 text-sm text-slate-500">Chưa có lượt quét nào.</p>
+            <p className="px-6 py-4 text-sm text-slate-500">
+              Chưa có lượt quét nào.
+            </p>
           ) : (
-            <table className="w-full min-w-[700px] text-left text-sm">
+            <table className="w-full min-w-[720px] text-left text-sm">
               <thead className="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="px-6 py-3">Biển số</th>
                   <th className="px-6 py-3">Độ khớp</th>
+                  <th className="px-6 py-3">Mode</th>
                   <th className="px-6 py-3">Booking khớp</th>
                   <th className="px-6 py-3">Trạng thái</th>
                   <th className="px-6 py-3">Thời gian</th>
+                  <th className="px-6 py-3 text-right">Mở</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {recentScans.map((scan) => (
                   <tr key={scan.id} className="hover:bg-slate-50/50">
                     <td className="px-6 py-4 font-mono font-bold text-slate-900">
-                      {scan.detected_plate ?? '—'}
+                      {scan.normalized_plate ?? scan.raw_plate_text ?? '—'}
                     </td>
                     <td className="px-6 py-4 text-slate-700">
-                      {scan.best_confidence
-                        ? `${(scan.best_confidence * 100).toFixed(0)}%`
+                      {scan.confidence
+                        ? `${(scan.confidence * 100).toFixed(0)}%`
                         : '—'}
                     </td>
-                    <td className="px-6 py-4 text-slate-700">
-                      {scan.matched_booking_id ?? '—'}
+                    <td className="px-6 py-4 text-xs text-slate-600">
+                      {scan.mode ?? '—'}
+                    </td>
+                    <td className="px-6 py-4 font-mono text-xs text-slate-700">
+                      {scan.matched_booking_id
+                        ? `#${scan.matched_booking_id.slice(-6)}`
+                        : '—'}
                     </td>
                     <td className="px-6 py-4">
-                      <Badge>{scan.status}</Badge>
+                      <Badge
+                        variant={
+                          PLATE_SCAN_STATUS_VARIANT[scan.status] ?? 'default'
+                        }
+                      >
+                        {PLATE_SCAN_STATUS_LABELS[scan.status] ?? scan.status}
+                      </Badge>
                     </td>
                     <td className="px-6 py-4 text-slate-500">
-                      {scan.captured_at ? formatDateTime(scan.captured_at) : '—'}
+                      {scan.captured_at
+                        ? formatDateTime(scan.captured_at)
+                        : '—'}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <Link to={`/staff/arrivals/${scan.id}`}>
+                        <Button size="sm" variant="ghost">
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </Link>
                     </td>
                   </tr>
                 ))}
