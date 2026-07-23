@@ -1,4 +1,5 @@
 import {
+  Award,
   CheckCircle2,
   Clock3,
   Filter,
@@ -31,23 +32,25 @@ import { useToast } from '../../contexts/ToastContext'
 import { getApiErrorMessage } from '../../api/client'
 import {
   useClaimInspection,
-  useWorkspaceBookings,
 } from '../../hooks/api/staff/useWorkspaceBookings'
+import { useStaffBookingList } from '../../hooks/api/staff/useStaffBookingList'
 import { staffQueryKeys, workspaceQueryKeys } from '../../hooks/api/staff/queryKeys'
 import { useStaffCapabilities } from '../../hooks/useCan'
 import type { StaffCapability } from '../../constants/staffCapabilities'
-import {
-  hasAvailableAction,
-  mapWorkspaceBookings,
-} from '../../lib/mappers/workspaceMappers'
 import type { Booking } from '../../types/booking'
 import {
   DEFAULT_BOOKING_FILTERS,
   type BookingFilters,
 } from '../../utils/bookingFilters'
 import { formatPrice, formatTime } from '../../utils/format'
-import { getBookingCustomerName } from '../../utils/booking'
-import { getBookingListAction } from '../../utils/bookingActionGuards'
+import {
+  getBookingCustomerName,
+  getBookingDisplayName,
+  getBookingInitials,
+  getBookingPhone,
+} from '../../utils/booking'
+import { normalizeSearchText } from '../../utils/booking'
+import { getBookingListAction, getClaimInspectionGuard } from '../../utils/bookingActionGuards'
 
 const PAGE_SIZE = 10
 
@@ -75,21 +78,22 @@ export function BookingListPage() {
     isError,
     error,
     refetch,
-  } = useWorkspaceBookings({
-    status: filters.status,
-    date: filters.date,
-  })
+  } = useStaffBookingList(filters)
 
-  const rawBookings = data?.bookings ?? []
-  const allBookings = useMemo(() => mapWorkspaceBookings(rawBookings), [rawBookings])
+  const allBookings = data?.bookings ?? []
 
   const visibleBookings = useMemo(() => {
-    const normalized = search.trim().toLowerCase()
+    const normalized = normalizeSearchText(search)
     if (!normalized) return allBookings
     return allBookings.filter((booking) => {
-      const plate = booking.license_plate?.toLowerCase() ?? ''
-      const name = getBookingCustomerName(booking).toLowerCase()
-      return plate.includes(normalized) || name.includes(normalized)
+      const plate = normalizeSearchText(booking.license_plate ?? '')
+      const name = normalizeSearchText(getBookingCustomerName(booking))
+      const phone = normalizeSearchText(booking.customer_phone ?? '')
+      return (
+        plate.includes(normalized) ||
+        name.includes(normalized) ||
+        phone.includes(normalized)
+      )
     })
   }, [allBookings, search])
 
@@ -359,32 +363,47 @@ export function BookingListPage() {
                                 to={`/bookings/${booking.id}`}
                                 className="text-sm font-semibold text-brand-700 hover:underline"
                               >
-                                {booking.id.replace('booking-', '#')}
+                                #{booking.id.slice(0, 8)}
                               </Link>
                             </td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-3">
                                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[11px] font-bold text-brand-800">
-                                  {(getBookingCustomerName(booking) || 'KH')
-                                    .split(' ')
-                                    .map((p) => p.charAt(0))
-                                    .slice(0, 2)
-                                    .join('')
-                                    .toUpperCase()}
+                                  {getBookingInitials(booking)}
                                 </span>
                                 <div className="min-w-0">
-                                  <p className="truncate text-sm font-semibold text-slate-900">
-                                    {getBookingCustomerName(booking) || '—'}
-                                  </p>
-                                  <p className="truncate text-xs text-slate-500">
-                                    {booking.customer_phone || '—'}
+                                  <div className="flex items-center gap-1.5">
+                                    <p
+                                      className="truncate text-sm font-semibold text-slate-900"
+                                      title={getBookingDisplayName(booking).displayName}
+                                    >
+                                      {getBookingDisplayName(booking).displayName}
+                                    </p>
+                                    {getBookingDisplayName(booking).isWalkIn ? (
+                                      <span
+                                        className="inline-flex shrink-0 items-center rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-700"
+                                        title="Walk-in: nhân viên không nhập được thông tin khách (BE chưa trả is_walk_in)"
+                                      >
+                                        Walk-in
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                  <p
+                                    className="truncate text-xs text-slate-500"
+                                    title={getBookingPhone(booking) || undefined}
+                                  >
+                                    {getBookingPhone(booking) || 'Không có SĐT'}
                                   </p>
                                 </div>
                               </div>
                             </td>
                             <td className="px-4 py-3">
                               <p className="text-sm font-semibold text-slate-900">
-                                {booking.license_plate || '—'}
+                                {booking.license_plate || (
+                                  <span className="font-normal italic text-slate-400">
+                                    Chưa nhập biển số
+                                  </span>
+                                )}
                               </p>
                               <p className="text-xs text-slate-500">
                                 {booking.vehicle_type === 'CAR'
@@ -396,10 +415,7 @@ export function BookingListPage() {
                             </td>
                             <td className="px-4 py-3">
                               <span className="inline-block rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-                                {booking.service_package_name ||
-                                  (booking.raw?.workflow_phase
-                                    ? booking.raw.workflow_phase.replace(/_/g, ' ')
-                                    : 'Chưa gán gói')}
+                                {booking.service_package_name || 'Chưa gán gói'}
                               </span>
                             </td>
                             <td className="px-4 py-3">
@@ -417,14 +433,10 @@ export function BookingListPage() {
                               </p>
                             </td>
                             <td className="px-4 py-3">
-                              <p className="text-sm font-semibold text-slate-900">
-                                {booking.final_price > 0 ? formatPrice(booking.final_price) : '—'}
-                              </p>
+                              {renderFinalPrice(booking)}
                             </td>
                             <td className="px-4 py-3">
-                              <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600">
-                                {booking.earned_points ? `+${booking.earned_points}` : '—'}
-                              </span>
+                              {renderEarnedPoints(booking)}
                             </td>
                             <td className="px-4 py-3">
                               <PaymentStatusBadge status={booking.payment_status} />
@@ -531,6 +543,76 @@ function SummaryCard({ label, value, icon: Icon, accent }: SummaryCardProps) {
   )
 }
 
+/**
+ * Render cột "Thành tiền":
+ *  - final_price > 0 → format VND
+ *  - final_price = 0 VÀ status COMPLETED → "0 ₫" (gói miễn phí / khuyến mãi)
+ *  - Các trạng thái khác → "Chưa tính" (booking chưa xong nên BE chưa set final_price)
+ */
+function renderFinalPrice(booking: Booking) {
+  const price = booking.final_price ?? 0
+  if (price > 0) {
+    return (
+      <p className="text-sm font-semibold text-slate-900">
+        {formatPrice(price)}
+      </p>
+    )
+  }
+  if (price === 0 && booking.status === 'COMPLETED') {
+    return (
+      <p
+        className="text-sm font-medium text-emerald-700"
+        title="Booking hoàn thành với thành tiền = 0 (vd: khuyến mãi 100%)"
+      >
+        0&nbsp;₫
+      </p>
+    )
+  }
+  return (
+    <p
+      className="text-xs italic text-slate-400"
+      title="Thành tiền sẽ được tính khi booking hoàn thành"
+    >
+      Chưa tính
+    </p>
+  )
+}
+
+/**
+ * Render cột "Điểm":
+ *  - earned_points > 0 → "+X điểm" với icon Award
+ *  - earned_points = 0 VÀ payment PAID → "0 điểm" (đã thanh toán nhưng không tích)
+ *  - Còn lại → "—" với tooltip "Chỉ cộng điểm sau khi thanh toán PAID"
+ */
+function renderEarnedPoints(booking: Booking) {
+  const points = booking.earned_points ?? 0
+  if (points > 0) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+        <Award className="h-3 w-3" />+{points} điểm
+      </span>
+    )
+  }
+  if (points === 0 && booking.payment_status === 'PAID') {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500"
+        title="Booking đã thanh toán nhưng không tích điểm"
+      >
+        0 điểm
+      </span>
+    )
+  }
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-xs italic text-slate-400"
+      title="Điểm thưởng sẽ được cộng sau khi booking thanh toán PAID"
+    >
+      <Award className="h-3 w-3" />—
+    </span>
+  )
+}
+
 interface BookingTableActionProps {
   booking: Booking
   staffGarageId?: string
@@ -549,7 +631,12 @@ function BookingTableAction({
   const canClaimInspection = staffCapabilities.includes(
     'inspection.claim_garage',
   )
-  const canClaim = canClaimInspection && hasAvailableAction(booking, 'inspection.claim')
+  // BE list endpoint (GET /staff/workspace/bookings) KHÔNG trả available_actions
+  // nên hasAvailableAction('inspection.claim') luôn false ở trang list. Phải dùng
+  // getClaimInspectionGuard (đã mirror đầy đủ điều kiện BE cho claim-inspection)
+  // để xác định hiển thị nút.
+  const claimGuard = getClaimInspectionGuard(booking, staffGarageId)
+  const canClaim = canClaimInspection && claimGuard.allowed
 
   const action = getBookingListAction(booking, staffGarageId)
   if (!action && !canClaim) {

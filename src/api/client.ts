@@ -82,6 +82,18 @@ const API_ERROR_MESSAGES: Record<string, string> = {
     'Không tìm thấy garage. Vui lòng kiểm tra lại garage_id.',
   STAFF_PROFILE_INACTIVE:
     'Hồ sơ nhân viên đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.',
+  VEHICLE_INSPECTION_ALREADY_EXISTS:
+    'Biên bản kiểm tra cho loại này đã tồn tại trên booking. Vui lòng chọn loại kiểm tra khác hoặc xem lại lịch sử.',
+  VEHICLE_INSPECTION_NOT_FOUND:
+    'Không tìm thấy biên bản kiểm tra.',
+  BEFORE_WASH_INSPECTION_NOT_ALLOWED:
+    'Biên bản trước rửa chỉ tạo được sau khi check-in và trước khi hoàn thành dịch vụ.',
+  AFTER_WASH_INSPECTION_NOT_ALLOWED:
+    'Biên bản sau rửa chỉ tạo được trong hoặc sau khi hoàn thành dịch vụ.',
+  INSPECTION_CAPABILITY_REQUIRED:
+    'Tài khoản không có quyền tạo biên bản kiểm tra.',
+  INSPECTION_ASSIGNMENT_REQUIRED:
+    'Bạn cần nhận (claim) booking này trước khi tạo biên bản kiểm tra.',
 }
 
 export function getApiErrorCode(error: unknown): string | undefined {
@@ -106,7 +118,8 @@ export function getApiErrorMessage(error: unknown, fallback: string): string {
   }
 
   if (data?.errors?.length) {
-    return data.errors.map((item) => item.message).join('. ')
+    const translated = data.errors.map((item) => translateZodMessage(item))
+    return translated.join('. ')
   }
 
   if (data?.message) {
@@ -122,6 +135,53 @@ export function getApiErrorMessage(error: unknown, fallback: string): string {
   }
 
   return fallback
+}
+
+/**
+ * Dịch zod error messages sang tiếng Việt + ẩn path kỹ thuật.
+ * BE dùng zod mặc định → trả "Invalid input: expected string, received null".
+ * Nếu không nhận diện được thì trả message gốc.
+ */
+function translateZodMessage(item: { path?: string; message?: string }): string {
+  const rawMessage = item.message ?? ''
+  const path = item.path ?? ''
+
+  if (/expected string, received null/i.test(rawMessage)) {
+    return `Trường ${humanizePath(path)} không được để trống.`
+  }
+
+  if (/expected string, received undefined/i.test(rawMessage)) {
+    return `Trường ${humanizePath(path)} không được để trống.`
+  }
+
+  if (/expected number, received/i.test(rawMessage)) {
+    return `Trường ${humanizePath(path)} phải là số.`
+  }
+
+  if (/expected boolean, received/i.test(rawMessage)) {
+    return `Trường ${humanizePath(path)} phải là đúng/sai.`
+  }
+
+  if (/Invalid resource id/i.test(rawMessage)) {
+    return `Mã ${humanizePath(path)} không hợp lệ.`
+  }
+
+  if (/Required/i.test(rawMessage)) {
+    return `Trường ${humanizePath(path)} là bắt buộc.`
+  }
+
+  return rawMessage
+}
+
+function humanizePath(path: string): string {
+  if (!path) return 'dữ liệu'
+  // "body.images.0.public_id" → "ảnh số 1 (public_id)" — gọn đủ để staff hiểu.
+  return path
+    .replace(/^body\./, '')
+    .replace(/^params\./, '')
+    .replace(/^query\./, '')
+    .replace(/\.\d+\./g, ' thứ ')
+    .replace(/_/g, ' ')
 }
 
 export function getApiRetryAfterSeconds(error: unknown): number | undefined {

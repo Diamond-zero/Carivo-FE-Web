@@ -148,6 +148,11 @@ export function useClaimInspection() {
         void queryClient.invalidateQueries({
           queryKey: staffQueryKeys.bookings(garageId),
         })
+        // `useStaffBookingList` dùng key `bookingList` (có params filter) — phải
+        // refetch mọi list của staff để BookingListPage reload với data mới.
+        void queryClient.invalidateQueries({
+          queryKey: ['staff', 'bookings', garageId, 'list'],
+        })
       }
       void queryClient.invalidateQueries({
         queryKey: staffQueryKeys.bookingDetail(bookingId),
