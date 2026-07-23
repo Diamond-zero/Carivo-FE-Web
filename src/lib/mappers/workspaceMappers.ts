@@ -3,7 +3,7 @@
  */
 
 import type { Booking } from '../types/booking'
-import type { ApiWorkspaceBooking } from '../types/api/workspace'
+import type { AvailableAction, ApiWorkspaceBooking } from '../types/api/workspace'
 
 /**
  * Convert workspace booking sang Booking type cho list display
@@ -43,6 +43,7 @@ export function mapWorkspaceBookingToBooking(
       arrival_status: workspaceBooking.arrival_status,
       vehicle_brand: workspaceBooking.vehicle_brand,
       vehicle_color: workspaceBooking.vehicle_color,
+      available_actions: workspaceBooking.available_actions,
     } as Booking['raw'],
   }
 }
@@ -52,4 +53,19 @@ export function mapWorkspaceBookingToBooking(
  */
 export function mapWorkspaceBookings(bookings: ApiWorkspaceBooking[]): Booking[] {
   return bookings.map(mapWorkspaceBookingToBooking)
+}
+
+/**
+ * Helper: lấy available_actions từ mapped Booking (luôn nằm trong raw.available_actions).
+ * Trả mảng rỗng nếu không có — an toàn cho guard.
+ */
+export function getAvailableActions(booking: Booking): AvailableAction[] {
+  return (booking.raw?.available_actions as AvailableAction[] | undefined) ?? []
+}
+
+/**
+ * Helper: kiểm tra 1 action có nằm trong available_actions của booking hay không.
+ */
+export function hasAvailableAction(booking: Booking, action: AvailableAction): boolean {
+  return getAvailableActions(booking).includes(action)
 }

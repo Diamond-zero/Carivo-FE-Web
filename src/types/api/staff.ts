@@ -561,10 +561,22 @@ export interface ApiLateArrivalOptions {
   suggested_slots: ApiLateArrivalSuggestedSlot[]
 }
 
+/**
+ * Cấu trúc 1 ảnh đính kèm inspection gửi lên BE.
+ * BE schema (`vehicleInspection.validator.js`) yêu cầu `images` là mảng object
+ * với `image_url` bắt buộc; `public_id` / `caption` optional. Trước đây FE
+ * gửi mảng string nên BE Zod ném "Invalid input: expected object, received string".
+ */
+export interface CreateInspectionApiImage {
+  image_url: string
+  public_id?: string | null
+  caption?: string | null
+}
+
 export interface CreateInspectionApiPayload {
   type: 'BEFORE_WASH' | 'AFTER_WASH'
-  note: string
-  images: string[]
+  note?: string | null
+  images: CreateInspectionApiImage[]
 }
 
 export interface UploadApiResponse {

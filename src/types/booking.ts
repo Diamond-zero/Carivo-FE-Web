@@ -65,6 +65,14 @@ export interface Booking {
   care_staff_required_count?: number
   /** Danh sách staff_profile_id hiện đang được assign cho booking. */
   assigned_care_staff_ids?: string[]
+  /**
+   * ID user (BE lưu bằng user_id) của nhân viên kiểm tra đang phụ trách booking.
+   * Được set khi:
+   *   - Admin gán thủ công qua PATCH /staff/bookings/:id/assign-inspection-staff
+   *   - Staff tự nhận qua PATCH /staff/workspace/bookings/:id/claim-inspection
+   * InspectionPage dùng field này để filter booking cho VEHICLE_INSPECTION_STAFF.
+   */
+  assigned_inspection_staff_id?: string | null
 }
 
 export interface WalkInBookingForm {

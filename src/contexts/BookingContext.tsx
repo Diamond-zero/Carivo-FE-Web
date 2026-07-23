@@ -516,7 +516,14 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       createBookingInspectionApi(bookingId, {
         type: payload.type,
         note: payload.note,
-        images: payload.images,
+        // BE schema yêu cầu mảng object { image_url, public_id?, caption? }.
+        // `CreateInspectionInput.images` từ form giữ string[] (FE đơn giản),
+        // transform sang shape BE trước khi gửi.
+        images: payload.images.map((url) => ({
+          image_url: url,
+          public_id: null,
+          caption: null,
+        })),
       }),
     onSuccess: async (_, { bookingId }) => {
       await fetchInspections(bookingId)

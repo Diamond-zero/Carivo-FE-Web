@@ -38,6 +38,7 @@ export type StaffCapabilityKey =
   // Inspection
   | 'inspection.read_garage'
   | 'inspection.read_assigned'
+  | 'inspection.claim_garage'
   | 'inspection.create_assigned'
   | 'inspection.before_wash.create'
   | 'inspection.after_wash.create'

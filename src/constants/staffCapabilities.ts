@@ -37,6 +37,7 @@ export const STAFF_CAPABILITIES = Object.freeze({
   // Inspection
   INSPECTION_READ_GARAGE: 'inspection.read_garage',
   INSPECTION_READ_ASSIGNED: 'inspection.read_assigned',
+  INSPECTION_CLAIM_GARAGE: 'inspection.claim_garage',
   INSPECTION_CREATE_ASSIGNED: 'inspection.create_assigned',
   INSPECTION_BEFORE_WASH_CREATE: 'inspection.before_wash.create',
   INSPECTION_AFTER_WASH_CREATE: 'inspection.after_wash.create',
@@ -103,6 +104,7 @@ export const CAPABILITY_LABELS: Record<StaffCapability, string> = {
   'service_item.confirm_complete': 'Xác nhận hoàn thành bước dịch vụ',
   'inspection.read_garage': 'Xem kiểm tra xe trong garage',
   'inspection.read_assigned': 'Xem kiểm tra được phân công',
+  'inspection.claim_garage': 'Tự nhận booking để kiểm tra xe',
   'inspection.create_assigned': 'Tạo kiểm tra xe',
   'inspection.before_wash.create': 'Tạo kiểm tra trước rửa',
   'inspection.after_wash.create': 'Tạo kiểm tra sau rửa',

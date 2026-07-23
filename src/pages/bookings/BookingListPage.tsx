@@ -6,14 +6,17 @@ import {
   Loader2,
   Plus,
   RefreshCw,
+  ScanSearch,
   Search,
   SearchX,
   XCircle,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { Link, useNavigate } from 'react-router-dom'
 import { BookingListFilters } from '../../components/booking/BookingListFilters'
 import { BookingStatusBadge } from '../../components/booking/BookingStatusBadge'
+import { ClaimInspectionModal } from '../../components/booking/ClaimInspectionModal'
 import { MarkPaidModal } from '../../components/booking/MarkPaidModal'
 import { PaymentStatusBadge } from '../../components/booking/PaymentStatusBadge'
 import { Button } from '../../components/ui/Button'
@@ -26,7 +29,17 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useBookings } from '../../contexts/BookingContext'
 import { useToast } from '../../contexts/ToastContext'
 import { getApiErrorMessage } from '../../api/client'
-import { useWorkspaceBookings } from '../../hooks/api/staff/useWorkspaceBookings'
+import {
+  useClaimInspection,
+  useWorkspaceBookings,
+} from '../../hooks/api/staff/useWorkspaceBookings'
+import { staffQueryKeys, workspaceQueryKeys } from '../../hooks/api/staff/queryKeys'
+import { useStaffCapabilities } from '../../hooks/useCan'
+import type { StaffCapability } from '../../constants/staffCapabilities'
+import {
+  hasAvailableAction,
+  mapWorkspaceBookings,
+} from '../../lib/mappers/workspaceMappers'
 import type { Booking } from '../../types/booking'
 import {
   DEFAULT_BOOKING_FILTERS,
@@ -35,21 +48,23 @@ import {
 import { formatPrice, formatTime } from '../../utils/format'
 import { getBookingCustomerName } from '../../utils/booking'
 import { getBookingListAction } from '../../utils/bookingActionGuards'
-import { useStaffCapabilities } from '../../hooks/useCan'
-import type { StaffCapability } from '../../constants/staffCapabilities'
-import { mapWorkspaceBookings } from '../../lib/mappers/workspaceMappers'
 
 const PAGE_SIZE = 10
 
 export function BookingListPage() {
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { session } = useAuth()
+  const garageId = session?.staffProfile.garage_id
   const { markBookingPaid, createPayosPayment } = useBookings()
   const { showToast } = useToast()
   const staffCapabilities = useStaffCapabilities()
+  const claimInspection = useClaimInspection()
   const [filters, setFilters] = useState<BookingFilters>(
     DEFAULT_BOOKING_FILTERS,
   )
   const [markPaidBooking, setMarkPaidBooking] = useState<Booking | null>(null)
+  const [claimBooking, setClaimBooking] = useState<Booking | null>(null)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
 
@@ -126,6 +141,33 @@ export function BookingListPage() {
       success: result.success,
       message: result.message,
       checkoutUrl: result.checkoutUrl,
+    }
+  }
+
+  const handleConfirmClaim = async () => {
+    if (!claimBooking) return
+    try {
+      await claimInspection.mutateAsync(claimBooking.id)
+      // Đợi các query liên quan refetch xong trước khi navigate để InspectionPage
+      // nhận được data mới (assigned_inspection_staff_id === currentUserId).
+      // Trước đây user phải logout/login lại vì list cũ còn `assigned = null`
+      // → InspectionPage filter loại bỏ booking.
+      await queryClient.refetchQueries({
+        queryKey: staffQueryKeys.bookings(garageId),
+      })
+      await queryClient.refetchQueries({
+        queryKey: workspaceQueryKeys.bookings(),
+      })
+      showToast('Đã nhận kiểm tra booking thành công.', 'success')
+      setClaimBooking(null)
+      navigate(`/service/inspection?bookingId=${claimBooking.id}`)
+    } catch (error) {
+      const message = getApiErrorMessage(
+        error,
+        'Không thể nhận kiểm tra booking này.',
+      )
+      showToast(message, 'error')
+      void refetch()
     }
   }
 
@@ -396,6 +438,7 @@ export function BookingListPage() {
                                 staffGarageId={session?.staffProfile.garage_id}
                                 staffCapabilities={staffCapabilities}
                                 onMarkPaid={setMarkPaidBooking}
+                                onClaim={setClaimBooking}
                               />
                             </td>
                           </tr>
@@ -445,6 +488,16 @@ export function BookingListPage() {
               onConfirmPayos={handlePayos}
             />
           ) : null}
+
+          {claimBooking ? (
+            <ClaimInspectionModal
+              open={Boolean(claimBooking)}
+              booking={claimBooking}
+              isSubmitting={claimInspection.isPending}
+              onClose={() => setClaimBooking(null)}
+              onConfirm={handleConfirmClaim}
+            />
+          ) : null}
         </>
       )}
     </div>
@@ -483,6 +536,7 @@ interface BookingTableActionProps {
   staffGarageId?: string
   staffCapabilities: StaffCapability[]
   onMarkPaid: (booking: Booking) => void
+  onClaim: (booking: Booking) => void
 }
 
 function BookingTableAction({
@@ -490,11 +544,59 @@ function BookingTableAction({
   staffGarageId,
   staffCapabilities,
   onMarkPaid,
+  onClaim,
 }: BookingTableActionProps) {
+  const canClaimInspection = staffCapabilities.includes(
+    'inspection.claim_garage',
+  )
+  const canClaim = canClaimInspection && hasAvailableAction(booking, 'inspection.claim')
+
   const action = getBookingListAction(booking, staffGarageId)
-  if (!action) {
+  if (!action && !canClaim) {
     return <span className="text-xs text-slate-400">—</span>
   }
+
+  const handleClaimClick = () => {
+    onClaim(booking)
+  }
+
+  return (
+    <div className="flex items-center justify-end gap-2">
+      {canClaim ? (
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={handleClaimClick}
+        >
+          <ScanSearch className="h-4 w-4" />
+          Nhận kiểm tra
+        </Button>
+      ) : null}
+      {action ? (
+        <ActionBody
+          booking={booking}
+          action={action}
+          staffCapabilities={staffCapabilities}
+          onMarkPaid={onMarkPaid}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+interface ActionBodyProps {
+  booking: Booking
+  action: NonNullable<ReturnType<typeof getBookingListAction>>
+  staffCapabilities: StaffCapability[]
+  onMarkPaid: (booking: Booking) => void
+}
+
+function ActionBody({
+  booking,
+  action,
+  staffCapabilities,
+  onMarkPaid,
+}: ActionBodyProps) {
   if (!staffCapabilities.includes(action.requiredCapability)) {
     return <span className="text-xs text-slate-400">—</span>
   }

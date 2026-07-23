@@ -46,13 +46,18 @@ export type AvailableAction =
   | 'booking.cancel'
   | 'booking.mark_no_show'
   | 'booking.check_in'
+  | 'inspection.claim'
   | 'inspection.before_wash.create'
+  | 'inspection.after_wash.create'
   | 'booking.service.start'
   | 'service_item.pause'
   | 'service_item.resume'
   | 'service_item.complete_early'
   | 'service_item.confirm_complete'
   | 'booking.service.complete'
+  | 'booking.payment.collect_cash'
+  | 'handover.prepare'
+  | 'handover.release'
 
 /** Một booking trong workspace list response */
 export interface ApiWorkspaceBooking {
@@ -75,21 +80,42 @@ export interface ApiWorkspaceBooking {
   current_service_item_key: string | null
   payment_status: WorkspacePaymentStatus
   blocked_by_incident: boolean
+  available_actions: AvailableAction[]
   service_package_name: string | null
   final_price: number
   earned_points: number
 }
 
-/** Service item trong workflow detail */
+/** Inspection milestone trong workflow detail (BE `StaffBookingWorkflowInspectionMilestone`) */
+export interface ApiInspectionMilestone {
+  status: 'DONE' | 'PENDING' | 'NOT_READY'
+  inspected_at: string | null
+  inspected_by_id: string | null
+  image_count: number
+}
+
+/** Service item trong workflow detail (BE `StaffBookingWorkflowServiceItem`) */
 export interface ApiServiceItem {
-  key: string
+  item_key: string
   name: string
-  status: 'PENDING' | 'IN_PROGRESS' | 'DONE' | 'SKIPPED' | 'PAUSED'
-  current_step_key: string | null
-  can_pause: boolean
-  can_resume: boolean
-  can_complete_early: boolean
-  requires_confirmation: boolean
+  sequence: number
+  status:
+    | 'PENDING'
+    | 'IN_PROGRESS'
+    | 'PAUSED'
+    | 'AWAITING_CONFIRMATION'
+    | 'WAITING_RESOURCE'
+    | 'DONE'
+    | 'SKIPPED'
+  duration_minutes: number
+  transition_mode: 'AUTO' | 'REQUIRE_CONFIRMATION'
+  actual_started_at: string | null
+  countdown_ends_at: string | null
+  actual_completed_at: string | null
+  remaining_seconds_at_pause: number | null
+  requires_wash_bay: boolean
+  requires_care_staff: boolean
+  assigned_to_current_user: boolean
 }
 
 /** Service step trong workflow detail */
@@ -101,20 +127,15 @@ export interface ApiServiceStep {
   wash_bay_id: string | null
 }
 
-/** Milestone trong workflow detail */
-export interface ApiMilestone {
-  key: string
-  label: string
-  status: 'PENDING' | 'DONE' | 'SKIPPED'
-  completed_at: string | null
-}
-
-/** Blocker trong workflow detail */
-export interface ApiWorkflowBlocker {
-  type: 'INCIDENT' | 'PAYMENT' | 'INSPECTION' | 'ASSIGNMENT'
-  message: string
-  incident_id?: string
-}
+/** Workflow blockers (BE `BOOKING_WORKFLOW_BLOCKER_VALUES`) */
+export type WorkflowBlocker =
+  | 'INCIDENT_HOLD'
+  | 'CHECK_IN_REQUIRED'
+  | 'BEFORE_WASH_INSPECTION_REQUIRED'
+  | 'SERVICE_ITEMS_NOT_DONE'
+  | 'AFTER_WASH_INSPECTION_REQUIRED'
+  | 'HANDOVER_CUSTOMER_RESPONSE_REQUIRED'
+  | 'PAYMENT_REQUIRED'
 
 /** Workflow detail response */
 export interface ApiWorkspaceWorkflow {
@@ -133,10 +154,21 @@ export interface ApiWorkspaceWorkflow {
   payment_status: WorkspacePaymentStatus
   blocked_by_incident: boolean
   server_time: string
-  milestones: ApiMilestone[]
+  operation_status: 'NORMAL' | 'AWAITING_CUSTOMER_DECISION'
+  payment: {
+    method: 'CASH' | 'PAYOS' | null
+    status: WorkspacePaymentStatus | null
+  } | null
+  milestones: {
+    check_in: Record<string, unknown> | null
+    before_wash_inspection: ApiInspectionMilestone | null
+    service: Record<string, unknown> | null
+    after_wash_inspection: ApiInspectionMilestone | null
+    handover: Record<string, unknown> | null
+  }
   service_items: ApiServiceItem[]
   service_steps: ApiServiceStep[]
-  blockers: ApiWorkflowBlocker[]
+  blockers: WorkflowBlocker[]
   available_actions: AvailableAction[]
 }
 
@@ -193,11 +225,16 @@ export const ACTION_LABELS: Record<AvailableAction, string> = {
   'booking.cancel': 'Hủy booking',
   'booking.mark_no_show': 'Không đến',
   'booking.check_in': 'Check-in',
+  'inspection.claim': 'Nhận kiểm tra',
   'inspection.before_wash.create': 'Kiểm tra trước rửa',
+  'inspection.after_wash.create': 'Kiểm tra sau rửa',
   'booking.service.start': 'Bắt đầu dịch vụ',
   'service_item.pause': 'Tạm dừng',
   'service_item.resume': 'Tiếp tục',
   'service_item.complete_early': 'Hoàn thành sớm',
   'service_item.confirm_complete': 'Xác nhận hoàn thành',
   'booking.service.complete': 'Hoàn thành dịch vụ',
+  'booking.payment.collect_cash': 'Thu tiền mặt',
+  'handover.prepare': 'Chuẩn bị bàn giao',
+  'handover.release': 'Bàn giao xe',
 }

@@ -78,6 +78,11 @@ export function mapApiBooking(booking: ApiBooking): Booking {
     requires_care_staff: booking.requires_care_staff ?? booking.service_package?.requires_care_staff,
     care_staff_required_count: booking.care_staff_required_count ?? null,
     assigned_care_staff_ids: booking.assigned_care_staff_ids ?? [],
+    // === Inspection-staff assignment (BE enriched fields) ===
+    // Cần thiết cho `getCreateInspectionGuard` trên InspectionPage — guard check
+    // `assigned_inspection_staff_id === currentUserId` để staff chỉ thấy booking
+    // mà mình đã claim (sau khi gọi PATCH claim-inspection).
+    assigned_inspection_staff_id: booking.assigned_inspection_staff_id ?? null,
     raw: booking,
   }
 }

@@ -243,15 +243,86 @@ export function getAssignWashBayGuard(
 export function getCreateInspectionGuard(
   booking: Booking,
   staffGarageId?: string,
+  /**
+   * staff profile id (hoặc user id tùy schema). BE lưu `assigned_inspection_staff_id`
+   * bằng user id — so sánh với `session.user.id`. Truyền `undefined` để skip check.
+   */
+  currentUserId?: string,
 ): ActionGuardResult {
   const garage = garageGuard(booking, staffGarageId)
   if (garage) return garage
 
-  if (!['CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS'].includes(booking.status)) {
+  // Sau claim-inspection flow: chỉ staff được gán hoặc admin mới tạo được.
+  // Admin bypass (currentUserId undefined) → cho phép.
+  if (currentUserId !== undefined) {
+    if (
+      booking.assigned_inspection_staff_id &&
+      booking.assigned_inspection_staff_id !== currentUserId
+    ) {
+      return {
+        allowed: false,
+        reason: 'Booking đã có nhân viên kiểm tra khác nhận.',
+      }
+    }
+  }
+
+  // Sau khi có BEFORE_WASH inspection (assigned) → staff đã claim và đã khảo sát,
+  // service bắt đầu được → không còn trong trạng thái "chờ tạo before_wash".
+  // Vẫn cho phép tạo AFTER_WASH sau khi service xong (status IN_PROGRESS).
+  if (!['CHECKED_IN', 'IN_PROGRESS'].includes(booking.status)) {
     return {
       allowed: false,
-      reason:
-        'Chỉ booking CONFIRMED, CHECKED_IN hoặc IN_PROGRESS mới kiểm tra được.',
+      reason: 'Chỉ booking CHECKED_IN hoặc IN_PROGRESS mới kiểm tra được.',
+    }
+  }
+
+  if (booking.raw?.blocked_by_incident === true) {
+    return {
+      allowed: false,
+      reason: 'Booking đang bị tạm dừng do sự cố — không thể kiểm tra.',
+    }
+  }
+
+  return { allowed: true }
+}
+
+/**
+ * Guard cho PATCH /staff/workspace/bookings/:bookingId/claim-inspection.
+ *
+ * Điều kiện hiển thị nút "Nhận kiểm tra":
+ *  - Booking cùng garage
+ *  - Status CHECKED_IN
+ *  - Chưa có ai nhận (assigned_inspection_staff_id null)
+ *  - Không bị incident hold
+ *
+ * Backend vẫn là nguồn xác thực cuối cùng (atomic check với $or) — guard chỉ để ẩn
+ * nút khi điều kiện không khả thi.
+ */
+export function getClaimInspectionGuard(
+  booking: Booking,
+  staffGarageId?: string,
+): ActionGuardResult {
+  const garage = garageGuard(booking, staffGarageId)
+  if (garage) return garage
+
+  if (booking.status !== 'CHECKED_IN') {
+    return {
+      allowed: false,
+      reason: 'Chỉ booking đã check-in mới nhận kiểm tra được.',
+    }
+  }
+
+  if (booking.assigned_inspection_staff_id) {
+    return {
+      allowed: false,
+      reason: 'Booking đã có nhân viên kiểm tra nhận rồi.',
+    }
+  }
+
+  if (booking.raw?.blocked_by_incident === true) {
+    return {
+      allowed: false,
+      reason: 'Booking đang bị tạm dừng do sự cố.',
     }
   }
 
