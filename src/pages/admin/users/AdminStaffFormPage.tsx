@@ -1,8 +1,9 @@
-import { ArrowLeft, UserX } from 'lucide-react'
+import { ArrowLeft, ArrowRightLeft, UserX } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { getApiErrorMessage } from '../../../api/client'
 import { AdminStaffForm } from '../../../components/admin/staff/AdminStaffForm'
+import { AdminStaffTypeChangeRequestModal } from '../../../components/admin/staff/AdminStaffTypeChangeRequestModal'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
@@ -14,6 +15,10 @@ import {
   useCreateAdminStaff,
   useUpdateAdminStaff,
 } from '../../../hooks/api/admin/useAdminStaff'
+import {
+  useAdminStaffTypeChangeRequests,
+} from '../../../hooks/api/admin/useAdminStaffTypeChangeRequests'
+import { STAFF_TYPE_LABELS } from '../../../constants/staffType'
 import type {
   AdminStaffCreateFormValues,
   AdminStaffEditFormValues,
@@ -31,9 +36,22 @@ export function AdminStaffFormPage() {
   const createMutation = useCreateAdminStaff()
   const updateMutation = useUpdateAdminStaff()
 
+  const [transferOpen, setTransferOpen] = useState(false)
+
+  // Lấy danh sách request đang mở của staff để cảnh báo admin nếu đã có yêu cầu
+  // đang pending (BE vẫn cho phép tạo thêm nhưng thường gây trùng).
+  const openRequestsQuery = useAdminStaffTypeChangeRequests({
+    staff_profile_id: profileId,
+  })
   const record = profileQuery.data ?? undefined
   const isSubmitting = createMutation.isPending || updateMutation.isPending
   const isLoading = !isCreate && profileQuery.isLoading
+
+  // Request thuộc staff hiện tại còn ở trạng thái mở (REQUESTED/APPROVED/SCHEDULED).
+  const openRequestsForThisStaff =
+    openRequestsQuery.data?.data?.filter((req) =>
+      ['REQUESTED', 'APPROVED', 'SCHEDULED'].includes(req.status),
+    ) ?? []
 
   if (!isCreate && !isLoading && (profileQuery.isError || !record)) {
     return (
@@ -97,7 +115,8 @@ export function AdminStaffFormPage() {
     if (!profileId) return
     const garageId =
       values.garage_id && values.garage_id.length > 0 ? values.garage_id : null
-    // BE StaffProfileUpdateRequest KHÔNG nhận staff_type.
+    // BE StaffProfileUpdateRequest KHÔNG nhận staff_type — staff_type phải đổi qua
+    // "Điều chuyển vị trí" (AdminStaffTypeChangeRequestModal) để BE audit + revoke refresh token.
     updateMutation.mutate(
       {
         profileId,
@@ -122,6 +141,9 @@ export function AdminStaffFormPage() {
     )
   }
 
+  const canTransfer =
+    !isCreate && Boolean(record) && record?.profile.is_active === true
+
   return (
     <div>
       {isLoading ? (
@@ -134,17 +156,64 @@ export function AdminStaffFormPage() {
             description={
               isCreate
                 ? 'Gán tài khoản STAFF vào garage với mã nhân viên và vai trò.'
-                : `Chỉnh sửa ${record?.user.full_name} — ${record?.profile.staff_code}`
+                : `Chỉnh sửa ${record?.user.full_name} — ${record?.profile.staff_code} · Hiện tại: ${STAFF_TYPE_LABELS[record?.profile.staff_type ?? 'CUSTOMER_SERVICE_STAFF']}`
             }
             action={
-              <Link to="/admin/users/staff">
-                <Button variant="secondary">
-                  <ArrowLeft className="h-4 w-4" />
-                  Quay lại
-                </Button>
-              </Link>
+              <div className="flex flex-wrap items-center gap-2">
+                <Link to="/admin/users/staff">
+                  <Button variant="secondary">
+                    <ArrowLeft className="h-4 w-4" />
+                    Quay lại
+                  </Button>
+                </Link>
+                {!isCreate && record ? (
+                  <Button
+                    onClick={() => setTransferOpen(true)}
+                    disabled={!canTransfer}
+                    title={
+                      canTransfer
+                        ? 'Tạo yêu cầu điều chuyển nhân viên sang chức năng khác (cần admin khác duyệt)'
+                        : 'Chỉ điều chuyển được khi nhân viên đang làm việc'
+                    }
+                  >
+                    <ArrowRightLeft className="h-4 w-4" />
+                    Điều chuyển vị trí
+                  </Button>
+                ) : null}
+              </div>
             }
           />
+
+          {!isCreate && openRequestsForThisStaff.length > 0 ? (
+            <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <ArrowRightLeft className="mt-0.5 h-4 w-4" />
+              <div>
+                <p className="font-medium">
+                  Nhân viên này đang có {openRequestsForThisStaff.length} yêu
+                  cầu đổi chức năng chưa kết thúc.
+                </p>
+                <ul className="ml-4 mt-1 list-disc text-xs">
+                  {openRequestsForThisStaff.map((req) => (
+                    <li key={req.id}>
+                      Mã yêu cầu{' '}
+                      <Link
+                        to={`/admin/staff-type-change-requests/${req.id}`}
+                        className="carivo-link font-mono"
+                      >
+                        #{req.id.slice(0, 8)}
+                      </Link>
+                      {' · '}
+                      {STAFF_TYPE_LABELS[
+                        req.to_staff_type as keyof typeof STAFF_TYPE_LABELS
+                      ] ?? req.to_staff_type}
+                      {' · '}
+                      {req.status}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ) : null}
 
           <Card className="max-w-2xl">
             <CardHeader>
@@ -165,6 +234,19 @@ export function AdminStaffFormPage() {
               />
             </CardContent>
           </Card>
+
+          {!isCreate && record ? (
+            <AdminStaffTypeChangeRequestModal
+              open={transferOpen}
+              record={record}
+              onClose={() => setTransferOpen(false)}
+              onSubmitted={(created) => {
+                setTransferOpen(false)
+                // Mở thẳng trang detail để admin xem lý do, impact và duyệt/từ chối.
+                navigate(`/admin/staff-type-change-requests/${created.id}`)
+              }}
+            />
+          ) : null}
         </>
       )}
     </div>

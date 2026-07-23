@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Camera, CheckCircle2 } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { InspectionForm } from '../../components/service/InspectionForm'
@@ -20,6 +20,8 @@ import { getCreateInspectionGuard } from '../../utils/bookingActionGuards'
 
 export function InspectionPage() {
   const { session } = useAuth()
+  const [searchParams] = useSearchParams()
+  const requestedBookingId = searchParams.get('bookingId')
   const {
     bookings,
     inspections,
@@ -37,18 +39,27 @@ export function InspectionPage() {
 
   const inspectableBookings = useMemo(
     () =>
-      bookings.filter(
-        (booking) =>
-          getCreateInspectionGuard(
-            booking,
-            session?.staffProfile.garage_id,
-          ).allowed,
-      ),
-    [bookings, session?.staffProfile.garage_id],
+      bookings.filter((booking) => {
+        const guard = getCreateInspectionGuard(
+          booking,
+          session?.staffProfile.garage_id,
+          session?.user.id,
+        )
+        return guard.allowed
+      }),
+    [bookings, session?.staffProfile.garage_id, session?.user.id],
   )
 
+  // Ưu tiên: (1) user chọn tay trong UI, (2) bookingId từ URL (sau khi claim),
+  // (3) booking đầu tiên trong danh sách khả dụng. URL param chỉ là hint —
+  // nếu booking đó không có trong list (vd chưa refetch xong) thì fallback về [0].
   const defaultBookingId =
-    selectedBookingId || inspectableBookings[0]?.id || undefined
+    selectedBookingId ||
+    (requestedBookingId &&
+    inspectableBookings.some((b) => b.id === requestedBookingId)
+      ? requestedBookingId
+      : inspectableBookings[0]?.id) ||
+    undefined
 
   const historyInspections = defaultBookingId
     ? getInspectionsByBookingId(defaultBookingId)

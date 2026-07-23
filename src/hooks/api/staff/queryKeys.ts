@@ -49,4 +49,10 @@ export const workspaceQueryKeys = {
   bookings: (garageId?: string, params?: unknown) =>
     ['workspace', 'bookings', garageId, params] as const,
   workflow: (bookingId: string) => ['workspace', 'bookings', bookingId, 'workflow'] as const,
+  /**
+   * Tag dùng để invalidate tất cả workspace queries liên quan đến claim-inspection.
+   * Mutation `useClaimInspection` set tag này để refetch list + workflow sau khi
+   * staff nhận booking.
+   */
+  inspectionClaim: () => ['workspace', 'inspection-claim'] as const,
 }

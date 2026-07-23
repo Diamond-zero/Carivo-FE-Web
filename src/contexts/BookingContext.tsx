@@ -266,6 +266,11 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     await queryClient.invalidateQueries({
       queryKey: staffQueryKeys.bookings(garageId),
     })
+    // BookingListPage dùng `useStaffBookingList` (key có tham số filter) — phải
+    // refetch mọi list của staff để reload sau khi mutation (mark-paid, cancel...).
+    await queryClient.invalidateQueries({
+      queryKey: ['staff', 'bookings', garageId, 'list'],
+    })
     await queryClient.invalidateQueries({
       queryKey: staffQueryKeys.washHistories(garageId),
     })
@@ -512,12 +517,20 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     }: {
       bookingId: string
       payload: CreateInspectionInput
-    }) =>
-      createBookingInspectionApi(bookingId, {
+    }) => {
+      // BE `createVehicleInspectionSchema` validate image schema:
+      //   image_url: required string
+      //   public_id: optional string (preprocess '' => undefined; NULL vẫn fail
+      //     với "expected string, received null")
+      //   caption:   optional string (giống public_id)
+      // → KHÔNG gửi các field optional là null — phải omit hoàn toàn.
+      const trimmedNote = payload.note.trim()
+      return createBookingInspectionApi(bookingId, {
         type: payload.type,
-        note: payload.note,
-        images: payload.images,
-      }),
+        ...(trimmedNote ? { note: trimmedNote } : {}),
+        images: payload.images.map((url) => ({ image_url: url })),
+      })
+    },
     onSuccess: async (_, { bookingId }) => {
       await fetchInspections(bookingId)
     },

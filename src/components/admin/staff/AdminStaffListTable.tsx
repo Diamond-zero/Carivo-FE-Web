@@ -1,5 +1,5 @@
 import { createColumnHelper } from '@tanstack/react-table'
-import { Trash2, UserCog } from 'lucide-react'
+import { ArrowRightLeft, Trash2, UserCog } from 'lucide-react'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -17,6 +17,12 @@ interface AdminStaffListTableProps {
   hasActiveFilter?: boolean
   onToggleActive: (profileId: string) => void
   onDelete: (profileId: string) => void
+  /**
+   * Mở modal điều chuyển vị trí cho staff đang chọn.
+   * Nút sẽ tự disable nếu staff không active (BE yêu cầu staff active mới
+   * cho tạo request đổi type).
+   */
+  onTransfer: (profileId: string) => void
 }
 
 export function AdminStaffListTable({
@@ -24,6 +30,7 @@ export function AdminStaffListTable({
   hasActiveFilter = false,
   onToggleActive,
   onDelete,
+  onTransfer,
 }: AdminStaffListTableProps) {
   const columns = useMemo(
     () => [
@@ -84,34 +91,56 @@ export function AdminStaffListTable({
       columnHelper.display({
         id: 'actions',
         header: '',
-        cell: ({ row }) => (
-          <div className="flex items-center justify-end gap-3">
-            <button
-              type="button"
-              className="text-sm font-medium text-slate-600 hover:text-slate-900"
-              onClick={() => onToggleActive(row.original.profile.id)}
-            >
-              {row.original.profile.is_active ? 'Ngưng' : 'Kích hoạt'}
-            </button>
-            <Link
-              to={`/admin/users/staff/${row.original.profile.id}/edit`}
-              className="carivo-link text-sm"
-            >
-              Sửa
-            </Link>
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 text-sm font-medium text-red-600 hover:text-red-700"
-              onClick={() => onDelete(row.original.profile.id)}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Xóa
-            </button>
-          </div>
-        ),
+        cell: ({ row }) => {
+          const canTransfer = row.original.profile.is_active
+          return (
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                className={cn(
+                  'inline-flex items-center gap-1 text-sm font-medium',
+                  canTransfer
+                    ? 'text-brand-700 hover:text-brand-800'
+                    : 'cursor-not-allowed text-slate-300',
+                )}
+                disabled={!canTransfer}
+                title={
+                  canTransfer
+                    ? `Tạo yêu cầu điều chuyển ${row.original.user.full_name} sang chức năng khác`
+                    : 'Chỉ điều chuyển được khi nhân viên đang làm việc'
+                }
+                onClick={() => canTransfer && onTransfer(row.original.profile.id)}
+              >
+                <ArrowRightLeft className="h-3.5 w-3.5" />
+                Điều chuyển
+              </button>
+              <button
+                type="button"
+                className="text-sm font-medium text-slate-600 hover:text-slate-900"
+                onClick={() => onToggleActive(row.original.profile.id)}
+              >
+                {row.original.profile.is_active ? 'Ngưng' : 'Kích hoạt'}
+              </button>
+              <Link
+                to={`/admin/users/staff/${row.original.profile.id}/edit`}
+                className="carivo-link text-sm"
+              >
+                Sửa
+              </Link>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 text-sm font-medium text-red-600 hover:text-red-700"
+                onClick={() => onDelete(row.original.profile.id)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Xóa
+              </button>
+            </div>
+          )
+        },
       }),
     ],
-    [onToggleActive, onDelete],
+    [onToggleActive, onDelete, onTransfer],
   )
 
   return (
