@@ -7,6 +7,7 @@ import { CompleteServiceModal } from '../../components/booking/CompleteServiceMo
 import { GuardedActionButton } from '../../components/booking/GuardedActionButton'
 import { BookingExecutionDrawer } from '../../components/service/BookingExecutionDrawer'
 import { ServiceItemList } from '../../components/service/ServiceItemList'
+import { WorkflowPhaseBanner } from '../../components/service/WorkflowPhaseBanner'
 import { BookingStatusBadge } from '../../components/booking/BookingStatusBadge'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
@@ -143,6 +144,13 @@ export function ServiceExecutionPage() {
     }))
   }, [workflow])
 
+  // `available_actions` từ workflow là single source of truth (BE đã check
+  // đầy đủ capability + assignment + blockers). Nếu workflow chưa sẵn sàng
+  // (vd booking CHECKED_IN trước khi start) → mảng rỗng, fallback guard.
+  const availableActions = workflow?.available_actions ?? []
+  const canCompleteServiceViaWorkflow =
+    availableActions.includes('booking.service.complete')
+
   const staffGarageId = session?.staffProfile.garage_id
 
   const assignWashBayGuard = booking
@@ -216,9 +224,11 @@ export function ServiceExecutionPage() {
 
     if (result.success) {
       showToast(result.message, 'success')
-      navigate(`/bookings/${selectedBookingId}`, {
-        state: { openMarkPaid: true },
-      })
+      // Flow BE mới: booking COMPLETED → staff chuẩn bị bàn giao (Bước 2)
+      // → khách (hoặc walk-in staff) accept → staff thu tiền → staff release.
+      // Điều hướng thẳng sang trang handover thay vì dừng ở booking detail
+      // và mở MarkPaidModal (pay đã chuyển xuống sau khi khách accept).
+      navigate(`/staff/handover/${selectedBookingId}`)
     } else {
       setFeedback({ type: 'error', message: result.message })
     }
@@ -442,6 +452,17 @@ export function ServiceExecutionPage() {
                   </Button>
                 </CardHeader>
                 <CardContent>
+                  {workflow ? (
+                    <WorkflowPhaseBanner
+                      workflow={workflow}
+                      workflowPhase={workflow.workflow_phase}
+                      blockers={workflow.blockers}
+                      availableActions={workflow.available_actions}
+                      bookingId={selectedBookingId}
+                      className="mb-4"
+                    />
+                  ) : null}
+
                   <ServiceItemList
                     bookingId={selectedBookingId}
                     workflow={workflow}
@@ -454,7 +475,11 @@ export function ServiceExecutionPage() {
 
                   <div className="mt-6 border-t border-slate-100 pt-6">
                     <GuardedActionButton
-                      guard={completeServiceGuard}
+                      guard={
+                        canCompleteServiceViaWorkflow
+                          ? { allowed: true }
+                          : completeServiceGuard
+                      }
                       fullWidth
                       variant="secondary"
                       hintClassName="text-center"

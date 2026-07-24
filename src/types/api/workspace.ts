@@ -6,13 +6,14 @@
 
 import type { ApiResponse } from './api'
 
-/** Workflow phases theo BE định nghĩa */
+/** Workflow phases theo BE định nghĩa (BE/WDP301-Project/backend/src/shared/constants/bookingWorkflow.constant.js) */
 export type WorkflowPhase =
   | 'WAITING_CHECK_IN'
   | 'WAITING_BEFORE_WASH_INSPECTION'
   | 'READY_FOR_SERVICE'
   | 'SERVICE_IN_PROGRESS'
   | 'WAITING_AFTER_WASH_INSPECTION'
+  | 'READY_TO_COMPLETE_SERVICE'
   | 'READY_FOR_HANDOVER'
   | 'WAITING_CUSTOMER_ACCEPTANCE'
   | 'WAITING_PAYMENT'
@@ -36,7 +37,7 @@ export type WorkspaceBookingStatus =
 export type ArrivalStatus = 'ON_TIME' | 'EARLY' | 'LATE' | 'NOT_ARRIVED'
 
 /** Payment status */
-export type WorkspacePaymentStatus = 'UNPAID' | 'PENDING' | 'PAID'
+export type WorkspacePaymentStatus = 'UNPAID' | 'PENDING' | 'PAID' | 'WAIVED'
 
 /** Vehicle types */
 export type VehicleType = 'CAR' | 'MOTORBIKE' | 'OTHER'
@@ -57,6 +58,7 @@ export type AvailableAction =
   | 'booking.service.complete'
   | 'booking.payment.collect_cash'
   | 'handover.prepare'
+  | 'handover.walk_in_accept'
   | 'handover.release'
 
 /** Một booking trong workspace list response */
@@ -77,6 +79,8 @@ export interface ApiWorkspaceBooking {
   booking_status: WorkspaceBookingStatus
   arrival_status: ArrivalStatus | null
   workflow_phase: WorkflowPhase
+  /** Walk-in booking = `is_walk_in: true` → handover accept đi qua staff (walk-in-accept). */
+  is_walk_in?: boolean
   current_service_item_key: string | null
   payment_status: WorkspacePaymentStatus
   blocked_by_incident: boolean
@@ -134,6 +138,7 @@ export type WorkflowBlocker =
   | 'BEFORE_WASH_INSPECTION_REQUIRED'
   | 'SERVICE_ITEMS_NOT_DONE'
   | 'AFTER_WASH_INSPECTION_REQUIRED'
+  | 'REQUIRED_SERVICE_STEPS_NOT_DONE'
   | 'HANDOVER_CUSTOMER_RESPONSE_REQUIRED'
   | 'PAYMENT_REQUIRED'
 
@@ -150,6 +155,7 @@ export interface ApiWorkspaceWorkflow {
   booking_status: WorkspaceBookingStatus
   arrival_status: ArrivalStatus | null
   workflow_phase: WorkflowPhase
+  is_walk_in?: boolean
   current_service_item_key: string | null
   payment_status: WorkspacePaymentStatus
   blocked_by_incident: boolean
@@ -209,6 +215,7 @@ export const WORKFLOW_PHASE_LABELS: Record<WorkflowPhase, string> = {
   READY_FOR_SERVICE: 'Sẵn sàng dịch vụ',
   SERVICE_IN_PROGRESS: 'Đang rửa xe',
   WAITING_AFTER_WASH_INSPECTION: 'Chờ kiểm tra sau rửa',
+  READY_TO_COMPLETE_SERVICE: 'Sẵn sàng hoàn thành dịch vụ',
   READY_FOR_HANDOVER: 'Sẵn sàng bàn giao',
   WAITING_CUSTOMER_ACCEPTANCE: 'Chờ khách xác nhận',
   WAITING_PAYMENT: 'Chờ thanh toán',
@@ -218,6 +225,19 @@ export const WORKFLOW_PHASE_LABELS: Record<WorkflowPhase, string> = {
   INCIDENT_HOLD: 'Tạm dừng do sự cố',
   CANCELED: 'Đã hủy',
   NO_SHOW: 'Không đến',
+}
+
+/** Label mapping cho workflow blockers (BE BOOKING_WORKFLOW_BLOCKER_VALUES) */
+export const WORKFLOW_BLOCKER_LABELS: Record<WorkflowBlocker, string> = {
+  INCIDENT_HOLD: 'Booking đang tạm dừng do sự cố chưa được khách xử lý',
+  CHECK_IN_REQUIRED: 'Booking chưa được check-in',
+  BEFORE_WASH_INSPECTION_REQUIRED: 'Cần tạo biên bản kiểm tra trước rửa',
+  SERVICE_ITEMS_NOT_DONE: 'Còn hạng mục dịch vụ (rửa/chăm sóc) chưa hoàn thành',
+  AFTER_WASH_INSPECTION_REQUIRED: 'Cần tạo biên bản kiểm tra sau rửa',
+  REQUIRED_SERVICE_STEPS_NOT_DONE:
+    'Còn bước dịch vụ bắt buộc chưa hoàn thành (cần ảnh bằng chứng trong biên bản kiểm tra sau rửa)',
+  HANDOVER_CUSTOMER_RESPONSE_REQUIRED: 'Đang chờ khách hàng phản hồi bàn giao',
+  PAYMENT_REQUIRED: 'Chưa thanh toán',
 }
 
 /** Label mapping cho available actions */
@@ -236,5 +256,6 @@ export const ACTION_LABELS: Record<AvailableAction, string> = {
   'booking.service.complete': 'Hoàn thành dịch vụ',
   'booking.payment.collect_cash': 'Thu tiền mặt',
   'handover.prepare': 'Chuẩn bị bàn giao',
+  'handover.walk_in_accept': 'Khách walk-in xác nhận nhận xe',
   'handover.release': 'Bàn giao xe',
 }

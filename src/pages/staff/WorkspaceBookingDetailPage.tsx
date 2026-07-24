@@ -18,10 +18,7 @@ import {
   ScanSearch,
   User,
 } from 'lucide-react'
-import {
-  WORKFLOW_PHASE_LABELS,
-  type WorkflowPhase,
-} from '../../types/api/workspace'
+import { WORKFLOW_PHASE_LABELS } from '../../types/api/workspace'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
 import {
@@ -33,24 +30,7 @@ import {
 import { formatDateTime, formatPrice, formatTime } from '../../utils/format'
 import { useWorkspaceWorkflow } from '../../hooks/api/staff/useWorkspaceBookings'
 import { useWorkspaceBookings } from '../../hooks/api/staff/useWorkspaceBookings'
-
-/** Workflow phase badge colors */
-const PHASE_COLORS: Record<WorkflowPhase, { bg: string; text: string }> = {
-  WAITING_CHECK_IN: { bg: 'bg-slate-100', text: 'text-slate-700' },
-  WAITING_BEFORE_WASH_INSPECTION: { bg: 'bg-amber-100', text: 'text-amber-700' },
-  READY_FOR_SERVICE: { bg: 'bg-blue-100', text: 'text-blue-700' },
-  SERVICE_IN_PROGRESS: { bg: 'bg-indigo-100', text: 'text-indigo-700' },
-  WAITING_AFTER_WASH_INSPECTION: { bg: 'bg-amber-100', text: 'text-amber-700' },
-  READY_FOR_HANDOVER: { bg: 'bg-emerald-100', text: 'text-emerald-700' },
-  WAITING_CUSTOMER_ACCEPTANCE: { bg: 'bg-yellow-100', text: 'text-yellow-700' },
-  WAITING_PAYMENT: { bg: 'bg-orange-100', text: 'text-orange-700' },
-  READY_FOR_RELEASE: { bg: 'bg-emerald-100', text: 'text-emerald-700' },
-  HANDOVER_ON_HOLD: { bg: 'bg-red-100', text: 'text-red-700' },
-  RELEASED: { bg: 'bg-green-100', text: 'text-green-700' },
-  INCIDENT_HOLD: { bg: 'bg-red-100', text: 'text-red-700' },
-  CANCELED: { bg: 'bg-slate-100', text: 'text-slate-500' },
-  NO_SHOW: { bg: 'bg-slate-100', text: 'text-slate-500' },
-}
+import { WORKFLOW_PHASE_COLORS } from '../../components/service/WorkflowPhaseBanner'
 
 /** Milestone step definitions cho timeline */
 const WORKFLOW_STEPS = [
@@ -172,7 +152,7 @@ export function WorkspaceBookingDetailPage() {
     )
   }
 
-  const phaseColor = PHASE_COLORS[booking.workflow_phase]
+  const phaseColor = WORKFLOW_PHASE_COLORS[booking.workflow_phase]
 
   // Lấy customer info từ workspace booking (list) hoặc fallback
   const customerName = workspaceBooking?.customer_name || 'Khách vãng lai'
