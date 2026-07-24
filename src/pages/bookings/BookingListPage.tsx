@@ -10,6 +10,7 @@ import {
   ScanSearch,
   Search,
   SearchX,
+  Wrench,
   XCircle,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -32,12 +33,22 @@ import { useToast } from '../../contexts/ToastContext'
 import { getApiErrorMessage } from '../../api/client'
 import {
   useClaimInspection,
+  useWorkspaceBookings,
 } from '../../hooks/api/staff/useWorkspaceBookings'
 import { useStaffBookingList } from '../../hooks/api/staff/useStaffBookingList'
-import { staffQueryKeys, workspaceQueryKeys } from '../../hooks/api/staff/queryKeys'
-import { useStaffCapabilities } from '../../hooks/useCan'
+import { mapApiBooking } from '../../lib/mappers/staffMappers'
+import {
+  hasAvailableAction,
+  mapWorkspaceBookings,
+} from '../../lib/mappers/workspaceMappers'
+import {
+  staffQueryKeys,
+  workspaceQueryKeys,
+} from '../../hooks/api/staff/queryKeys'
+import { useMyCapabilities } from '../../hooks/api/staff/useStaffCapabilities'
 import type { StaffCapability } from '../../constants/staffCapabilities'
 import type { Booking } from '../../types/booking'
+import type { ApiBookingItem } from '../../types/api/staff'
 import {
   DEFAULT_BOOKING_FILTERS,
   type BookingFilters,
@@ -61,7 +72,7 @@ export function BookingListPage() {
   const garageId = session?.staffProfile.garage_id
   const { markBookingPaid, createPayosPayment } = useBookings()
   const { showToast } = useToast()
-  const staffCapabilities = useStaffCapabilities()
+  const staffCapabilities = useMyCapabilities()
   const claimInspection = useClaimInspection()
   const [filters, setFilters] = useState<BookingFilters>(
     DEFAULT_BOOKING_FILTERS,
@@ -71,31 +82,80 @@ export function BookingListPage() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
 
-  const {
-    data,
-    isLoading,
-    isFetching,
-    isError,
-    error,
-    refetch,
-  } = useStaffBookingList(filters)
+  // Nguồn dữ liệu booking cho staff list:
+  //  - Staff có `booking.read_garage` (admin/CUSTOMER_SERVICE_STAFF/...) → dùng
+  //    `/admin/bookings` (BE trả full customer, final_price, earned_points, etc.).
+  //  - Staff chỉ có `booking.read_assigned` (VEHICLE_INSPECTION_STAFF) → dùng
+  //    `/staff/workspace/bookings` (redacted; cho phép thấy booking CHECKED_IN
+  //    chưa assigned để tự nhận kiểm tra). Endpoint này cũng trả
+  //    `available_actions` riêng theo staff context (single source of truth
+  //    cho nút "Nhận kiểm tra").
+  const useAdminSource = staffCapabilities.includes('booking.read_garage')
 
-  const allBookings = data?.bookings ?? []
+  const adminList = useStaffBookingList(filters)
+  const workspaceList = useWorkspaceBookings({
+    status: filters.status,
+    date: filters.date,
+  })
+
+  const adminSource = useAdminSource ? adminList : null
+  const workspaceSource = useAdminSource ? null : workspaceList
+
+  const isLoading = adminSource?.isLoading ?? workspaceSource?.isLoading ?? false
+  const isFetching = adminSource?.isFetching ?? workspaceSource?.isFetching ?? false
+  const isError = adminSource?.isError ?? workspaceSource?.isError ?? false
+  const error = adminSource?.error ?? workspaceSource?.error ?? null
+  const refetch = adminSource?.refetch ?? workspaceSource?.refetch ?? (() => undefined)
+
+  const allBookings = useMemo(() => {
+    if (adminSource?.data) {
+      return adminSource.data.bookings.map(mapApiBooking)
+    }
+    if (workspaceSource?.data?.bookings) {
+      return mapWorkspaceBookings(workspaceSource.data.bookings)
+    }
+    return []
+  }, [adminSource, workspaceSource])
 
   const visibleBookings = useMemo(() => {
     const normalized = normalizeSearchText(search)
-    if (!normalized) return allBookings
+    // Với admin source: plate/phone đã filter server-side qua param `search`.
+    // Với workspace source: BE không hỗ trợ search → phải filter client-side.
+    const plateFilter = useAdminSource ? '' : normalizeSearchText(filters.licensePlate)
+    const phoneFilter = useAdminSource ? '' : normalizeSearchText(filters.phone)
+
     return allBookings.filter((booking) => {
-      const plate = normalizeSearchText(booking.license_plate ?? '')
-      const name = normalizeSearchText(getBookingCustomerName(booking))
-      const phone = normalizeSearchText(booking.customer_phone ?? '')
-      return (
-        plate.includes(normalized) ||
-        name.includes(normalized) ||
-        phone.includes(normalized)
-      )
+      // Header search: tên khách / SĐT / biển số
+      if (normalized) {
+        const plate = normalizeSearchText(booking.license_plate ?? '')
+        const name = normalizeSearchText(getBookingCustomerName(booking))
+        const phone = normalizeSearchText(getBookingPhone(booking) ?? '')
+        if (
+          !plate.includes(normalized) &&
+          !name.includes(normalized) &&
+          !phone.includes(normalized)
+        ) {
+          return false
+        }
+      }
+      // Filter panel: biển số (chỉ áp dụng cho workspace source vì admin source
+      // đã filter qua `search` param của BE)
+      if (
+        plateFilter &&
+        !normalizeSearchText(booking.license_plate ?? '').includes(plateFilter)
+      ) {
+        return false
+      }
+      // Filter panel: SĐT
+      if (
+        phoneFilter &&
+        !normalizeSearchText(getBookingPhone(booking) ?? '').includes(phoneFilter)
+      ) {
+        return false
+      }
+      return true
     })
-  }, [allBookings, search])
+  }, [allBookings, search, filters.licensePlate, filters.phone, useAdminSource])
 
   const totalPages = Math.max(1, Math.ceil(visibleBookings.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages)
@@ -206,8 +266,9 @@ export function BookingListPage() {
                 Quản lý lịch hẹn
               </h1>
               <p className="mt-1 text-sm text-slate-500">
-                Lấy dữ liệu từ GET /admin/bookings — lọc theo trạng thái, ngày,
-                biển số hoặc SĐT.
+                {useAdminSource
+                  ? 'Lấy dữ liệu từ GET /admin/bookings — hiển thị đầy đủ tên khách, thành tiền, điểm thưởng.'
+                  : 'Lấy dữ liệu từ GET /staff/workspace/bookings — danh sách tối ưu cho nhân viên kiểm tra xe (lọc theo trạng thái, ngày).'}
                 {isFetching ? ' · đang cập nhật...' : ''}
               </p>
             </div>
@@ -414,9 +475,7 @@ export function BookingListPage() {
                               </p>
                             </td>
                             <td className="px-4 py-3">
-                              <span className="inline-block rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-                                {booking.service_package_name || 'Chưa gán gói'}
-                              </span>
+                              <ServicePackageCell booking={booking} />
                             </td>
                             <td className="px-4 py-3">
                               <p className="text-sm font-semibold text-slate-900">
@@ -544,6 +603,51 @@ function SummaryCard({ label, value, icon: Icon, accent }: SummaryCardProps) {
 }
 
 /**
+ * Render cột "Loại dịch vụ":
+ *  - Dòng đầu: tên gói chính (`service_package.name`).
+ *  - Dòng tiếp theo: các add-on (`booking_items` với `source = 'ADD_ON'`),
+ *    mỗi item là một dòng nhỏ với prefix "Add-on:".
+ *  - Fallback khi không có data → "Chưa gán gói".
+ */
+function ServicePackageCell({ booking }: { booking: Booking }) {
+  const mainName = booking.service_package_name?.trim()
+  const rawItems = (booking.raw as { booking_items?: ApiBookingItem[] } | undefined)
+    ?.booking_items
+  const addOns = Array.isArray(rawItems)
+    ? rawItems.filter((item) => item?.source === 'ADD_ON')
+    : []
+
+  if (!mainName && addOns.length === 0) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+        Chưa gán gói
+      </span>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      {mainName ? (
+        <span className="inline-flex items-center gap-1 self-start rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+          <Wrench className="h-3 w-3 text-slate-500" />
+          {mainName}
+        </span>
+      ) : null}
+      {addOns.map((item) => (
+        <span
+          key={item.item_key ?? item.name_snapshot}
+          className="inline-flex items-center gap-1 self-start rounded bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700"
+          title="Add-on đính kèm booking"
+        >
+          <Plus className="h-3 w-3" />
+          {item.name_snapshot}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+/**
  * Render cột "Thành tiền":
  *  - final_price > 0 → format VND
  *  - final_price = 0 VÀ status COMPLETED → "0 ₫" (gói miễn phí / khuyến mãi)
@@ -579,21 +683,26 @@ function renderFinalPrice(booking: Booking) {
 }
 
 /**
- * Render cột "Điểm":
- *  - earned_points > 0 → "+X điểm" với icon Award
- *  - earned_points = 0 VÀ payment PAID → "0 điểm" (đã thanh toán nhưng không tích)
- *  - Còn lại → "—" với tooltip "Chỉ cộng điểm sau khi thanh toán PAID"
+ * Render cột "Điểm" (earned_points):
+ *  - BE chỉ set `earned_points > 0` sau khi booking được đánh dấu PAID + reward
+ *    đã được xử lý (bookingReward.service). Vì vậy nếu payment_status chưa
+ *    PAID thì điểm phải là "Chưa cộng" dù BE có trả > 0.
+ *  - earned_points > 0 VÀ PAID → "+X điểm" với icon Award
+ *  - earned_points = 0 VÀ PAID → "0 điểm" (đã thanh toán nhưng không tích)
+ *  - Còn lại (UNPAID/PENDING/PARTIAL/REFUNDED) → "Chưa cộng" với tooltip
  */
 function renderEarnedPoints(booking: Booking) {
   const points = booking.earned_points ?? 0
-  if (points > 0) {
+  const isPaid = booking.payment_status === 'PAID'
+
+  if (points > 0 && isPaid) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
         <Award className="h-3 w-3" />+{points} điểm
       </span>
     )
   }
-  if (points === 0 && booking.payment_status === 'PAID') {
+  if (points === 0 && isPaid) {
     return (
       <span
         className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500"
@@ -608,7 +717,7 @@ function renderEarnedPoints(booking: Booking) {
       className="inline-flex items-center gap-1 text-xs italic text-slate-400"
       title="Điểm thưởng sẽ được cộng sau khi booking thanh toán PAID"
     >
-      <Award className="h-3 w-3" />—
+      <Award className="h-3 w-3" />Chưa cộng
     </span>
   )
 }
@@ -631,12 +740,15 @@ function BookingTableAction({
   const canClaimInspection = staffCapabilities.includes(
     'inspection.claim_garage',
   )
-  // BE list endpoint (GET /staff/workspace/bookings) KHÔNG trả available_actions
-  // nên hasAvailableAction('inspection.claim') luôn false ở trang list. Phải dùng
-  // getClaimInspectionGuard (đã mirror đầy đủ điều kiện BE cho claim-inspection)
-  // để xác định hiển thị nút.
+  // BE workspace list trả `available_actions` cho từng staff context — đây là
+  // nguồn xác thực duy nhất (single source of truth) cho việc có được phép
+  // nhận kiểm tra booking này hay không. `getClaimInspectionGuard` mirror lại
+  // điều kiện BE chỉ dùng làm fallback khi dữ liệu thiếu `available_actions`
+  // (vd khi admin dùng /admin/bookings cũ hoặc cache stale).
+  const hasClaimAction = hasAvailableAction(booking, 'inspection.claim')
   const claimGuard = getClaimInspectionGuard(booking, staffGarageId)
-  const canClaim = canClaimInspection && claimGuard.allowed
+  const canClaim =
+    canClaimInspection && (hasClaimAction || claimGuard.allowed)
 
   const action = getBookingListAction(booking, staffGarageId)
   if (!action && !canClaim) {

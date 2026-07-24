@@ -6,6 +6,7 @@ import {
   History,
   Hourglass,
   LayoutDashboard,
+  ScanSearch,
   Search,
   Settings,
   Ticket,
@@ -83,6 +84,13 @@ export const staffNavItems: StaffNavItem[] = [
     icon: Search,
     section: 'operations',
     requiredCapability: 'inspection.create_assigned',
+  },
+  {
+    label: 'Hàng chờ kiểm tra',
+    path: '/staff/inspection-queue',
+    icon: ScanSearch,
+    section: 'operations',
+    requiredCapability: 'inspection.claim_garage',
   },
   {
     label: 'Camera cổng',

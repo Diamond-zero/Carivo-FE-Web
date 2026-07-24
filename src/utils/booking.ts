@@ -43,29 +43,32 @@ export function isLikelyWalkIn(booking: Booking): boolean {
 
 /**
  * Trả tên hiển thị + cờ walk-in cho UI:
- *  - Có tên → tên khách
- *  - Có SĐT nhưng không tên → "Khách #xxxx" (8 ký tự id)
- *  - Cả hai rỗng → "Khách vãng lai"
+ *  - Có tên khách → tên khách (kèm tag Walk-in nếu BE là walk-in)
+ *  - Có SĐT nhưng không tên → "Khách lẻ" + 4 số cuối SĐT (hoặc "Khách #xxxx" nếu
+ *    không có SĐT). Phân biệt được với "Khách vãng lai" thực sự (không có info).
+ *  - Cả hai rỗng → "Khách vãng lai" (BE không populate được customer)
  */
 export function getBookingDisplayName(
   booking: Booking,
-): { displayName: string; isWalkIn: boolean } {
+): { displayName: string; isWalkIn: boolean; hasPhone: boolean } {
   const name = getBookingCustomerName(booking)
   const phone = getBookingPhone(booking)
   const likelyWalkIn = isLikelyWalkIn(booking)
 
   if (name && name !== 'Khách hàng') {
-    return { displayName: name, isWalkIn: likelyWalkIn }
+    return { displayName: name, isWalkIn: likelyWalkIn, hasPhone: Boolean(phone) }
   }
 
   if (phone) {
+    const tail = phone.replace(/\D/g, '').slice(-4)
     return {
-      displayName: `Khách #${booking.id.slice(0, 6)}`,
+      displayName: tail ? `Khách lẻ ···${tail}` : `Khách #${booking.id.slice(0, 6)}`,
       isWalkIn: likelyWalkIn,
+      hasPhone: true,
     }
   }
 
-  return { displayName: 'Khách vãng lai', isWalkIn: true }
+  return { displayName: 'Khách vãng lai', isWalkIn: true, hasPhone: false }
 }
 
 export function normalizeSearchText(value: string) {

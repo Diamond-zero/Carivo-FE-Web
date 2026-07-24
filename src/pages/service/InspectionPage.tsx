@@ -37,18 +37,21 @@ export function InspectionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedBookingId, setSelectedBookingId] = useState<string>('')
 
-  const inspectableBookings = useMemo(
-    () =>
-      bookings.filter((booking) => {
-        const guard = getCreateInspectionGuard(
-          booking,
-          session?.staffProfile.garage_id,
-          session?.user.id,
-        )
-        return guard.allowed
-      }),
-    [bookings, session?.staffProfile.garage_id, session?.user.id],
-  )
+  // Deduplicate theo booking ID — tránh trường hợp bookings list có 2 bản ghi trùng nhau
+  // (có thể do BE trả duplicate hoặc FE merge sai).
+  const inspectableBookings = useMemo(() => {
+    const seen = new Set<string>()
+    return bookings.filter((booking) => {
+      if (seen.has(booking.id)) return false
+      seen.add(booking.id)
+      const guard = getCreateInspectionGuard(
+        booking,
+        session?.staffProfile.garage_id,
+        session?.user?.id,
+      )
+      return guard.allowed
+    })
+  }, [bookings, session?.staffProfile.garage_id, session?.user?.id])
 
   // Ưu tiên: (1) user chọn tay trong UI, (2) bookingId từ URL (sau khi claim),
   // (3) booking đầu tiên trong danh sách khả dụng. URL param chỉ là hint —

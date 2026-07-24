@@ -333,6 +333,16 @@ export const StaffPlateScanDetailPage = lazyNamed(
   'StaffPlateScanDetailPage',
 )
 
+export const InspectionQueuePage = lazyNamed(
+  () => import('../pages/staff/InspectionQueuePage'),
+  'InspectionQueuePage',
+)
+
+export const WorkspaceBookingDetailPage = lazyNamed(
+  () => import('../pages/staff/WorkspaceBookingDetailPage'),
+  'WorkspaceBookingDetailPage',
+)
+
 // Admin Arrivals feature pages (Phase 4)
 export const AdminCameraDevicesPage = lazyNamed(
   () => import('../pages/admin/arrivals/AdminCameraDevicesPage'),
