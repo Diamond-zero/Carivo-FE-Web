@@ -75,6 +75,8 @@ import {
   StaffTechnicalAssessmentPage,
   StaffArrivalQueuePage,
   StaffPlateScanDetailPage,
+  InspectionQueuePage,
+  WorkspaceBookingDetailPage,
   WalkInCreatePage,
   WashHistoryPage,
 } from './routes/lazyPages'
@@ -570,6 +572,24 @@ function App() {
                     element={
                       <LazyPage>
                         <InspectionPage />
+                      </LazyPage>
+                    }
+                  />
+                </Route>
+                <Route element={<CapabilityRoute capability="inspection.claim_garage" />}>
+                  <Route
+                    path="/staff/inspection-queue"
+                    element={
+                      <LazyPage>
+                        <InspectionQueuePage />
+                      </LazyPage>
+                    }
+                  />
+                  <Route
+                    path="/bookings/workspace/:id"
+                    element={
+                      <LazyPage>
+                        <WorkspaceBookingDetailPage />
                       </LazyPage>
                     }
                   />

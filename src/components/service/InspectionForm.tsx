@@ -185,7 +185,7 @@ export function InspectionForm({
         </p>
         {selectedType === 'BEFORE_WASH' && hasBeforeWash ? (
           <p className="mt-1.5 text-xs text-amber-600">
-            Booking này đã có biên bản BEFORE_WASH — vẫn có thể tạo thêm (mock).
+            Booking này đã có biên bản trước khi rửa
           </p>
         ) : null}
       </div>
