@@ -15,10 +15,15 @@ export { useMyCapabilities, useCanStaffCapability }
  *
  * Hook kiểm tra Staff hiện tại có capability hay không.
  * Giờ dùng API `GET /staff-profiles/me/capabilities` thay vì hardcoded lookup.
+ *
+ * Truyền mảng → true nếu Staff có ÍT NHẤT 1 capability (OR logic).
  */
-export function useCan(capability: StaffCapability): boolean {
-  const { can } = useCanStaffCapability()
-  return can(capability)
+export function useCan(capability: StaffCapability | StaffCapability[]): boolean {
+  const capabilities = useMyCapabilities()
+  if (Array.isArray(capability)) {
+    return capability.some((c) => capabilities.includes(c))
+  }
+  return capabilities.includes(capability)
 }
 
 /**

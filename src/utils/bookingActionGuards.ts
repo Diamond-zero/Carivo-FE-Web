@@ -99,12 +99,32 @@ export function getCheckInGuard(
   return { allowed: true }
 }
 
+/**
+ * Guard cho nút "Bắt đầu dịch vụ".
+ *
+ * Lưu ý phân quyền (BE `booking.routes.js` `:id/start-service`):
+ *  - Backend yêu cầu capability `booking.service.start`.
+ *  - Chỉ CUSTOMER_SERVICE_STAFF (và admin) mới có capability này.
+ *  - WASH_OPERATOR / VEHICLE_CARE_STAFF KHÔNG có — họ chỉ thực thi các bước
+ *    task được phân công sau khi service đã IN_PROGRESS.
+ *  - FE phải ẩn nút cho staff không có capability để tránh 403
+ *    `STAFF_CAPABILITY_REQUIRED`.
+ */
 export function getStartServiceGuard(
   booking: Booking,
   staffGarageId?: string,
+  staffCapabilities: StaffCapability[] = [],
 ): ActionGuardResult {
   const garage = garageGuard(booking, staffGarageId)
   if (garage) return garage
+
+  if (!staffCapabilities.includes('booking.service.start')) {
+    return {
+      allowed: false,
+      reason:
+        'Bạn không có quyền bắt đầu dịch vụ. Liên hệ Customer Service Staff để bắt đầu.',
+    }
+  }
 
   if (booking.status !== 'CHECKED_IN') {
     return {
@@ -119,9 +139,27 @@ export function getStartServiceGuard(
 export function getContinueServiceGuard(
   booking: Booking,
   staffGarageId?: string,
+  staffCapabilities: StaffCapability[] = [],
 ): ActionGuardResult {
   const garage = garageGuard(booking, staffGarageId)
   if (garage) return garage
+
+  // Wash/Care staff chỉ thấy/tiếp tục booking khi BE đã gán và đã có
+  // `service_item.*` action trong available_actions (vd pause/resume/complete).
+  // Customer Service Staff dùng `booking.service.complete` để đóng booking.
+  const hasAnyExecutionCap =
+    staffCapabilities.includes('service_task.wash.execute_assigned') ||
+    staffCapabilities.includes('service_task.care.execute_assigned')
+  if (
+    !hasAnyExecutionCap &&
+    !staffCapabilities.includes('booking.service.read_garage')
+  ) {
+    return {
+      allowed: false,
+      reason:
+        'Bạn không có quyền thực hiện dịch vụ cho booking này.',
+    }
+  }
 
   if (booking.status !== 'IN_PROGRESS') {
     return {
@@ -447,6 +485,7 @@ export function getCompleteStepGuard(
 export function getBookingListAction(
   booking: Booking,
   staffGarageId?: string,
+  staffCapabilities: StaffCapability[] = [],
 ): BookingListAction | null {
   if (booking.status === 'CONFIRMED') {
     return {
@@ -463,8 +502,10 @@ export function getBookingListAction(
       label: 'Bắt đầu DV',
       to: `/service/execution?bookingId=${booking.id}`,
       type: 'link',
-      guard: getStartServiceGuard(booking, staffGarageId),
-      requiredCapability: 'service_task.wash.execute_assigned',
+      // `booking.service.start` chỉ có ở CUSTOMER_SERVICE_STAFF/admin.
+      // WASH_OPERATOR / VEHICLE_CARE_STAFF không có → nút không hiển thị.
+      guard: getStartServiceGuard(booking, staffGarageId, staffCapabilities),
+      requiredCapability: 'booking.service.start',
     }
   }
 
@@ -473,7 +514,10 @@ export function getBookingListAction(
       label: 'Tiếp tục',
       to: `/service/execution?bookingId=${booking.id}`,
       type: 'link',
-      guard: getContinueServiceGuard(booking, staffGarageId),
+      guard: getContinueServiceGuard(booking, staffGarageId, staffCapabilities),
+      // Hiển thị nút cho Wash/Care staff (đã được BE assign) hoặc Customer
+      // Service Staff. Capability kiểm tra ở BookingTableAction → ẩn nút
+      // nếu không có bất kỳ capability nào liên quan.
       requiredCapability: 'service_task.wash.execute_assigned',
     }
   }
@@ -504,8 +548,11 @@ export function getBookingListAction(
 }
 
 /** @deprecated Use getBookingListAction for guarded actions */
-export function getBookingAction(booking: Booking) {
-  const action = getBookingListAction(booking)
+export function getBookingAction(
+  booking: Booking,
+  staffCapabilities: StaffCapability[] = [],
+) {
+  const action = getBookingListAction(booking, undefined, staffCapabilities)
   if (!action || !action.guard.allowed || !action.to) return null
   return { label: action.label, to: action.to }
 }

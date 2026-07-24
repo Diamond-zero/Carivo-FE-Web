@@ -750,7 +750,7 @@ function BookingTableAction({
   const canClaim =
     canClaimInspection && (hasClaimAction || claimGuard.allowed)
 
-  const action = getBookingListAction(booking, staffGarageId)
+  const action = getBookingListAction(booking, staffGarageId, staffCapabilities)
   if (!action && !canClaim) {
     return <span className="text-xs text-slate-400">—</span>
   }
@@ -796,7 +796,18 @@ function ActionBody({
   staffCapabilities,
   onMarkPaid,
 }: ActionBodyProps) {
-  if (!staffCapabilities.includes(action.requiredCapability)) {
+  // Wash/Care staff vẫn cần xem nút "Tiếp tục" với booking đã IN_PROGRESS
+  // (BE đã assign cho họ qua start-service). Capability của action chỉ là
+  // primary key — cho IN_PROGRESS chấp nhận cả wash/care.
+  if (action.requiredCapability === 'service_task.wash.execute_assigned') {
+    const hasAnyExecutionCap =
+      staffCapabilities.includes('service_task.wash.execute_assigned') ||
+      staffCapabilities.includes('service_task.care.execute_assigned') ||
+      staffCapabilities.includes('booking.service.read_garage')
+    if (!hasAnyExecutionCap) {
+      return <span className="text-xs text-slate-400">—</span>
+    }
+  } else if (!staffCapabilities.includes(action.requiredCapability)) {
     return <span className="text-xs text-slate-400">—</span>
   }
   if (action.type === 'mark_paid') {

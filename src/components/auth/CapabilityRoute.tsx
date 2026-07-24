@@ -6,7 +6,13 @@ import {
 import { useCan } from '../../hooks/useCan'
 
 interface CapabilityRouteProps {
-  capability: StaffCapability
+  /**
+   * Capability yêu cầu để vào route. Có thể truyền 1 hoặc nhiều capability —
+   * khi truyền mảng, staff chỉ cần có ÍT NHẤT 1 (logic OR) là vào được.
+   * Ví dụ `/service/execution` chấp nhận cả WASH_OPERATOR (rửa) và
+   * VEHICLE_CARE_STAFF (chăm sóc xe).
+   */
+  capability: StaffCapability | StaffCapability[]
   /** Đường dẫn redirect khi Staff không có capability. Mặc định `/dashboard`. */
   redirectTo?: string
 }

@@ -56,3 +56,18 @@ export const workspaceQueryKeys = {
    */
   inspectionClaim: () => ['workspace', 'inspection-claim'] as const,
 }
+
+/**
+ * Query keys cho staff tasks (service items + incidents).
+ * Dùng cùng key family với workspace.workflow để các mutation pause/resume/
+ * complete-early/confirm-complete/report-incident đều invalidate chung cache
+ * → UI tự đồng bộ trạng thái countdown.
+ */
+export const staffTaskQueryKeys = {
+  workflow: (bookingId: string) =>
+    ['staff-tasks', 'bookings', bookingId, 'workflow'] as const,
+  serviceItems: (bookingId: string) =>
+    ['staff-tasks', 'bookings', bookingId, 'service-items'] as const,
+  activeIncident: (bookingId: string) =>
+    ['staff-tasks', 'bookings', bookingId, 'incidents', 'active'] as const,
+}

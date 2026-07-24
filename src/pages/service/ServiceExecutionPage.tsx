@@ -6,9 +6,9 @@ import { ArrivalStatusBadge } from '../../components/booking/ArrivalStatusBadge'
 import { CompleteServiceModal } from '../../components/booking/CompleteServiceModal'
 import { GuardedActionButton } from '../../components/booking/GuardedActionButton'
 import { BookingExecutionDrawer } from '../../components/service/BookingExecutionDrawer'
+import { ServiceItemList } from '../../components/service/ServiceItemList'
 import { BookingStatusBadge } from '../../components/booking/BookingStatusBadge'
 import { PageHeader } from '../../components/layout/PageHeader'
-import { ServiceStepList } from '../../components/service/ServiceStepList'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import {
@@ -22,6 +22,8 @@ import { Select } from '../../components/ui/Select'
 import { useAuth } from '../../contexts/AuthContext'
 import { useBookings } from '../../contexts/BookingContext'
 import { useToast } from '../../contexts/ToastContext'
+import { useMyCapabilities } from '../../hooks/api/staff/useStaffCapabilities'
+import { useStaffTaskWorkflow } from '../../hooks/api/staff/useStaffTasks'
 import {
   getBookingCustomerName,
 } from '../../utils/booking'
@@ -40,6 +42,7 @@ export function ServiceExecutionPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { session } = useAuth()
   const { showToast } = useToast()
+  const staffCapabilities = useMyCapabilities()
   const {
     bookings,
     getBookingById,
@@ -47,11 +50,8 @@ export function ServiceExecutionPage() {
     getAvailableWashBaysForBooking,
     fetchAvailableWashBaysForBooking,
     assignWashBay,
-    getServiceStepsByBookingId,
-    fetchServiceSteps,
     getServicePackageName,
     startService,
-    completeServiceStep,
     completeService,
   } = useBookings()
 
@@ -59,19 +59,40 @@ export function ServiceExecutionPage() {
     type: 'success' | 'error'
     message: string
   } | null>(null)
-  const [completingStepId, setCompletingStepId] = useState<string | null>(null)
   const [isStarting, setIsStarting] = useState(false)
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false)
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false)
 
-  const executableBookings = useMemo(
-    () =>
-      bookings.filter((booking) =>
-        ['CHECKED_IN', 'IN_PROGRESS'].includes(booking.status),
-      ),
-    [bookings],
+  const canStartService = staffCapabilities.includes('booking.service.start')
+  const hasAnyExecutionCap =
+    staffCapabilities.includes('service_task.wash.execute_assigned') ||
+    staffCapabilities.includes('service_task.care.execute_assigned')
+  // Customer Service Staff không thuộc execution group nhưng vẫn cần truy cập
+  // trang này để theo dõi IN_PROGRESS (qua `booking.service.read_garage`).
+  const canReadService = staffCapabilities.includes(
+    'booking.service.read_garage',
   )
+
+  const executableBookings = useMemo(() => {
+    // Phân quyền hiển thị theo capability:
+    //  - Staff có `booking.service.start` (CUSTOMER_SERVICE_STAFF) → thấy cả
+    //    CHECKED_IN (để bấm Bắt đầu) lẫn IN_PROGRESS (để theo dõi/complete).
+    //  - Staff chỉ có wash/care capability → KHÔNG thấy CHECKED_IN (vì BE không
+    //    cấp `booking.service.start` → bấm sẽ 403). Họ chỉ thấy booking
+    //    IN_PROGRESS mà BE đã phân công.
+    //  - Staff chỉ có `booking.service.read_garage` (theo dõi) → cũng thấy
+    //    IN_PROGRESS nhưng KHÔNG thấy CHECKED_IN (vì không thể bắt đầu).
+    return bookings.filter((booking) => {
+      if (booking.status === 'CHECKED_IN') {
+        return canStartService
+      }
+      if (booking.status === 'IN_PROGRESS') {
+        return canStartService || hasAnyExecutionCap || canReadService
+      }
+      return false
+    })
+  }, [bookings, canStartService, hasAnyExecutionCap, canReadService])
 
   const selectedBookingId =
     searchParams.get('bookingId') ?? executableBookings[0]?.id ?? ''
@@ -80,9 +101,47 @@ export function ServiceExecutionPage() {
     ? getBookingById(selectedBookingId)
     : undefined
 
-  const steps = selectedBookingId
-    ? getServiceStepsByBookingId(selectedBookingId)
-    : []
+  // Workflow chi tiết từ `GET /staff/workspace/bookings/:id/workflow` — single
+  // source of truth cho service items (countdown, status, pause/resume…) +
+  // available_actions. Polling mỗi 5s để giữ countdown + status luôn đồng bộ
+  // với BE (trước đó staff bị "mất trang" vì không có auto-refetch).
+  const workflowQuery = useStaffTaskWorkflow(
+    selectedBookingId || null,
+    {
+      enabled: Boolean(selectedBookingId) && booking?.status === 'IN_PROGRESS',
+      refetchInterval: booking?.status === 'IN_PROGRESS' ? 5_000 : false,
+    },
+  )
+  const workflow = workflowQuery.data
+
+  // Derive `BookingServiceStep[]` (shape cũ) từ workflow.service_items để
+  // `getCompleteServiceGuard` vẫn dùng được. Khi workflow chưa sẵn sàng
+  // (vd booking vừa start) → mảng rỗng → guard sẽ từ chối (đúng hành vi).
+  const steps = useMemo(() => {
+    if (!workflow) return []
+    return workflow.service_items.map((item) => ({
+      id: item.item_key,
+      booking_id: workflow.booking_id,
+      step_code: item.item_key,
+      step_name: item.name,
+      order: item.sequence,
+      step_type: item.transition_mode === 'AUTO' ? 'AUTOMATED_WASH_STEP' : 'MANUAL_SERVICE_STEP',
+      display_staff_type: item.requires_care_staff ? 'VEHICLE_CARE_STAFF' : 'WASH_OPERATOR',
+      assigned_staff_id: null,
+      confirmed_by_staff_id: null,
+      status:
+        item.status === 'DONE' || item.status === 'SKIPPED'
+          ? item.status
+          : item.status === 'IN_PROGRESS' || item.status === 'AWAITING_CONFIRMATION'
+            ? 'IN_PROGRESS'
+            : item.status === 'PAUSED'
+              ? 'IN_PROGRESS'
+              : 'PENDING',
+      instructions: [],
+      started_at: item.actual_started_at,
+      completed_at: item.actual_completed_at,
+    }))
+  }, [workflow])
 
   const staffGarageId = session?.staffProfile.garage_id
 
@@ -90,7 +149,7 @@ export function ServiceExecutionPage() {
     ? getAssignWashBayGuard(booking, staffGarageId)
     : { allowed: false as const }
   const startServiceGuard = booking
-    ? getStartServiceGuard(booking, staffGarageId)
+    ? getStartServiceGuard(booking, staffGarageId, staffCapabilities)
     : { allowed: false as const }
   const completeServiceGuard = booking
     ? getCompleteServiceGuard(booking, steps, staffGarageId, session?.staffProfile.id)
@@ -103,12 +162,6 @@ export function ServiceExecutionPage() {
   const availableWashBays = selectedBookingId
     ? getAvailableWashBaysForBooking(selectedBookingId)
     : []
-
-  useEffect(() => {
-    if (selectedBookingId && booking?.status === 'IN_PROGRESS') {
-      void fetchServiceSteps(selectedBookingId)
-    }
-  }, [selectedBookingId, booking?.status, fetchServiceSteps])
 
   useEffect(() => {
     const paramId = searchParams.get('bookingId')
@@ -152,19 +205,6 @@ export function ServiceExecutionPage() {
     ) {
       openAssignModal()
     }
-  }
-
-  const handleCompleteStep = async (stepId: string) => {
-    if (!session?.staffProfile.id) return
-
-    setCompletingStepId(stepId)
-    setFeedback(null)
-    const result = await completeServiceStep(stepId, session.staffProfile.id)
-    setCompletingStepId(null)
-    setFeedback({
-      type: result.success ? 'success' : 'error',
-      message: result.message,
-    })
   }
 
   const handleConfirmCompleteService = async () => {
@@ -228,7 +268,11 @@ export function ServiceExecutionPage() {
 
       <PageHeader
         title="Thực hiện dịch vụ"
-        description="Xác nhận từng bước dịch vụ cho booking đang xử lý tại garage."
+        description={
+          canStartService
+            ? 'Xác nhận từng bước dịch vụ cho booking đang xử lý tại garage.'
+            : 'Thực hiện các bước dịch vụ (rửa / chăm sóc xe) cho booking đã bắt đầu.'
+        }
       />
 
       {executableBookings.length === 0 ? (
@@ -236,8 +280,12 @@ export function ServiceExecutionPage() {
           <CardContent>
             <EmptyState
               icon={Wrench}
-              title="Không có booking đang xử lý"
-              description="Chỉ booking CHECKED_IN hoặc IN_PROGRESS mới hiển thị tại đây."
+              title="Không có booking đang chờ"
+              description={
+                canStartService
+                  ? 'Chỉ booking CHECKED_IN hoặc IN_PROGRESS mới hiển thị tại đây.'
+                  : 'Bạn chỉ thấy booking IN_PROGRESS đã được phân công. Khi Customer Service Staff bắt đầu dịch vụ, bạn sẽ nhận được booking tại đây.'
+              }
               action={
                 <Link to="/bookings">
                   <Button variant="secondary">Xem danh sách booking</Button>
@@ -380,7 +428,8 @@ export function ServiceExecutionPage() {
                   <div>
                     <CardTitle>Các bước dịch vụ</CardTitle>
                     <CardDescription>
-                      Hoàn thành lần lượt từng bước theo thứ tự
+                      Theo dõi tiến trình, tạm dừng / hoàn thành sớm / báo sự cố
+                      cho từng hạng mục.
                     </CardDescription>
                   </div>
                   <Button
@@ -393,11 +442,14 @@ export function ServiceExecutionPage() {
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  <ServiceStepList
-                    steps={steps}
-                    booking={booking}
-                    onCompleteStep={handleCompleteStep}
-                    completingStepId={completingStepId}
+                  <ServiceItemList
+                    bookingId={selectedBookingId}
+                    workflow={workflow}
+                    bookingItems={
+                      (booking?.raw as { booking_items?: typeof import('../../types/api/staff').ApiBookingItem } | undefined)
+                        ?.booking_items ?? []
+                    }
+                    washBays={availableWashBays}
                   />
 
                   <div className="mt-6 border-t border-slate-100 pt-6">

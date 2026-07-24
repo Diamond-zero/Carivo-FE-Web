@@ -556,7 +556,20 @@ function App() {
                     </LazyPage>
                   }
                 />
-                <Route element={<CapabilityRoute capability="service_task.wash.execute_assigned" />}>
+                <Route
+                  element={
+                    <CapabilityRoute
+                      capability={[
+                        // Wash/Care staff: thực thi các bước được phân công.
+                        'service_task.wash.execute_assigned',
+                        'service_task.care.execute_assigned',
+                        // Customer Service Staff (và admin): bắt đầu dịch vụ
+                        // (start-service) rồi theo dõi tiến trình IN_PROGRESS.
+                        'booking.service.read_garage',
+                      ]}
+                    />
+                  }
+                >
                   <Route
                     path="/service/execution"
                     element={
