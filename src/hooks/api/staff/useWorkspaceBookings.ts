@@ -27,7 +27,7 @@ export interface WorkspaceBookingsParams {
 
 export function useWorkspaceBookings(
   filters: WorkspaceBookingsParams = {},
-  options?: { refetchInterval?: number },
+  options?: { refetchInterval?: number; enabled?: boolean },
 ) {
   const { session, isAuthenticated } = useAuth()
   const garageId = session?.staffProfile.garage_id
@@ -68,7 +68,8 @@ export function useWorkspaceBookings(
       const result = await getWorkspaceBookingsApi(apiParams)
       return result
     },
-    enabled: isAuthenticated && Boolean(garageId),
+    enabled:
+      (options?.enabled ?? true) && isAuthenticated && Boolean(garageId),
     staleTime: 0,
     refetchOnMount: 'always',
     refetchInterval: options?.refetchInterval,

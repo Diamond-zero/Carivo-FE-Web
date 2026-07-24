@@ -207,6 +207,11 @@ export interface ApiBooking {
   no_show_reason?: string | null
   reward_processed?: boolean
   reward_processed_at?: string | null
+  // === Bổ sung theo BE (handover summary trong admin/staff list & detail) ===
+  /** Trạng thái handover: 'PENDING' | 'READY_FOR_CUSTOMER' | 'ON_HOLD' | 'RELEASED' | null */
+  handover_state?: 'PENDING' | 'READY_FOR_CUSTOMER' | 'ON_HOLD' | 'RELEASED' | null
+  /** ISO timestamp khi handover chuyển sang RELEASED. null nếu chưa release hoặc không có handover. */
+  handover_released_at?: string | null
   note: string | null
   created_at?: string
   updated_at?: string

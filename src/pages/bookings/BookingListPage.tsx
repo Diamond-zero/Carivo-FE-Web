@@ -36,7 +36,6 @@ import {
   useWorkspaceBookings,
 } from '../../hooks/api/staff/useWorkspaceBookings'
 import { useStaffBookingList } from '../../hooks/api/staff/useStaffBookingList'
-import { mapApiBooking } from '../../lib/mappers/staffMappers'
 import {
   hasAvailableAction,
   mapWorkspaceBookings,
@@ -98,8 +97,42 @@ export function BookingListPage() {
     date: filters.date,
   })
 
+  // === Admin source enrichment ===
+  // Admin source (GET /admin/bookings) chỉ trả `handover_state` + `handover_released_at`
+  // — nhưng thực tế độ tin cậy của 2 field này phụ thuộc rollout. Để chắc chắn
+  // 100% cho CS Staff (xem `useAdminSource`), song song gọi workspace source
+  // (GET /staff/workspace/bookings) — endpoint này trả `workflow_phase` do BE
+  // `getWorkflowPhase` set chính xác = 'RELEASED' khi `handover.state === RELEASED`.
+  // Reference đề xuất của BE team: "tạm thời gọi thêm một request danh sách và
+  // join theo booking_id; không bắt buộc N+1 detail".
+  // Chỉ gọi workspace không lọc status; status được set 'ALL' để tránh BE filter
+  // bỏ các booking COMPLETED (những booking cần tín hiệu RELEASED nhất).
+  // Hook `useWorkspaceBookings` đã thêm option `enabled` và mặc định true,
+  // nên call bên dưới vẫn active cho mọi staff có garage_id.
+  const adminEnrichmentWorkspaceList = useWorkspaceBookings({
+    status: 'ALL',
+    date: filters.date,
+  })
+
   const adminSource = useAdminSource ? adminList : null
   const workspaceSource = useAdminSource ? null : workspaceList
+
+  // Map `bookingId → workflow_phase` từ workspace source (cho admin source
+  // enrichment). Dùng để inject vào `raw` của mapped Booking, để
+  // `isBookingReleased` tầng 1 (`workflow_phase === 'RELEASED'`) match.
+  const workflowPhaseByBookingId = useMemo(() => {
+    const map = new Map<string, string>()
+    // Chỉ dùng workspace khi đang ở admin source; workspace source đã gắn
+    // workflow_phase trực tiếp trong raw rồi.
+    if (!useAdminSource) return map
+    const list = adminEnrichmentWorkspaceList.data?.bookings ?? []
+    for (const workspaceBooking of list) {
+      if (workspaceBooking.workflow_phase) {
+        map.set(workspaceBooking.booking_id, workspaceBooking.workflow_phase)
+      }
+    }
+    return map
+  }, [useAdminSource, adminEnrichmentWorkspaceList.data])
 
   const isLoading = adminSource?.isLoading ?? workspaceSource?.isLoading ?? false
   const isFetching = adminSource?.isFetching ?? workspaceSource?.isFetching ?? false
@@ -109,13 +142,26 @@ export function BookingListPage() {
 
   const allBookings = useMemo(() => {
     if (adminSource?.data) {
-      return adminSource.data.bookings.map(mapApiBooking)
+      // Khi admin source, inject `workflow_phase` từ workspace map vào raw
+      // để `isBookingReleased` tầng 1 match. Spread raw cũ để giữ tất cả
+      // field BE trả (handover_state, handover_released_at, ...).
+      return adminSource.data.bookings.map((booking) => {
+        const workflowPhase = workflowPhaseByBookingId.get(booking.id)
+        if (!workflowPhase) return booking
+        return {
+          ...booking,
+          raw: {
+            ...booking.raw,
+            workflow_phase: workflowPhase,
+          },
+        }
+      })
     }
     if (workspaceSource?.data?.bookings) {
       return mapWorkspaceBookings(workspaceSource.data.bookings)
     }
     return []
-  }, [adminSource, workspaceSource])
+  }, [adminSource, workspaceSource, workflowPhaseByBookingId])
 
   const visibleBookings = useMemo(() => {
     const normalized = normalizeSearchText(search)
