@@ -175,9 +175,33 @@ export function ServiceItemList({
   const canReportAnyIncident =
     canReportWashBay || canReportStaff || canReportOther
 
-  const canExecuteItem =
+  // BE workspace trả `available_actions` cho booking — single source of truth
+  // (đã check capability + assignment + blockers ở BE). Các action level
+  // service_item chỉ staff được BE phân công item đó mới nhận được. Khi BE
+  // không trả action (vd cache sai hoặc workflow chưa load) → fallback dùng
+  // staff capability để tránh khoá UI oan (BE sẽ trả 403 nếu thật sự không
+  // được phép).
+  const availableActions = workflow?.available_actions ?? []
+  const hasExecuteCapability =
     staffCapabilities.includes('service_task.wash.execute_assigned') ||
     staffCapabilities.includes('service_task.care.execute_assigned')
+
+  const canPauseItem = (item: ApiServiceItem) =>
+    item.assigned_to_current_user &&
+    (availableActions.includes('service_item.pause') ||
+      (availableActions.length === 0 && hasExecuteCapability))
+  const canResumeItem = (item: ApiServiceItem) =>
+    item.assigned_to_current_user &&
+    (availableActions.includes('service_item.resume') ||
+      (availableActions.length === 0 && hasExecuteCapability))
+  const canCompleteEarlyItem = (item: ApiServiceItem) =>
+    item.assigned_to_current_user &&
+    (availableActions.includes('service_item.complete_early') ||
+      (availableActions.length === 0 && hasExecuteCapability))
+  const canConfirmCompleteItem = (item: ApiServiceItem) =>
+    item.assigned_to_current_user &&
+    (availableActions.includes('service_item.confirm_complete') ||
+      (availableActions.length === 0 && hasExecuteCapability))
 
   return (
     <ul className="space-y-4">
@@ -197,7 +221,10 @@ export function ServiceItemList({
           key={item.item_key}
           item={item}
           now={now}
-          canExecute={canExecuteItem && !blockedByIncident}
+          canPause={canPauseItem(item) && !blockedByIncident}
+          canResume={canResumeItem(item) && !blockedByIncident}
+          canCompleteEarly={canCompleteEarlyItem(item) && !blockedByIncident}
+          canConfirmComplete={canConfirmCompleteItem(item) && !blockedByIncident}
           canReportIncident={canReportAnyIncident && !blockedByIncident}
           onPause={() => setPauseTarget(item)}
           onResume={() => void handleResume(item)}
@@ -231,7 +258,11 @@ export function ServiceItemList({
         onClose={() => setIsIncidentOpen(false)}
       />
 
-      {!blockedByIncident && canExecuteItem && items.some((i) => i.status === 'IN_PROGRESS') ? (
+      {!blockedByIncident &&
+      items.some((i) => i.status === 'IN_PROGRESS') &&
+      (availableActions.includes('service_item.pause') ||
+        availableActions.includes('service_item.complete_early') ||
+        (availableActions.length === 0 && hasExecuteCapability)) ? (
         <li className="flex justify-end pt-1">
           <Button
             variant="danger"
@@ -256,7 +287,10 @@ export function ServiceItemList({
 interface ServiceItemCardProps {
   item: ApiServiceItem
   now: number
-  canExecute: boolean
+  canPause: boolean
+  canResume: boolean
+  canCompleteEarly: boolean
+  canConfirmComplete: boolean
   canReportIncident: boolean
   onPause: () => void
   onResume: () => void
@@ -272,7 +306,10 @@ interface ServiceItemCardProps {
 function ServiceItemCard({
   item,
   now,
-  canExecute,
+  canPause,
+  canResume,
+  canCompleteEarly,
+  canConfirmComplete,
   canReportIncident,
   onPause,
   onResume,
@@ -413,35 +450,39 @@ function ServiceItemCard({
             </div>
           ) : null}
 
-          {canExecute && isInProgress ? (
+          {isInProgress && (canPause || canCompleteEarly) ? (
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={onPause}
-                disabled={isPausePending}
-              >
-                {isPausePending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Pause className="h-4 w-4" />
-                )}
-                Tạm dừng
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={onCompleteEarly}
-                disabled={isCompleteEarlyPending}
-                title="Đánh dấu hoàn thành trước khi hết thời gian"
-              >
-                {isCompleteEarlyPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <FastForward className="h-4 w-4" />
-                )}
-                Hoàn thành sớm
-              </Button>
+              {canPause ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={onPause}
+                  disabled={isPausePending}
+                >
+                  {isPausePending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Pause className="h-4 w-4" />
+                  )}
+                  Tạm dừng
+                </Button>
+              ) : null}
+              {canCompleteEarly ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={onCompleteEarly}
+                  disabled={isCompleteEarlyPending}
+                  title="Đánh dấu hoàn thành trước khi hết thời gian"
+                >
+                  {isCompleteEarlyPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <FastForward className="h-4 w-4" />
+                  )}
+                  Hoàn thành sớm
+                </Button>
+              ) : null}
               <Button
                 size="sm"
                 variant="danger"
@@ -459,25 +500,29 @@ function ServiceItemCard({
             </div>
           ) : null}
 
-          {canExecute && isPaused ? (
+          {isPaused && (canResume || canCompleteEarly) ? (
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <Button size="sm" onClick={onResume} disabled={isResumePending}>
-                {isResumePending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Play className="h-4 w-4" />
-                )}
-                Tiếp tục
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={onCompleteEarly}
-                disabled={isCompleteEarlyPending}
-              >
-                <FastForward className="h-4 w-4" />
-                Hoàn thành sớm
-              </Button>
+              {canResume ? (
+                <Button size="sm" onClick={onResume} disabled={isResumePending}>
+                  {isResumePending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Play className="h-4 w-4" />
+                  )}
+                  Tiếp tục
+                </Button>
+              ) : null}
+              {canCompleteEarly ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={onCompleteEarly}
+                  disabled={isCompleteEarlyPending}
+                >
+                  <FastForward className="h-4 w-4" />
+                  Hoàn thành sớm
+                </Button>
+              ) : null}
               <Button
                 size="sm"
                 variant="danger"
@@ -490,7 +535,7 @@ function ServiceItemCard({
             </div>
           ) : null}
 
-          {canExecute && isAwaitingConfirmation ? (
+          {isAwaitingConfirmation && canConfirmComplete ? (
             <Button
               size="sm"
               onClick={onConfirmComplete}

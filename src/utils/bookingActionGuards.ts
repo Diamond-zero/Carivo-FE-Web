@@ -534,7 +534,15 @@ export function getBookingListAction(
     }
   }
 
-  if (booking.status === 'COMPLETED' && booking.payment_status === 'PAID') {
+  // Booking COMPLETED → mở "Bàn giao xe" dù payment_status là gì.
+  // BE sẽ chặn release nếu payment chưa settled (PAID/WAIVED) — flow mới:
+  //   1. staff chuẩn bị bàn giao (handover.ready)
+  //   2. khách (hoặc walk-in staff) accept tình trạng xe
+  //   3. staff thu tiền (cash) / tạo PayOS link
+  //   4. staff release
+  // FE chỉ cần route staff vào /staff/handover để họ thực hiện các bước
+  // theo thứ tự BE yêu cầu.
+  if (booking.status === 'COMPLETED') {
     return {
       label: 'Bàn giao xe',
       to: `/staff/handover/${booking.id}`,

@@ -1,10 +1,44 @@
-import { ArrowLeft, CheckCircle2, Loader2, Truck } from 'lucide-react'
+/**
+ * Staff Handover Page — `/staff/handover/:bookingId`
+ *
+ * Flow bàn giao mới (đồng bộ với BE `booking-handovers` + `staff-booking-workflows`):
+ *
+ *   1. Sau khi staff bấm "Hoàn thành dịch vụ" (booking → COMPLETED), staff được
+ *      navigate tới trang này.
+ *
+ *   2. Staff bấm "Chuẩn bị bàn giao" → BE `markReady`
+ *      → handover.state = READY_FOR_CUSTOMER, customer_response = PENDING.
+ *
+ *   3. Khách xác nhận tình trạng xe:
+ *        - Customer có tài khoản: tự xác nhận trên app/web của họ (BE accept).
+ *        - Walk-in: staff bấm "Khách đã đồng ý tình trạng xe" → BE `walk-in-accept`.
+ *
+ *   4. Customer báo vấn đề → ON_HOLD + customer_case. Staff xử lý case, sau
+ *      khi RESOLVED, khách sẽ xác nhận lại tại đây.
+ *
+ *   5. Sau khi customer_response = ACCEPTED, staff thu tiền (cash / PayOS).
+ *      Card "Thanh toán" hiển thị ngay trên trang này, staff bấm trực tiếp —
+ *      không cần đi vòng sang BookingDetailPage.
+ *
+ *   6. Staff bấm "Bàn giao xe" → BE `release` → handover.state = RELEASED.
+ *      Yêu cầu payment_status = PAID | WAIVED.
+ */
+import {
+  ArrowLeft,
+  Banknote,
+  CheckCircle2,
+  CreditCard,
+  Loader2,
+  Truck,
+} from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getApiErrorMessage } from '../../api/client'
 import {
-  HANDOVER_STATUS_LABELS,
-  HANDOVER_STATUS_VARIANT,
+  HANDOVER_RESPONSE_LABELS,
+  HANDOVER_STATE_LABELS,
+  HANDOVER_STATE_VARIANT,
+  type ApiBookingHandover,
 } from '../../api/handover.api'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Badge } from '../../components/ui/Badge'
@@ -12,16 +46,19 @@ import { Button } from '../../components/ui/Button'
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from '../../components/ui/Card'
 import { DashboardPageSkeleton } from '../../components/ui/Skeleton'
 import { Textarea } from '../../components/ui/Textarea'
+import { useBookings } from '../../contexts/BookingContext'
 import { useToast } from '../../contexts/ToastContext'
 import {
   useReadyBookingHandoverMutation,
   useReleaseBookingHandoverMutation,
   useStaffBookingHandover,
+  useWalkInAcceptHandoverMutation,
 } from '../../hooks/api/staff/useStaffHandover'
 import { useStaffBookingDetail } from '../../hooks/api/staff/useStaffBookingDetail'
 import { formatDateTime } from '../../utils/format'
@@ -30,12 +67,14 @@ export function StaffHandoverPage() {
   const { bookingId } = useParams()
   const { showToast } = useToast()
   const [staffNotes, setStaffNotes] = useState('')
-  const [disputeNote, setDisputeNote] = useState('')
+  const [walkInNote, setWalkInNote] = useState('')
 
   const detailQuery = useStaffBookingDetail(bookingId)
   const handoverQuery = useStaffBookingHandover(bookingId)
+  const { markBookingPaid, createPayosPayment } = useBookings()
 
   const readyMutation = useReadyBookingHandoverMutation(bookingId ?? '')
+  const walkInAcceptMutation = useWalkInAcceptHandoverMutation(bookingId ?? '')
   const releaseMutation = useReleaseBookingHandoverMutation(bookingId ?? '')
 
   if (detailQuery.isLoading || handoverQuery.isLoading) {
@@ -59,46 +98,135 @@ export function StaffHandoverPage() {
   }
 
   const booking = detailQuery.data
-  const handover = handoverQuery.data
+  const handover: ApiBookingHandover | undefined = handoverQuery.data
+  const isWalkIn = booking.is_walk_in === true
 
-  const status = handover?.status ?? 'NOT_STARTED'
-  const statusLabel = HANDOVER_STATUS_LABELS[status] ?? status
-  const statusVariant = HANDOVER_STATUS_VARIANT[status] ?? 'default'
+  // ---------------------------------------------------------------------------
+  // Trạng thái hiện tại + guard cho từng card
+  // ---------------------------------------------------------------------------
+  const bookingCompleted = booking.status === 'COMPLETED'
+  const handoverReleased = handover?.state === 'RELEASED'
+  const customerAccepted =
+    handover?.customer_response === 'ACCEPTED' &&
+    handover?.state === 'READY_FOR_CUSTOMER'
+  const paymentSettled =
+    booking.payment_status === 'PAID' || booking.payment_status === 'WAIVED'
 
+  const canReady = bookingCompleted && !handover
+  const canShowPayment = bookingCompleted && customerAccepted && !handoverReleased
+  const canCollectCash =
+    canShowPayment && booking.payment_status === 'UNPAID'
+  const canCreatePayos =
+    canShowPayment &&
+    (booking.payment_status === 'UNPAID' ||
+      booking.payment_status === 'PENDING')
+  // Walk-in: staff bấm "Khách đã đồng ý tình trạng xe" khi READY_FOR_CUSTOMER + PENDING.
+  const canWalkInAccept =
+    isWalkIn &&
+    handover?.state === 'READY_FOR_CUSTOMER' &&
+    handover?.customer_response === 'PENDING'
+  // Release OK khi khách accept + payment xong.
+  const canRelease =
+    !!handover &&
+    !handoverReleased &&
+    customerAccepted &&
+    paymentSettled
+
+  const isProcessing =
+    readyMutation.isPending ||
+    walkInAcceptMutation.isPending ||
+    releaseMutation.isPending ||
+    markBookingPaid.isPending ||
+    createPayosPayment.isPending
+
+  // ---------------------------------------------------------------------------
+  // Handlers
+  // ---------------------------------------------------------------------------
   const handleReady = async () => {
     try {
-      await readyMutation.mutateAsync({
-        note: staffNotes.trim() || undefined,
-      })
-      showToast('Đã chuẩn bị bàn giao — chờ khách xác nhận.', 'success')
+      await readyMutation.mutateAsync({ note: staffNotes.trim() || undefined })
+      showToast(
+        'Đã chuẩn bị bàn giao — chờ khách xác nhận tình trạng xe.',
+        'success',
+      )
       setStaffNotes('')
     } catch (error) {
-      showToast(getApiErrorMessage(error, 'Không thể chuẩn bị bàn giao.'), 'error')
-    }
-  }
-
-  const handleRelease = async (response: 'ACCEPTED' | 'DISPUTED') => {
-    try {
-      await releaseMutation.mutateAsync({
-        customer_response: response,
-        note: response === 'DISPUTED' ? disputeNote.trim() || undefined : undefined,
-      })
       showToast(
-        response === 'ACCEPTED'
-          ? 'Khách đã nhận xe. Booking hoàn tất.'
-          : 'Đã ghi nhận tranh chấp từ khách.',
-        response === 'ACCEPTED' ? 'success' : 'warning',
+        getApiErrorMessage(error, 'Không thể chuẩn bị bàn giao.'),
+        'error',
       )
-      setDisputeNote('')
-    } catch (error) {
-      showToast(getApiErrorMessage(error, 'Không thể ghi nhận phản hồi.'), 'error')
     }
   }
 
-  const canReady = status === 'NOT_STARTED' && booking.status === 'COMPLETED'
-  const canRelease =
-    status === 'AWAITING_CUSTOMER_RESPONSE' || status === 'READY_FOR_HANDOVER'
-  const isProcessing = readyMutation.isPending || releaseMutation.isPending
+  const handleWalkInAccept = async () => {
+    try {
+      await walkInAcceptMutation.mutateAsync({
+        note: walkInNote.trim() || undefined,
+      })
+      showToast('Đã ghi nhận khách walk-in đồng ý tình trạng xe.', 'success')
+      setWalkInNote('')
+    } catch (error) {
+      showToast(
+        getApiErrorMessage(
+          error,
+          'Không thể ghi nhận khách walk-in đồng ý.',
+        ),
+        'error',
+      )
+    }
+  }
+
+  const handleCollectCash = async () => {
+    if (!bookingId) return
+    const result = await markBookingPaid(bookingId)
+    if (result.success) {
+      showToast(result.message, 'success')
+    } else {
+      showToast(result.message, 'error')
+    }
+  }
+
+  const handleCreatePayos = async () => {
+    if (!bookingId) return
+    const result = await createPayosPayment(bookingId)
+    if (result.success && result.checkoutUrl) {
+      window.open(result.checkoutUrl, '_blank', 'noopener,noreferrer')
+      showToast(
+        'Đã tạo link PayOS — đưa khách quét QR trên cửa sổ mới.',
+        'success',
+      )
+    } else if (!result.success) {
+      showToast(result.message, 'error')
+    }
+  }
+
+  const handleRelease = async () => {
+    try {
+      await releaseMutation.mutateAsync({})
+      showToast('Đã bàn giao xe. Booking hoàn tất.', 'success')
+    } catch (error) {
+      showToast(getApiErrorMessage(error, 'Không thể bàn giao xe.'), 'error')
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
+  const stateBadge = handover?.state ?? 'PENDING'
+  const stateLabel = handover
+    ? HANDOVER_STATE_LABELS[handover.state] ?? handover.state
+    : 'Chưa bắt đầu'
+  const stateVariant = handover
+    ? HANDOVER_STATE_VARIANT[handover.state] ?? 'default'
+    : 'default'
+
+  const responseLabel = handover
+    ? HANDOVER_RESPONSE_LABELS[handover.customer_response] ??
+      handover.customer_response
+    : null
+
+  const formatVnd = (value: number) =>
+    new Intl.NumberFormat('vi-VN').format(value) + ' ₫'
 
   return (
     <div>
@@ -115,26 +243,47 @@ export function StaffHandoverPage() {
       <PageHeader
         eyebrow="Carivo Staff"
         title={`Bàn giao xe · ${booking.id.replace('booking-', '#')}`}
-        description="Chuẩn bị bàn giao xe cho khách và ghi nhận xác nhận nhận xe."
+        description={
+          isWalkIn
+            ? 'Khách vãng lai — staff ghi nhận phản hồi trực tiếp tại quầy.'
+            : 'Chuẩn bị bàn giao xe cho khách và ghi nhận khách xác nhận tình trạng xe.'
+        }
         action={
-          <Badge variant={statusVariant as never} className="text-sm">
-            {statusLabel}
-          </Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            {isWalkIn ? (
+              <Badge variant="warning">Khách vãng lai</Badge>
+            ) : null}
+            <Badge variant={stateVariant as never} className="text-sm">
+              {stateLabel}
+            </Badge>
+          </div>
         }
       />
 
+      {responseLabel ? (
+        <p className="mb-4 text-sm text-slate-600">
+          Phản hồi khách: <span className="font-medium">{responseLabel}</span>
+        </p>
+      ) : null}
+
       <div className="grid gap-6 lg:grid-cols-2">
+        {/* ============================================================
+            Bước 2: Chuẩn bị bàn giao
+            ============================================================ */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Truck className="h-5 w-5 text-slate-500" />
               Chuẩn bị bàn giao
             </CardTitle>
+            <CardDescription>
+              Lưu ảnh trước/sau dịch vụ và mở bước cho khách kiểm tra xe.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-slate-600">
-              Sau khi hoàn tất dịch vụ và thanh toán, nhấn nút bên dưới để thông báo
-              cho khách hàng rằng xe đã sẵn sàng nhận.
+              Sau khi hoàn tất dịch vụ, nhấn nút bên dưới để thông báo cho khách
+              rằng xe đã sẵn sàng để khách kiểm tra tình trạng.
             </p>
             <div>
               <label
@@ -162,119 +311,265 @@ export function StaffHandoverPage() {
               ) : (
                 <CheckCircle2 className="h-4 w-4" />
               )}
-              {status === 'NOT_STARTED' ? 'Chuẩn bị bàn giao' : 'Đã gửi yêu cầu'}
+              {handover ? 'Đã chuẩn bị bàn giao' : 'Chuẩn bị bàn giao'}
             </Button>
             {handover?.ready_at ? (
               <p className="text-xs text-slate-500">
                 Đã gửi lúc {formatDateTime(handover.ready_at)}
               </p>
             ) : null}
+            {!bookingCompleted ? (
+              <p className="text-xs text-amber-700">
+                Booking chưa ở trạng thái COMPLETED — không thể chuẩn bị bàn
+                giao. Hoàn tất dịch vụ trước.
+              </p>
+            ) : null}
           </CardContent>
         </Card>
 
+        {/* ============================================================
+            Bước 3: Ghi nhận khách xác nhận
+            ============================================================ */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Ghi nhận phản hồi khách</CardTitle>
+            <CardTitle className="text-base">
+              {isWalkIn ? 'Ghi nhận khách walk-in' : 'Khách xác nhận'}
+            </CardTitle>
+            <CardDescription>
+              {isWalkIn
+                ? 'Khách vãng lai không có tài khoản — staff ghi nhận phản hồi trực tiếp tại quầy.'
+                : 'Khách có tài khoản tự xác nhận trên app. Staff chỉ ghi nhận thay khi được ủy quyền.'}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-slate-600">
-              Khi khách đến quầy, nhấn một trong hai nút để ghi nhận kết quả bàn giao.
-              Nếu khách từ chối nhận xe (vd: còn vết bẩn), hãy nhập lý do.
-            </p>
-
-            <div>
-              <label
-                htmlFor="dispute-note"
-                className="mb-2 block text-sm font-medium text-slate-700"
-              >
-                Lý do khách từ chối (nếu có)
-              </label>
-              <Textarea
-                id="dispute-note"
-                rows={3}
-                value={disputeNote}
-                onChange={(event) => setDisputeNote(event.target.value)}
-                placeholder="VD: Khách phát hiện vết xước mới ở cản sau…"
-                disabled={!canRelease || isProcessing}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="secondary"
-                onClick={() => void handleRelease('DISPUTED')}
-                disabled={!canRelease || isProcessing}
-              >
-                {releaseMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : null}
-                Từ chối nhận
-              </Button>
-              <Button
-                onClick={() => void handleRelease('ACCEPTED')}
-                disabled={!canRelease || isProcessing}
-              >
-                {releaseMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="h-4 w-4" />
-                )}
-                Khách đã nhận xe
-              </Button>
-            </div>
-
-            {handover?.released_at ? (
-              <p className="text-xs text-slate-500">
-                Ghi nhận lúc {formatDateTime(handover.released_at)}
+            {canWalkInAccept ? (
+              <>
+                <p className="text-sm text-slate-600">
+                  Sau khi khách walk-in đã kiểm tra tình trạng xe và đồng ý,
+                  bấm nút bên dưới để ghi nhận phản hồi.
+                </p>
+                <div>
+                  <label
+                    htmlFor="walk-in-note"
+                    className="mb-2 block text-sm font-medium text-slate-700"
+                  >
+                    Ghi chú (tùy chọn)
+                  </label>
+                  <Textarea
+                    id="walk-in-note"
+                    rows={3}
+                    value={walkInNote}
+                    onChange={(event) => setWalkInNote(event.target.value)}
+                    placeholder="VD: Khách đã kiểm tra, không có vấn đề gì."
+                    disabled={isProcessing}
+                  />
+                </div>
+                <Button
+                  onClick={() => void handleWalkInAccept()}
+                  disabled={isProcessing}
+                  className="w-full"
+                >
+                  {walkInAcceptMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4" />
+                  )}
+                  Khách walk-in đồng ý tình trạng xe
+                </Button>
+              </>
+            ) : !handover ? (
+              <p className="text-sm text-slate-500">
+                Chưa có handover — hãy chuẩn bị bàn giao trước.
               </p>
+            ) : handover.state === 'PENDING' ? (
+              <p className="text-sm text-slate-500">
+                Handover chưa ở trạng thái sẵn sàng.
+              </p>
+            ) : handover.customer_response === 'PENDING' && !isWalkIn ? (
+              <div className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+                <p className="font-medium">Đang chờ khách xác nhận</p>
+                <p className="mt-1">
+                  Khách sẽ nhận thông báo trên app và tự xác nhận tình trạng
+                  xe. Trang này tự làm mới mỗi 5 giây.
+                </p>
+                {handover.customer_responded_at ? (
+                  <p className="mt-2 text-xs text-amber-800">
+                    Phản hồi gần nhất:{' '}
+                    {formatDateTime(handover.customer_responded_at)}
+                  </p>
+                ) : null}
+              </div>
+            ) : handover.customer_response === 'ISSUE_REPORTED' ? (
+              <div className="rounded-xl bg-red-50 p-3 text-sm text-red-900">
+                <p className="font-medium">Khách đã báo cáo vấn đề</p>
+                <p className="mt-1">
+                  Handover đang <b>ON_HOLD</b>. Staff xử lý qua{' '}
+                  <Link
+                    to="/staff/customer-cases"
+                    className="underline hover:text-red-700"
+                  >
+                    hồ sơ khiếu nại
+                  </Link>
+                  . Sau khi case <b>RESOLVED</b>, khách sẽ xác nhận lại tại đây.
+                </p>
+                {handover.issue_case_ids?.length ? (
+                  <p className="mt-2 text-xs">
+                    Case liên quan: {handover.issue_case_ids.join(', ')}
+                  </p>
+                ) : null}
+              </div>
+            ) : handover.customer_response === 'ACCEPTED' ? (
+              <div className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">
+                <p className="font-medium">Khách đã đồng ý tình trạng xe</p>
+                {handover.accepted_at ? (
+                  <p className="mt-1 text-xs">
+                    Thời điểm: {formatDateTime(handover.accepted_at)}
+                  </p>
+                ) : null}
+              </div>
+            ) : handover.state === 'RELEASED' ? (
+              <div className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">
+                <p className="font-medium">Đã bàn giao xe</p>
+                {handover.released_at ? (
+                  <p className="mt-1 text-xs">
+                    Thời điểm: {formatDateTime(handover.released_at)}
+                  </p>
+                ) : null}
+              </div>
             ) : null}
           </CardContent>
         </Card>
       </div>
 
-      {handoderEvents(handover).length > 0 ? (
+      {/* ============================================================
+          Bước 5: Thanh toán (chỉ hiện khi khách đã đồng ý)
+          ============================================================ */}
+      {canShowPayment || handoverReleased || paymentSettled ? (
         <Card className="mt-6">
           <CardHeader>
-            <CardTitle className="text-base">Lịch sử bàn giao</CardTitle>
+            <CardTitle className="text-base">Thanh toán</CardTitle>
+            <CardDescription>
+              Thu tiền mặt hoặc tạo QR PayOS. Chỉ thanh toán khi khách đã đồng
+              ý tình trạng xe.
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <ul className="space-y-3">
-              {handover!.events.map((event) => (
-                <li
-                  key={event.id}
-                  className="flex flex-wrap items-start gap-3 border-l-2 border-brand-200 pl-4"
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-sm text-slate-600">Số tiền:</span>
+              <span className="text-lg font-semibold text-slate-900">
+                {formatVnd(booking.final_price)}
+              </span>
+              <Badge
+                variant={
+                  booking.payment_status === 'WAIVED'
+                    ? 'info'
+                    : booking.payment_status === 'PAID'
+                      ? 'success'
+                      : booking.payment_status === 'PENDING'
+                        ? 'warning'
+                        : 'default'
+                }
+              >
+                {booking.payment_status === 'WAIVED'
+                  ? 'Đã miễn'
+                  : booking.payment_status === 'PAID'
+                    ? 'Đã thanh toán'
+                    : booking.payment_status === 'PENDING'
+                      ? 'Đang chờ PayOS'
+                      : 'Chưa thanh toán'}
+              </Badge>
+              {booking.payment_method ? (
+                <Badge variant="default">
+                  {booking.payment_method === 'CASH' ? 'Tiền mặt' : 'PayOS'}
+                </Badge>
+              ) : null}
+            </div>
+
+            {handoverReleased ? (
+              <p className="text-sm text-slate-500">
+                Booking đã được bàn giao — không thể thay đổi thanh toán tại
+                đây.
+              </p>
+            ) : paymentSettled ? (
+              <p className="text-sm text-emerald-700">
+                Thanh toán đã hoàn tất — có thể bàn giao xe.
+              </p>
+            ) : booking.payment_status === 'PENDING' ? (
+              <p className="text-sm text-amber-700">
+                Đã tạo link PayOS — chờ khách quét QR. Nếu khách walk-in muốn
+                đổi sang tiền mặt, vẫn có thể bấm "Thu tiền mặt" bên dưới (BE
+                sẽ huỷ giao dịch PayOS đang pending).
+              </p>
+            ) : null}
+
+            {canShowPayment ? (
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Button
+                  onClick={() => void handleCollectCash()}
+                  disabled={!canCollectCash || isProcessing}
                 >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-900">{event.type}</p>
-                    {event.note ? (
-                      <p className="text-sm text-slate-600">{event.note}</p>
-                    ) : null}
-                  </div>
-                  <span className="text-xs text-slate-500">
-                    {event.created_at ? formatDateTime(event.created_at) : ''}
-                  </span>
-                </li>
-              ))}
-            </ul>
+                  {markBookingPaid.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Banknote className="h-4 w-4" />
+                  )}
+                  Thu tiền mặt
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => void handleCreatePayos()}
+                  disabled={!canCreatePayos || isProcessing}
+                >
+                  {createPayosPayment.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CreditCard className="h-4 w-4" />
+                  )}
+                  Tạo QR PayOS
+                </Button>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       ) : null}
+
+      {/* ============================================================
+          Bước 6: Bàn giao xe
+          ============================================================ */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="text-base">Bàn giao xe</CardTitle>
+          <CardDescription>
+            Chỉ bấm khi khách đã đồng ý tình trạng xe VÀ đã thanh toán (hoặc
+            được miễn hợp lệ).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {handoverReleased ? (
+            <p className="text-sm text-slate-500">
+              Booking đã được bàn giao.
+            </p>
+          ) : !canRelease ? (
+            <p className="text-sm text-amber-800">
+              Cần: (1) khách đã đồng ý tình trạng xe, (2) thanh toán PAID hoặc
+              được miễn hợp lệ. Dùng card "Thanh toán" phía trên để thu tiền
+              trước.
+            </p>
+          ) : null}
+          <Button
+            onClick={() => void handleRelease()}
+            disabled={!canRelease || isProcessing}
+            className="w-full"
+          >
+            {releaseMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4" />
+            )}
+            {handoverReleased ? 'Đã bàn giao xe' : 'Bàn giao xe'}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   )
-}
-
-function handoderEvents(
-  handover: { events?: unknown[] } | null | undefined,
-): Array<{ id: string; type: string; note: string | null; created_at?: string }> {
-  const events = handover?.events
-  if (!Array.isArray(events)) return []
-  return events.map((raw) => {
-    const event = raw as { id?: string; type?: string; note?: string; created_at?: string }
-    return {
-      id: event.id ?? '',
-      type: event.type ?? '',
-      note: event.note ?? null,
-      created_at: event.created_at,
-    }
-  })
 }

@@ -56,7 +56,7 @@ import { getBookingPhone, normalizeSearchText } from '../utils/booking'
 import type { CreateInspectionInput } from '../utils/inspection'
 import { getSelectableWashBays } from '../utils/washBay'
 import { buildWalkInBookingPayload, getStaffGarageId } from '../utils/walkIn'
-import { staffQueryKeys } from '../hooks/api/staff/queryKeys'
+import { staffQueryKeys, workspaceQueryKeys, staffTaskQueryKeys } from '../hooks/api/staff/queryKeys'
 import { mapWashHistoriesWithBookingFallback } from '../utils/washHistoryEnrichment'
 import { DEFAULT_BOOKING_FILTERS, toBookingListApiParams } from '../utils/bookingFilters'
 
@@ -533,6 +533,28 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: async (_, { bookingId }) => {
       await fetchInspections(bookingId)
+      // BE đã đổi phase/blockers/available_actions ngay sau khi tạo inspection
+      // (xem vehicleInspection.service.js → createInspection → withTransaction
+      // gọi completePostServiceStepFromInspection nếu type = AFTER_WASH, và
+      // đổi workflow_phase từ SERVICE_IN_PROGRESS → WAITING_AFTER_WASH_INSPECTION
+      // / READY_TO_COMPLETE_SERVICE). Phải invalidate mọi cache liên quan tới
+      // workflow để UI CS Staff thấy ngay action `booking.service.complete`.
+      await queryClient.invalidateQueries({
+        queryKey: workspaceQueryKeys.workflow(bookingId),
+      })
+      await queryClient.invalidateQueries({
+        queryKey: staffTaskQueryKeys.workflow(bookingId),
+      })
+      await queryClient.invalidateQueries({
+        queryKey: staffTaskQueryKeys.serviceItems(bookingId),
+      })
+      await queryClient.invalidateQueries({
+        queryKey: workspaceQueryKeys.bookings(garageId),
+      })
+      await queryClient.invalidateQueries({
+        queryKey: workspaceQueryKeys.inspectionClaim(),
+      })
+      await invalidateBookings()
     },
   })
 

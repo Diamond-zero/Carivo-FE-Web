@@ -164,7 +164,14 @@ export interface ApiBooking {
   discount_amount: number
   final_price: number
   payment_method: 'CASH' | 'PAYOS' | string
-  payment_status: 'UNPAID' | 'PENDING' | 'PAID' | 'PARTIAL' | 'REFUNDED' | string
+  payment_status:
+    | 'UNPAID'
+    | 'PENDING'
+    | 'PAID'
+    | 'PARTIAL'
+    | 'REFUNDED'
+    | 'WAIVED'
+    | string
   used_points?: number
   earned_points?: number
   promotion_id?: string | null
