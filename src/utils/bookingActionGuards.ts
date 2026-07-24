@@ -381,7 +381,104 @@ export function getHandoverGuard(
     }
   }
 
+  if (isBookingReleased(booking)) {
+    return {
+      allowed: false,
+      reason: 'Booking đã bàn giao cho khách — không thể mở lại.',
+    }
+  }
+
   return { allowed: true }
+}
+
+/**
+ * Booking đã "đóng workflow" (RELEASED) — không sinh action nào nữa.
+ *
+ * Signal "đã bàn giao" được suy ra theo thứ tự ưu tiên:
+ *  1. `booking.raw.workflow_phase === 'RELEASED'` — workspace source
+ *     `GET /staff/workspace/bookings` (BE `getWorkflowPhase` set RELEASED
+ *     khi `handover.state === RELEASED`).
+ *  2. `booking.raw.handover_state === 'RELEASED'` HOẶC
+ *     `booking.raw.handover_released_at != null` — admin/staff list/detail
+ *     (BE `getBookingHandoverSummaryMap` batch query + nhúng 2 field vào
+ *     `toBookingDto`). Dùng `'handover_state' in booking.raw` để phân biệt
+ *     "BE chưa rollout" (undefined property) vs "BE đã rollout nhưng
+ *     booking không có handover" (property = null) — theo note từ BE team.
+ *  3. Workspace source cũ (chưa migrate sang handover_state): nếu
+ *     `available_actions` là mảng mà rỗng các action liên quan thì RELEASED.
+ *  4. Không có signal đáng tin (vd customer list chưa rollout) → return
+ *     `false` để không ẩn nhầm nút "Bàn giao xe".
+ *
+ * Booking sau khi được release giữ `booking.status === 'COMPLETED'`.
+ * Trước đây chỉ dựa vào status hoặc heuristic `PAID + reward_processed` →
+ * CS Staff (admin source) luôn thấy nút "Bàn giao xe" kể cả khi booking
+ * đã được release. Fix này ưu tiên signal chính xác từ BE.
+ */
+export function isBookingReleased(booking: Booking): boolean {
+  const raw = booking.raw as
+    | {
+        workflow_phase?: string
+        available_actions?: unknown
+        handover_state?: string | null
+        handover_released_at?: string | null
+      }
+    | undefined
+
+  // 1) Tin tưởng tuyệt đối vào `workflow_phase` — đây là single source of
+  //    truth mà BE `getWorkflowPhase` set `RELEASED` ngay khi
+  //    `handover.state === RELEASED` (xem
+  //    `staffBookingWorkflow.service.js`).
+  if (raw?.workflow_phase === 'RELEASED') {
+    return true
+  }
+
+  // 2) Signal từ BE (admin/staff list/detail): `handover_state` và
+  //    `handover_released_at`. Chỉ dùng khi BE thực sự trả field — check
+  //    `in` để không false-positive khi chưa được trả (vd booking cũ
+  //    trước lần rollout BE này, hoặc customer list chưa enrich).
+  //    Lưu ý theo note từ BE team: nếu BE trả `handover_state: null` cho
+  //    booking không có handover record thì đã được rollout → dùng
+  //    `in` vẫn an toàn (kiểm tra sự tồn tại của property, không phải
+  //    giá trị truthy).
+  if (raw && 'handover_state' in raw && 'handover_released_at' in raw) {
+    if (raw.handover_state === 'RELEASED') {
+      return true
+    }
+    // BE có thể set `released_at` mà chưa update `state` (race nhỏ),
+    // hoặc ngược lại. Coi như đã release khi 1 trong 2 khớp.
+    if (raw.handover_released_at) {
+      return true
+    }
+    return false
+  }
+
+  // 3) Workspace source cũ (chưa migrate sang bổ sung handover_state —
+  //    hiện tại chỉ có `available_actions`).
+  const hasAvailableActionsField = Array.isArray(raw?.available_actions)
+
+  if (hasAvailableActionsField) {
+    const actions = raw!.available_actions as string[]
+    const stillOpen = actions.some((action) =>
+      [
+        'handover.prepare',
+        'handover.walk_in_accept',
+        'handover.release',
+        'booking.payment.collect_cash',
+        'booking.service.complete',
+        'booking.service.start',
+        'booking.cancel',
+        'booking.mark_no_show',
+        'service_item.confirm_complete',
+      ].includes(action),
+    )
+    if (stillOpen) return false
+    return true
+  }
+
+  // 4) Fallback: BE chưa rollout handover_state cho endpoint này (vd
+  //    customer list `/bookings/me`). Không có signal đáng tin cậy → trả
+  //    false để tránh ẩn nhầm nút "Bàn giao xe".
+  return false
 }
 
 export function getCancelBookingGuard(
@@ -487,6 +584,16 @@ export function getBookingListAction(
   staffGarageId?: string,
   staffCapabilities: StaffCapability[] = [],
 ): BookingListAction | null {
+  // Booking đã bàn giao xong (handover.state = RELEASED) — workflow đóng
+  // hoàn toàn, không còn action nào cho staff. `status === 'COMPLETED'`
+  // không phân biệt "vừa xong dịch vụ" vs "đã bàn giao", nên phải dùng
+  // `isBookingReleased` — đọc signal chính xác từ BE
+  // (`workflow_phase` / `handover_state` / `handover_released_at` /
+  // `available_actions`).
+  if (isBookingReleased(booking)) {
+    return null
+  }
+
   if (booking.status === 'CONFIRMED') {
     return {
       label: 'Check-in',

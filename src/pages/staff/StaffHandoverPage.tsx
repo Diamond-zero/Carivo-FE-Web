@@ -201,6 +201,15 @@ export function StaffHandoverPage() {
   }
 
   const handleRelease = async () => {
+    // Guard chống double-submit: nếu mutation đang pending hoặc đã release
+    // rồi (state đồng bộ từ query) thì không gọi lại. Lý do: trong một số
+    // trường hợp React có thể gọi onClick 2 lần trong cùng frame (vd HMR
+    // hot reload) hoặc user click đúp trước khi button disabled kịp apply.
+    // Lần 2 BE sẽ throw 409 vì state không thỏa điều kiện → toast error
+    // "Không thể bàn giao xe" hiện cùng lúc với success toast của lần 1.
+    if (releaseMutation.isPending || handoverReleased) {
+      return
+    }
     try {
       await releaseMutation.mutateAsync({})
       showToast('Đã bàn giao xe. Booking hoàn tất.', 'success')
