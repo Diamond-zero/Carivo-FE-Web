@@ -127,7 +127,7 @@ export function BookingDetailPage() {
   }
 
   const staffGarageId = session?.staffProfile.garage_id
-  const listAction = getBookingListAction(booking, staffGarageId)
+  const listAction = getBookingListAction(booking, staffGarageId, staffCapabilities)
   const serviceSteps = id ? getServiceStepsByBookingId(id) : []
   const washBay = booking.wash_bay_id
     ? getWashBayById(booking.wash_bay_id)

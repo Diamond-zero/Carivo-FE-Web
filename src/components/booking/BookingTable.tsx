@@ -2,6 +2,7 @@ import { createColumnHelper } from '@tanstack/react-table'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useBookings } from '../../contexts/BookingContext'
+import type { StaffCapability } from '../../constants/staffCapabilities'
 import type { Booking } from '../../types/booking'
 import { getBookingCustomerName } from '../../utils/booking'
 import { getBookingListAction } from '../../utils/bookingActionGuards'
@@ -17,6 +18,8 @@ interface BookingTableProps {
   bookings: Booking[]
   emptyMessage?: string
   staffGarageId?: string
+  /** Required for action gating (vd ẩn nút "Bắt đầu DV" với Wash/Care staff). */
+  staffCapabilities?: StaffCapability[]
   onMarkPaid?: (booking: Booking) => void
 }
 
@@ -24,6 +27,7 @@ export function BookingTable({
   bookings,
   emptyMessage = 'Không tìm thấy booking phù hợp',
   staffGarageId,
+  staffCapabilities,
   onMarkPaid,
 }: BookingTableProps) {
   const { getServicePackageName } = useBookings()
@@ -87,7 +91,7 @@ export function BookingTable({
         id: 'actions',
         header: 'Thao tác',
         cell: ({ row }) => {
-          const action = getBookingListAction(row.original, staffGarageId)
+          const action = getBookingListAction(row.original, staffGarageId, staffCapabilities)
 
           if (!action) {
             return <span className="text-xs text-slate-400">—</span>
@@ -130,7 +134,7 @@ export function BookingTable({
         },
       }),
     ],
-    [staffGarageId, onMarkPaid, getServicePackageName],
+    [staffGarageId, staffCapabilities, onMarkPaid, getServicePackageName],
   )
 
   return (

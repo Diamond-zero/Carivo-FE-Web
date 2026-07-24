@@ -34,12 +34,17 @@ export interface StaffNavItem {
    * Capability yêu cầu để hiển thị mục này. Mục không có field này luôn
    * hiển thị (ví dụ: Dashboard, Settings). FE lọc qua `useMyCapabilities()`
    * của Staff hiện tại.
+   *
+   * Có thể truyền mảng → hiển thị nếu Staff có ÍT NHẤT 1 capability
+   * (logic OR). Ví dụ sidebar gộp "Thực hiện dịch vụ" cho cả
+   * WASH_OPERATOR (`service_task.wash.execute_assigned`) và
+   * VEHICLE_CARE_STAFF (`service_task.care.execute_assigned`).
    */
-  requiredCapability?: StaffCapability
+  requiredCapability?: StaffCapability | StaffCapability[]
   children?: Array<{
     label: string
     path: string
-    requiredCapability?: StaffCapability
+    requiredCapability?: StaffCapability | StaffCapability[]
   }>
 }
 
@@ -76,7 +81,17 @@ export const staffNavItems: StaffNavItem[] = [
     path: '/service/execution',
     icon: Wrench,
     section: 'operations',
-    requiredCapability: 'service_task.wash.execute_assigned',
+    // Hiển thị cho cả 3 nhóm liên quan đến service execution:
+    //   - WASH_OPERATOR: service_task.wash.execute_assigned
+    //   - VEHICLE_CARE_STAFF: service_task.care.execute_assigned
+    //   - CUSTOMER_SERVICE_STAFF: booking.service.read_garage (bắt đầu DV +
+    //     theo dõi tiến trình, hoàn thành)
+    // Sidebar filter OR (Sidebar.tsx): staff có 1 trong 3 capability sẽ thấy.
+    requiredCapability: [
+      'service_task.wash.execute_assigned',
+      'service_task.care.execute_assigned',
+      'booking.service.read_garage',
+    ],
   },
   {
     label: 'Kiểm tra xe',

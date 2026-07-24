@@ -7,6 +7,7 @@ import {
   staffNavItems,
   type StaffNavItem,
 } from '../../constants/navigation'
+import type { StaffCapability } from '../../constants/staffCapabilities'
 import { useAuth } from '../../contexts/AuthContext'
 import { useStaffCapabilities } from '../../hooks/useCan'
 import { cn } from '../../lib/utils'
@@ -67,15 +68,22 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const staffCapabilities = useStaffCapabilities()
 
   const visibleNavItems = useMemo(() => {
+    const matchesAny = (
+      capabilities: StaffCapability | StaffCapability[] | undefined,
+    ) => {
+      if (!capabilities) return true
+      const list = Array.isArray(capabilities) ? capabilities : [capabilities]
+      if (list.length === 0) return true
+      return list.some((c) => staffCapabilities.includes(c))
+    }
     return staffNavItems
       .map((item) => {
-        if (item.requiredCapability && !staffCapabilities.includes(item.requiredCapability)) {
+        if (!matchesAny(item.requiredCapability)) {
           return null
         }
-        const visibleChildren = item.children?.filter((child) => {
-          if (!child.requiredCapability) return true
-          return staffCapabilities.includes(child.requiredCapability)
-        })
+        const visibleChildren = item.children?.filter((child) =>
+          matchesAny(child.requiredCapability),
+        )
         // Nếu là group mà cả children đều ẩn → ẩn luôn group.
         if (item.children && (!visibleChildren || visibleChildren.length === 0)) {
           return null
