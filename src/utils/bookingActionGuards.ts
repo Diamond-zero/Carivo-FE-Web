@@ -629,15 +629,25 @@ export function getBookingListAction(
     }
   }
 
+  // Booking COMPLETED + chưa thanh toán → mở trang "Bàn giao xe" với label
+  // "Thanh toán / bàn giao". BE flow cho phép chuẩn bị bàn giao trước/sau khi
+  // thu tiền (HANDOVER_PREPARE không check payment_status). Staff xử lý cả 2
+  // trong trang /staff/handover${id} — card "Chuẩn bị bàn giao" + card "Thanh
+  // toán" hiển thị tuỳ theo state handover. Trước đây nút "Thanh toán" ở đây
+  // mở modal mark-paid riêng → staff vào đó xong không có cách mở lại trang
+  // handover, dẫn đến bug "trang bàn giao bị ẩn mất" khi back về list.
+  // Guard `getHandoverGuard` chỉ check status COMPLETED + chưa RELEASED →
+  // hoạt động với mọi payment_status.
   if (
     booking.status === 'COMPLETED' &&
     (booking.payment_status === 'UNPAID' || booking.payment_status === 'PENDING')
   ) {
     return {
-      label: booking.payment_status === 'PENDING' ? 'Thu tiền mặt' : 'Thanh toán',
-      type: 'mark_paid',
-      guard: getMarkPaidGuard(booking, staffGarageId),
-      requiredCapability: 'booking.payment.collect_cash',
+      label: booking.payment_status === 'PENDING' ? 'Thu tiền / bàn giao' : 'Thanh toán / bàn giao',
+      to: `/staff/handover/${booking.id}`,
+      type: 'link',
+      guard: getHandoverGuard(booking, staffGarageId),
+      requiredCapability: 'booking_handover.manage_garage',
     }
   }
 
