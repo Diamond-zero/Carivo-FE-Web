@@ -1,6 +1,6 @@
 import type { AdminStaffRecord, AdminTierRule } from '../../types/admin'
 import type { AuditLog } from '../../types/auditLog'
-import type { CustomerLoyalty, LoyaltyPointRecord, LoyaltyTier, TierUpgradeRecord } from '../../types/loyalty'
+import type { CustomerLoyalty, LoyaltyPointRecord } from '../../types/loyalty'
 import type { Promotion } from '../../types/promotion'
 import type { ServicePackage, ServiceStepTemplate } from '../../types/servicePackage'
 import type { Vehicle } from '../../types/vehicle'
@@ -8,7 +8,8 @@ import type { ApiGarage, ApiStaffProfile } from '../../types/api'
 import type {
   ApiAuditLog,
   ApiLoyaltyCustomer,
-  ApiLoyaltyCustomerDetail,
+  ApiLoyaltyCustomerDetailResponse,
+  ApiPointTransaction,
   ApiPromotion,
   ApiSurvey,
   ApiSurveyResponse,
@@ -140,13 +141,16 @@ export function mapApiSurveyResponse(response: ApiSurveyResponse): SurveyRespons
 export function mapApiAuditLog(log: ApiAuditLog): AuditLog {
   return {
     id: log.id,
-    actor_id: log.actor_id ?? log.actor?.id ?? '',
-    actor_role: log.actor?.role ?? '',
+    actor_id: log.actor_id ?? log.actor?.id ?? null,
+    actor: log.actor ?? null,
     action: log.action,
-    entity: log.resource_type,
-    entity_id: log.resource_id,
-    old_value: log.before ?? null,
-    new_value: log.after ?? null,
+    resource_type: log.resource_type,
+    resource_id: log.resource_id,
+    before: log.before ?? null,
+    after: log.after ?? null,
+    ip: log.ip ?? null,
+    user_agent: log.user_agent ?? null,
+    metadata: log.metadata ?? {},
     created_at: log.created_at,
   }
 }
@@ -193,48 +197,55 @@ export function mapApiCustomerLoyalty(record: ApiLoyaltyCustomer): CustomerLoyal
   }
 }
 
-export function mapApiLoyaltyDetail(record: ApiLoyaltyCustomerDetail) {
-  const tierHistory: TierUpgradeRecord[] = (record.tier_history ?? []).map((item) => ({
-    id: item.id,
-    customer_id: record.customer_id,
-    from_tier: (item.from_tier as LoyaltyTier | null) ?? null,
-    to_tier: item.to_tier as LoyaltyTier,
-    upgraded_at: item.created_at,
-    reason: item.reason ?? '',
-  }))
-
-  const pointHistory: LoyaltyPointRecord[] = (record.point_transactions ?? []).map(
-    (item) => ({
-      id: item.id,
-      customer_id: record.customer_id,
-      points: item.points,
-      type: item.type as LoyaltyPointRecord['type'],
-      description: item.description ?? '',
-      related_booking_id: item.booking_id ?? null,
-      created_at: item.created_at,
-    }),
-  )
+/**
+ * BE `GET /admin/loyalty/customers/:customerId` trả về `LoyaltyOverviewDto`
+ * dạng NESTED:
+ *   { loyalty: { current_tier, total_points, total_spent, ... },
+ *     current_tier_rule: {...}, next_tier_rule: {...} }
+ * Chưa có field `tier_history` / `point_transactions` trong response — lịch sử
+ * điểm phải fetch riêng qua `GET /admin/loyalty/customers/:id/transactions`.
+ *
+ * Hàm này chỉ map phần `loyalty` + `customer` để render UI; tierHistory
+ * và pointHistory sẽ do hook `useAdminCustomerDetail` nạp qua query riêng.
+ */
+export function mapApiLoyaltyDetail(record: ApiLoyaltyCustomerDetailResponse) {
+  const loyaltyRecord = record.loyalty ?? null
 
   return {
-    user: record.customer
+    user: loyaltyRecord?.customer
       ? mapApiUser({
-          id: record.customer.id,
-          full_name: record.customer.full_name,
-          email: record.customer.email ?? '',
-          phone: record.customer.phone ?? '',
+          id: loyaltyRecord.customer.id,
+          full_name: loyaltyRecord.customer.full_name,
+          email: loyaltyRecord.customer.email ?? '',
+          phone: loyaltyRecord.customer.phone ?? '',
           phone_verified_at: null,
           role: 'CUSTOMER',
           avatar_url: '',
-          is_active: record.customer.is_active,
+          is_active: loyaltyRecord.customer.is_active,
           last_login_at: null,
           password_changed_at: null,
           created_at: '',
           updated_at: '',
         })
       : null,
-    loyalty: mapApiCustomerLoyalty(record),
-    tierHistory,
-    pointHistory,
+    loyalty: loyaltyRecord ? mapApiCustomerLoyalty(loyaltyRecord) : null,
+    currentTierRule: record.current_tier_rule ?? null,
+    nextTierRule: record.next_tier_rule ?? null,
+  }
+}
+
+export function mapApiLoyaltyPointTransaction(
+  item: ApiPointTransaction,
+  customerIdFallback: string,
+): LoyaltyPointRecord {
+  return {
+    id: item.id,
+    customer_id: item.customer_id || customerIdFallback,
+    points: item.points,
+    type: item.type as LoyaltyPointRecord['type'],
+    description: item.description ?? '',
+    related_booking_id: item.booking_id ?? null,
+    created_at: item.created_at,
   }
 }
 

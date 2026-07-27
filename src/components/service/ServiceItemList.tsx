@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -24,12 +24,24 @@ import {
   useResumeServiceItem,
 } from '../../hooks/api/staff/useStaffTasks'
 import { useMyCapabilities } from '../../hooks/api/staff/useStaffCapabilities'
-import { getApiErrorMessage } from '../../api/client'
+import { getApiErrorCode, getApiErrorMessage } from '../../api/client'
 import type { ApiBookingItem, ApiWashBay } from '../../types/api/staff'
 import type {
   ApiServiceItem,
   ApiWorkspaceWorkflow,
 } from '../../types/api/workspace'
+
+/**
+ * Nhận diện lỗi "double-submit sau success": sau khi staff xác nhận hoàn thành /
+ * complete-early, BE release assignment → submit lần 2 (React Strict Mode,
+ * click đúp, v.v.) sẽ trả 403 STAFF_BOOKING_ASSIGNMENT_REQUIRED. UI đã cập
+ * nhật phía trên nên ta nuốt lỗi này thay vì hiện toast gây hiểu nhầm.
+ */
+function isStaleAssignmentError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const code = getApiErrorCode(error)
+  return code === 'STAFF_BOOKING_ASSIGNMENT_REQUIRED'
+}
 
 interface ServiceItemListProps {
   bookingId: string
@@ -78,6 +90,12 @@ export function ServiceItemList({
   const completeEarlyMutation = useCompleteServiceItemEarly()
   const confirmMutation = useConfirmServiceItemComplete()
 
+  // Ref chống double-submit: khi user click đúp, HMR hot reload, hoặc React
+  // Strict Mode dev re-invoke, mutation vẫn đang pending → lần 2 BE throw
+  // 403 STAFF_BOOKING_ASSIGNMENT_REQUIRED (vì assignment đã release sau khi
+  // complete) và toast error đè lên toast success, gây hiểu nhầm.
+  const inFlightItemsRef = useRef<Set<string>>(new Set())
+
   // Modal state
   const [pauseTarget, setPauseTarget] = useState<ApiServiceItem | null>(null)
   const [incidentDefaultItemKey, setIncidentDefaultItemKey] = useState<
@@ -100,60 +118,83 @@ export function ServiceItemList({
     )
   }
 
-  const handlePause = async (reason: string) => {
-    if (!pauseTarget) return
+  const handlePause = async (item: ApiServiceItem, reason: string) => {
+    const key = item.item_key
+    if (inFlightItemsRef.current.has(key)) return
+    inFlightItemsRef.current.add(key)
     try {
       await pauseMutation.mutateAsync({
         bookingId,
-        itemKey: pauseTarget.item_key,
+        itemKey: key,
         payload: { reason },
       })
       showToast('Đã tạm dừng hạng mục.', 'success')
       setPauseTarget(null)
     } catch (error) {
+      if (isStaleAssignmentError(error)) return
       showToast(getApiErrorMessage(error, 'Không thể tạm dừng.'), 'error')
+    } finally {
+      inFlightItemsRef.current.delete(key)
     }
   }
 
   const handleResume = async (item: ApiServiceItem) => {
+    const key = item.item_key
+    if (inFlightItemsRef.current.has(key)) return
+    inFlightItemsRef.current.add(key)
     try {
       await resumeMutation.mutateAsync({
         bookingId,
-        itemKey: item.item_key,
+        itemKey: key,
       })
       showToast('Đã tiếp tục hạng mục.', 'success')
     } catch (error) {
+      if (isStaleAssignmentError(error)) return
       showToast(getApiErrorMessage(error, 'Không thể tiếp tục.'), 'error')
+    } finally {
+      inFlightItemsRef.current.delete(key)
     }
   }
 
   const handleCompleteEarly = async (item: ApiServiceItem) => {
+    const key = item.item_key
+    if (inFlightItemsRef.current.has(key)) return
+    inFlightItemsRef.current.add(key)
     try {
       await completeEarlyMutation.mutateAsync({
         bookingId,
-        itemKey: item.item_key,
+        itemKey: key,
       })
-      showToast('Đã đánh dấu hoàn thành sớm.', 'success')
+      showToast('Đã hoàn thành.', 'success')
     } catch (error) {
+      if (isStaleAssignmentError(error)) return
       showToast(
         getApiErrorMessage(error, 'Không thể hoàn thành sớm.'),
         'error',
       )
+    } finally {
+      inFlightItemsRef.current.delete(key)
     }
   }
 
   const handleConfirmComplete = async (item: ApiServiceItem) => {
+    const key = item.item_key
+    if (inFlightItemsRef.current.has(key)) return
+    inFlightItemsRef.current.add(key)
     try {
       await confirmMutation.mutateAsync({
         bookingId,
-        itemKey: item.item_key,
+        itemKey: key,
       })
       showToast('Đã xác nhận hoàn thành.', 'success')
     } catch (error) {
+      if (isStaleAssignmentError(error)) return
       showToast(
         getApiErrorMessage(error, 'Không thể xác nhận hoàn thành.'),
         'error',
       )
+    } finally {
+      inFlightItemsRef.current.delete(key)
     }
   }
 
@@ -245,7 +286,7 @@ export function ServiceItemList({
           itemName={pauseTarget.name}
           isSubmitting={pauseMutation.isPending}
           onClose={() => !pauseMutation.isPending && setPauseTarget(null)}
-          onConfirm={handlePause}
+          onConfirm={(reason) => void handlePause(pauseTarget, reason)}
         />
       ) : null}
 

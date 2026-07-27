@@ -39,13 +39,18 @@ export function AdminVehicleListPage() {
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState<'ALL' | 'MOTORBIKE' | 'CAR'>(
     'ALL',
   )
-  const [activeFilter, setActiveFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL')
+  const [activeFilter, setActiveFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ACTIVE')
   const [formMode, setFormMode] = useState<FormMode>(null)
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null)
   const [deleteVehicleId, setDeleteVehicleId] = useState<string | null>(null)
 
   const { allCustomers } = useAdminCustomers()
-  const { data, isLoading, isError, error } = useAdminVehicles({
+  const {
+    vehicles: allVehiclesData,
+    isLoading,
+    isError,
+    error,
+  } = useAdminVehicles({
     search: query.trim() || undefined,
     vehicle_type: vehicleTypeFilter === 'ALL' ? undefined : vehicleTypeFilter,
   })
@@ -54,7 +59,7 @@ export function AdminVehicleListPage() {
   const updateMutation = useUpdateAdminVehicle()
   const deleteMutation = useDeleteAdminVehicle()
 
-  const allVehicles = useMemo(() => data?.vehicles ?? [], [data?.vehicles])
+  const allVehicles = useMemo(() => allVehiclesData ?? [], [allVehiclesData])
 
   const filteredVehicles = useMemo(() => {
     const normalizedQuery = normalizeSearchText(query.trim())

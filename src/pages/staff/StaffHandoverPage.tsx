@@ -31,9 +31,9 @@ import {
   Loader2,
   Truck,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getApiErrorMessage } from '../../api/client'
+import { getApiErrorCode, getApiErrorMessage } from '../../api/client'
 import {
   HANDOVER_RESPONSE_LABELS,
   HANDOVER_STATE_LABELS,
@@ -63,11 +63,57 @@ import {
 import { useStaffBookingDetail } from '../../hooks/api/staff/useStaffBookingDetail'
 import { formatDateTime } from '../../utils/format'
 
+/**
+ * Nhận diện lỗi idempotent "walk-in đã được ghi nhận trước đó": sau lần submit
+ * 1 thành công, BE đã đổi customer_response → ACCEPTED và save DB. Lần submit
+ * 2 (do race với React Strict Mode / HMR / user click lại) BE trả lỗi kiểu
+ * 400/409 walk_in_already_recorded. UI đã cập nhật → ta nuốt lỗi này thay vì
+ * hiện toast đỏ gây hiểu nhầm (đồng bộ pattern với `isStaleAssignmentError`
+ * bên ServiceItemList / ServiceWorkflowTab).
+ */
+function isStaleWalkInError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const code = getApiErrorCode(error)
+  return (
+    code === 'WALK_IN_ALREADY_RECORDED' ||
+    code === 'BOOKING_HANDOVER_WALK_IN_ALREADY_ACCEPTED' ||
+    code === 'BOOKING_HANDOVER_CUSTOMER_RESPONSE_INVALID'
+  )
+}
+
+/**
+ * Nhận diện lỗi idempotent "xe đã được bàn giao trước đó" tương tự
+ * `isStaleWalkInError`. Sau lần `release` thành công, BE đã đổi
+ * `handover.state = RELEASED` → lần release thứ 2 (do race React Strict Mode
+ * / HMR / user click lại) BE trả lỗi 400/409 kiểu `booking_handover_already_released`.
+ * UI đã cập nhật (`handoverReleased = true`, button đổi label "Đã bàn giao xe",
+ * disable) → nuốt lỗi để khỏi hiện toast đỏ gây hiểu nhầm.
+ */
+function isStaleReleaseError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const code = getApiErrorCode(error)
+  return (
+    code === 'BOOKING_HANDOVER_ALREADY_RELEASED' ||
+    code === 'BOOKING_HANDOVER_STATE_INVALID'
+  )
+}
+
 export function StaffHandoverPage() {
   const { bookingId } = useParams()
   const { showToast } = useToast()
   const [staffNotes, setStaffNotes] = useState('')
   const [walkInNote, setWalkInNote] = useState('')
+  // Ref chống double-submit cho handleWalkInAccept (mutation.isPending reset
+  // ngay khi server trả về nên không đủ dùng làm guard trong cùng frame).
+  const walkInSubmittingRef = useRef(false)
+  const releaseSubmittingRef = useRef(false)
+  // Ref chống double-submit cho handleReady. `readyMutation.isPending` flip
+  // về false ngay khi server trả về (trước khi code phía sau await chạy tiếp),
+  // `handover.state === 'READY_FOR_CUSTOMER'` thì cache TanStack Query chưa
+  // kịp refetch trong cùng frame → 1 trong 2 guard có thể bị trượt và fire
+  // mutate lần 2 → BE BookingHandover.create duplicate-key 500 → toast đỏ
+  // "Không thể chuẩn bị bàn giao." đè lên success toast của lần 1.
+  const readySubmittingRef = useRef(false)
 
   const detailQuery = useStaffBookingDetail(bookingId)
   const handoverQuery = useStaffBookingHandover(bookingId)
@@ -143,36 +189,64 @@ export function StaffHandoverPage() {
   // Handlers
   // ---------------------------------------------------------------------------
   const handleReady = async () => {
+    // Guard chống double-submit bằng ref + state-based (đồng bộ với
+    // handleWalkInAccept / handleRelease). mut.isPending có thể reset ngay
+    // khi server trả về và handover.state thì cache chưa kịp refetch trong
+    // cùng frame → lần 2 có thể trượt qua guard cũ → BE BookingHandover
+    // duplicate-key 500 → toast đỏ đè lên success toast.
+    if (
+      readySubmittingRef.current ||
+      readyMutation.isPending ||
+      handover?.state === 'READY_FOR_CUSTOMER'
+    ) {
+      return
+    }
+    readySubmittingRef.current = true
     try {
       await readyMutation.mutateAsync({ note: staffNotes.trim() || undefined })
-      showToast(
-        'Đã chuẩn bị bàn giao — chờ khách xác nhận tình trạng xe.',
-        'success',
-      )
+      showToast('Hoàn thành đã chuẩn bị bàn giao.', 'success')
       setStaffNotes('')
     } catch (error) {
       showToast(
         getApiErrorMessage(error, 'Không thể chuẩn bị bàn giao.'),
         'error',
       )
+    } finally {
+      readySubmittingRef.current = false
     }
   }
 
   const handleWalkInAccept = async () => {
+    // 3 lớp guard: ref (đồng bộ trong frame) + mut.isPending (khi BE chưa trả)
+    // + state-based (sau khi cache đồng bộ xong). Thiếu lớp nào race cũng
+    // lọt → BE trả lỗi idempotent 400/409 → toast đỏ đè lên success toast.
+    if (
+      walkInSubmittingRef.current ||
+      walkInAcceptMutation.isPending ||
+      handover?.customer_response === 'ACCEPTED'
+    ) {
+      return
+    }
+    walkInSubmittingRef.current = true
     try {
       await walkInAcceptMutation.mutateAsync({
         note: walkInNote.trim() || undefined,
       })
-      showToast('Đã ghi nhận khách walk-in đồng ý tình trạng xe.', 'success')
+      showToast('Đã ghi nhận khách đồng ý tình trạng xe.', 'success')
       setWalkInNote('')
     } catch (error) {
+      // Nuốt lỗi idempotent (race sau success) — UI đã cập nhật → không
+      // cần báo staff, sẽ gây hiểu nhầm "thành công mà vẫn báo lỗi".
+      if (isStaleWalkInError(error)) return
       showToast(
         getApiErrorMessage(
           error,
-          'Không thể ghi nhận khách walk-in đồng ý.',
+          'Không thể ghi nhận khách đồng ý tình trạng xe.',
         ),
         'error',
       )
+    } finally {
+      walkInSubmittingRef.current = false
     }
   }
 
@@ -201,20 +275,28 @@ export function StaffHandoverPage() {
   }
 
   const handleRelease = async () => {
-    // Guard chống double-submit: nếu mutation đang pending hoặc đã release
-    // rồi (state đồng bộ từ query) thì không gọi lại. Lý do: trong một số
-    // trường hợp React có thể gọi onClick 2 lần trong cùng frame (vd HMR
-    // hot reload) hoặc user click đúp trước khi button disabled kịp apply.
-    // Lần 2 BE sẽ throw 409 vì state không thỏa điều kiện → toast error
-    // "Không thể bàn giao xe" hiện cùng lúc với success toast của lần 1.
-    if (releaseMutation.isPending || handoverReleased) {
+    // Guard chống double-submit bằng ref + state-based (đồng bộ với
+    // handleReady / handleWalkInAccept). mut.isPending có thể reset ngay khi
+    // server trả về → lần 2 trong cùng frame có thể trượt qua guard cũ và
+    // sinh toast error "Không thể bàn giao xe" đè lên success toast.
+    if (
+      releaseSubmittingRef.current ||
+      releaseMutation.isPending ||
+      handoverReleased
+    ) {
       return
     }
+    releaseSubmittingRef.current = true
     try {
       await releaseMutation.mutateAsync({})
-      showToast('Đã bàn giao xe. Booking hoàn tất.', 'success')
+      showToast('Đã bàn giao xe thành công.', 'success')
     } catch (error) {
+      // Nuốt lỗi idempotent (race sau success) — UI đã đổi sang RELEASED,
+      // không cần báo staff, sẽ gây hiểu nhầm "thành công mà vẫn báo lỗi".
+      if (isStaleReleaseError(error)) return
       showToast(getApiErrorMessage(error, 'Không thể bàn giao xe.'), 'error')
+    } finally {
+      releaseSubmittingRef.current = false
     }
   }
 
@@ -323,9 +405,15 @@ export function StaffHandoverPage() {
               {handover ? 'Đã chuẩn bị bàn giao' : 'Chuẩn bị bàn giao'}
             </Button>
             {handover?.ready_at ? (
-              <p className="text-xs text-slate-500">
-                Đã gửi lúc {formatDateTime(handover.ready_at)}
-              </p>
+              <div className="carivo-fade-in flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                <div className="min-w-0">
+                  <p className="font-medium">Hoàn thành chuẩn bị bàn giao</p>
+                  <p className="mt-0.5 text-xs text-emerald-700">
+                    Đã gửi lúc {formatDateTime(handover.ready_at)}
+                  </p>
+                </div>
+              </div>
             ) : null}
             {!bookingCompleted ? (
               <p className="text-xs text-amber-700">
@@ -428,13 +516,23 @@ export function StaffHandoverPage() {
                 ) : null}
               </div>
             ) : handover.customer_response === 'ACCEPTED' ? (
-              <div className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">
-                <p className="font-medium">Khách đã đồng ý tình trạng xe</p>
-                {handover.accepted_at ? (
-                  <p className="mt-1 text-xs">
-                    Thời điểm: {formatDateTime(handover.accepted_at)}
-                  </p>
-                ) : null}
+              <div className="carivo-fade-in rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                  <div className="min-w-0">
+                    <p className="font-medium">Khách đã walk-in thành công</p>
+                    {handover.accepted_at ? (
+                      <p className="mt-1 text-xs text-emerald-700">
+                        Thời điểm: {formatDateTime(handover.accepted_at)}
+                      </p>
+                    ) : null}
+                    {handover.customer_response_note ? (
+                      <p className="mt-1 text-xs italic text-emerald-700">
+                        Ghi chú: {handover.customer_response_note}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
               </div>
             ) : handover.state === 'RELEASED' ? (
               <div className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">
@@ -555,9 +653,24 @@ export function StaffHandoverPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           {handoverReleased ? (
-            <p className="text-sm text-slate-500">
-              Booking đã được bàn giao.
-            </p>
+            <div className="carivo-fade-in rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                <div className="min-w-0">
+                  <p className="font-medium">Đã hoàn thành bàn giao xe</p>
+                  {handover.released_at ? (
+                    <p className="mt-1 text-xs text-emerald-700">
+                      Thời điểm: {formatDateTime(handover.released_at)}
+                    </p>
+                  ) : null}
+                  {handover.release_note ? (
+                    <p className="mt-1 text-xs italic text-emerald-700">
+                      Ghi chú: {handover.release_note}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
           ) : !canRelease ? (
             <p className="text-sm text-amber-800">
               Cần: (1) khách đã đồng ý tình trạng xe, (2) thanh toán PAID hoặc

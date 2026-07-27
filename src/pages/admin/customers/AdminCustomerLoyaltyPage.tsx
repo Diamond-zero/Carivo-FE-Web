@@ -3,19 +3,22 @@ import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, History, Trophy } from 'lucide-react'
 
 import { Card } from '../../../components/ui/Card'
-import { PageHeader } from '../../../components/ui/PageHeader'
+import { PageHeader } from '../../../components/layout/PageHeader'
 import { Button } from '../../../components/ui/Button'
 import { Badge } from '../../../components/ui/Badge'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { StatCard } from '../../../components/ui/StatCard'
 import { getApiErrorMessage } from '../../../api/client'
-import { useAdminCustomer } from '../../../hooks/api/admin/useAdminCustomers'
 import {
-  useAdminCustomerLoyalty,
+  useAdminCustomer,
+  useAdminCustomerDetail,
+} from '../../../hooks/api/admin/useAdminCustomers'
+import {
   useAdminCustomerLoyaltyTransactions,
 } from '../../../hooks/api/admin/useAdminCustomerExtras'
-import { formatDate } from '../../../utils/format'
+import { LOYALTY_TIER_LABELS } from '../../../constants/loyaltyTier'
+import { formatDate, formatPrice } from '../../../utils/format'
 import {
   LOYALTY_POINT_TRANSACTION_COLORS,
   LOYALTY_POINT_TRANSACTION_LABELS,
@@ -28,11 +31,11 @@ export function AdminCustomerLoyaltyPage() {
   const [page, setPage] = useState(1)
   const limit = 20
   const {
-    detail,
+    loyalty,
     isLoading: detailLoading,
     isError: detailError,
     error: detailErrorObj,
-  } = useAdminCustomerLoyalty(customerId)
+  } = useAdminCustomerDetail(customerId)
   const {
     data: txData,
     isLoading: txLoading,
@@ -62,45 +65,80 @@ export function AdminCustomerLoyaltyPage() {
           title="Không thể tải dữ liệu loyalty"
           description={getApiErrorMessage(detailErrorObj, 'Vui lòng thử lại sau.')}
         />
-      ) : !detail ? (
+      ) : !loyalty ? (
         <EmptyState
           icon={Trophy}
           title="Khách hàng chưa tham gia loyalty"
-          description="Tài khoản này chưa được ghi nhận trong chương trình thưởng."
+          description="Tài khoản này chưa được ghi nhận trong chương trình thưởng — loyalty sẽ tự khởi tạo sau lần booking hoàn tất đầu tiên."
         />
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
               label="Điểm khả dụng"
-              value={detail.points_available ?? detail.points ?? 0}
+              value={loyalty.available_points}
               icon={Trophy}
               accent="brand"
             />
             <StatCard
-              label="Tổng điểm đã tích"
-              value={detail.points_earned_total ?? 0}
+              label="Tổng điểm tích lũy"
+              value={loyalty.total_points}
               icon={Trophy}
               accent="emerald"
             />
             <StatCard
               label="Hạng hiện tại"
-              value={detail.tier_name ?? detail.tier_code ?? '—'}
+              value={
+                LOYALTY_TIER_LABELS[loyalty.current_tier] ?? loyalty.current_tier
+              }
               icon={Trophy}
               accent="indigo"
             />
             <StatCard
-              label="Điểm đã dùng"
-              value={detail.points_redeemed_total ?? 0}
+              label="Đã đổi / hết hạn"
+              value={`${loyalty.redeemed_points} / ${loyalty.expired_points}`}
               icon={History}
               accent="amber"
             />
           </div>
 
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Card className="p-5">
+              <p className="text-xs uppercase tracking-wide text-slate-500">
+                Tổng chi tiêu
+              </p>
+              <p className="mt-2 text-2xl font-semibold text-slate-900">
+                {formatPrice(loyalty.total_spent)}
+              </p>
+              <p className="mt-1 text-sm text-slate-500">
+                Tổng lượt ghé thăm:{' '}
+                <span className="font-semibold text-slate-700">
+                  {loyalty.total_visits}
+                </span>
+              </p>
+            </Card>
+            <Card className="p-5">
+              <p className="text-xs uppercase tracking-wide text-slate-500">
+                Quyền lợi hạng hiện tại
+              </p>
+              <p className="mt-2 text-sm text-slate-700">
+                Hạng{' '}
+                <span className="font-semibold">
+                  {LOYALTY_TIER_LABELS[loyalty.current_tier] ?? loyalty.current_tier}
+                </span>{' '}
+                đã được áp dụng cho mọi giao dịch tích/đổi điểm của khách.
+              </p>
+            </Card>
+          </div>
+
           <Card>
             <div className="flex items-center justify-between px-6 py-4">
-              <h2 className="text-lg font-semibold text-slate-900">Lịch sử giao dịch điểm</h2>
-              <Badge tone="neutral">{meta?.total_items ?? transactions.length} bản ghi</Badge>
+              <h2 className="text-lg font-semibold text-slate-900">
+                Lịch sử giao dịch điểm
+              </h2>
+              <Badge tone="neutral">
+                {meta?.total_items ?? transactions.length} bản ghi
+              </Badge>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200 text-sm">
@@ -115,13 +153,19 @@ export function AdminCustomerLoyaltyPage() {
                 <tbody className="divide-y divide-slate-100">
                   {txLoading ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-6 text-center text-slate-500">
+                      <td
+                        colSpan={4}
+                        className="px-6 py-6 text-center text-slate-500"
+                      >
                         Đang tải...
                       </td>
                     </tr>
                   ) : transactions.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-6 text-center text-slate-500">
+                      <td
+                        colSpan={4}
+                        className="px-6 py-6 text-center text-slate-500"
+                      >
                         Chưa có giao dịch điểm nào.
                       </td>
                     </tr>
@@ -138,7 +182,9 @@ export function AdminCustomerLoyaltyPage() {
                         <td className="px-6 py-3 font-semibold text-slate-900">
                           {tx.points > 0 ? `+${tx.points}` : tx.points}
                         </td>
-                        <td className="px-6 py-3 text-slate-600">{tx.description ?? '—'}</td>
+                        <td className="px-6 py-3 text-slate-600">
+                          {tx.description ?? '—'}
+                        </td>
                         <td className="px-6 py-3 text-slate-500">
                           {tx.created_at ? formatDate(tx.created_at) : '—'}
                         </td>

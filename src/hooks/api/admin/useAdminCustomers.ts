@@ -1,7 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { getStaffBookingsApi } from '../../../api/booking.api'
-import { getAdminLoyaltyCustomerByIdApi } from '../../../api/loyalty.api'
+import {
+  getAdminLoyaltyCustomerByIdApi,
+  getAdminLoyaltyTransactionsApi,
+} from '../../../api/loyalty.api'
 import {
   adminDeleteUserApi,
   adminUpdateUserApi,
@@ -17,6 +20,7 @@ import { useAdminAuth } from '../../../contexts/AdminAuthContext'
 import { mapApiUser } from '../../../lib/auth/mapApiTypes'
 import {
   mapApiLoyaltyDetail,
+  mapApiLoyaltyPointTransaction,
   mapApiVehicle,
 } from '../../../lib/mappers/adminMappers'
 import { mapApiBooking } from '../../../lib/mappers/staffMappers'
@@ -104,10 +108,42 @@ export function useAdminCustomers(filters: AdminCustomerListFilters = {}) {
 }
 
 /**
+ * Hook lấy 1 user (khách hàng / nhân viên) theo `id` từ `GET /users/:id`.
+ *
+ * Dùng cho các trang con của trang chi tiết khách hàng admin
+ * (Phương tiện, Loyalty…) — chỉ cần `full_name` để render header.
+ */
+export function useAdminCustomer(userId: string | undefined) {
+  const { isAuthenticated } = useAdminAuth()
+  const query = useQuery({
+    queryKey: adminQueryKeys.user(userId ?? ''),
+    queryFn: async () => {
+      if (!userId) throw new Error('Thiếu mã người dùng')
+      return mapApiUser(await getUserByIdApi(userId))
+    },
+    enabled: isAuthenticated && Boolean(userId),
+    staleTime: 30_000,
+  })
+  return {
+    customer: query.data ?? null,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+  }
+}
+
+/**
  * Hook chi tiết khách hàng admin — dùng `/users/:id` làm nguồn chính.
  *
  * Loyalty / tier history / point history / vehicles / bookings là best-effort:
  * fail-soft (không block render, không throw ra UI).
+ *
+ * BE `GET /admin/loyalty/customers/:id` chỉ trả `LoyaltyOverviewDto` (nested):
+ *   { loyalty: { current_tier, total_points, total_spent, ... },
+ *     current_tier_rule, next_tier_rule }
+ * Nên lịch sử điểm phải fetch riêng qua
+ *   `GET /admin/loyalty/customers/:id/transactions`.
+ * BE hiện chưa có endpoint trả tier_history → section này để rỗng + empty state.
  */
 export function useAdminCustomerDetail(customerId?: string) {
   const { isAuthenticated } = useAdminAuth()
@@ -124,6 +160,21 @@ export function useAdminCustomerDetail(customerId?: string) {
     queryFn: async () => {
       const detail = await getAdminLoyaltyCustomerByIdApi(customerId!)
       return mapApiLoyaltyDetail(detail)
+    },
+    enabled: isAuthenticated && Boolean(customerId),
+    staleTime: 30_000,
+    retry: false,
+  })
+
+  const pointTransactionsQuery = useQuery({
+    queryKey: [...adminQueryKeys.customer(customerId ?? ''), 'point-transactions'],
+    queryFn: async () => {
+      const result = await getAdminLoyaltyTransactionsApi(customerId!, {
+        limit: 50,
+      })
+      return result.transactions.map((item) =>
+        mapApiLoyaltyPointTransaction(item, customerId!),
+      )
     },
     enabled: isAuthenticated && Boolean(customerId),
     staleTime: 30_000,
@@ -162,19 +213,23 @@ export function useAdminCustomerDetail(customerId?: string) {
   return {
     user: userQuery.data ?? null,
     loyalty: loyaltyQuery.data?.loyalty ?? null,
-    tierHistory: loyaltyQuery.data?.tierHistory ?? [],
-    pointHistory: loyaltyQuery.data?.pointHistory ?? [],
+    currentTierRule: loyaltyQuery.data?.currentTierRule ?? null,
+    nextTierRule: loyaltyQuery.data?.nextTierRule ?? null,
+    tierHistory: [],
+    pointHistory: pointTransactionsQuery.data ?? [],
     vehicles: vehiclesQuery.data ?? [],
     bookings: bookingsQuery.data ?? [],
     isLoading: userQuery.isLoading,
     isError: userQuery.isError,
     error: userQuery.error ?? null,
     loyaltyError: loyaltyQuery.error,
+    pointTransactionsError: pointTransactionsQuery.error,
     vehiclesError: vehiclesQuery.error,
     bookingsError: bookingsQuery.error,
     refetch: () => {
       void userQuery.refetch()
       void loyaltyQuery.refetch()
+      void pointTransactionsQuery.refetch()
       void vehiclesQuery.refetch()
       void bookingsQuery.refetch()
     },

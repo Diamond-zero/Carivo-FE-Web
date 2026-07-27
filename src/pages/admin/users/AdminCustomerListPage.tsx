@@ -1,4 +1,4 @@
-import { Loader2, Lock, Trash2, Unlock, UserCheck, Users } from 'lucide-react'
+import { Download, Loader2, Lock, Trash2, Unlock, UserCheck, Users } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getApiErrorMessage } from '../../../api/client'
@@ -19,6 +19,7 @@ import { Select } from '../../../components/ui/Select'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { StatCard } from '../../../components/ui/StatCard'
 import { useToast } from '../../../contexts/ToastContext'
+import { exportUsersToCsv } from '../../../utils/adminUserExport'
 import {
   useAdminCustomers,
   useDeleteAdminCustomer,
@@ -132,9 +133,26 @@ export function AdminCustomerListPage() {
         title="Khách hàng"
         description="Quản lý khách hàng toàn hệ thống — xem hồ sơ, loyalty và khóa/mở khóa tài khoản."
         action={
-          <Link to="/admin/users">
-            <Button variant="secondary">Xem tất cả người dùng</Button>
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                if (allCustomers.length === 0) {
+                  showToast('Không có khách hàng để xuất.', 'error')
+                  return
+                }
+                exportUsersToCsv(allCustomers, 'customers')
+                showToast(`Đã xuất ${allCustomers.length} khách hàng ra CSV.`, 'success')
+              }}
+            >
+              <Download className="h-4 w-4" />
+              Xuất CSV
+            </Button>
+            <Link to="/admin/users">
+              <Button variant="secondary">Xem tất cả người dùng</Button>
+            </Link>
+          </div>
         }
       />
 

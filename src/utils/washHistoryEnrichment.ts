@@ -1,6 +1,12 @@
 import type { ApiBooking, ApiWashHistory } from '../types/api/staff'
+import { getStaffBookingByIdApi } from '../api/booking.api'
 import type { WashHistory } from '../types/washHistory'
-import { mapApiWashHistory, resolveWashHistoryLicensePlate } from '../lib/mappers/staffMappers'
+import {
+  mapApiWashHistory,
+  resolveWashHistoryCustomerName,
+  resolveWashHistoryCustomerPhone,
+  resolveWashHistoryLicensePlate,
+} from '../lib/mappers/staffMappers'
 
 /**
  * BE thường populate sẵn `customer`, `vehicle`, `service_package` và `license_plate`
@@ -30,6 +36,20 @@ export async function mapWashHistoriesWithBookingFallback(
 export async function fetchWashHistoryBookingFallback(
   item: ApiWashHistory,
 ): Promise<ApiBooking | null> {
-  if (resolveWashHistoryLicensePlate(item)) return null
-  return null
+  const hasCustomerDetails = Boolean(
+    resolveWashHistoryCustomerName(item) && resolveWashHistoryCustomerPhone(item),
+  )
+  const hasVehicleDetails = Boolean(resolveWashHistoryLicensePlate(item))
+
+  // Walk-in information lives on Booking, not WashHistory: the BE intentionally
+  // stores customer_id/vehicle_id as null for these records. Fetch the booking
+  // only when the detail payload is incomplete, keeping the normal path cheap.
+  if (hasCustomerDetails && hasVehicleDetails) return null
+
+  try {
+    return await getStaffBookingByIdApi(item.booking_id)
+  } catch {
+    // The history detail remains usable if the booking was removed or inaccessible.
+    return null
+  }
 }

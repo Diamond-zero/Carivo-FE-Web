@@ -26,9 +26,7 @@ import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { StatCard } from '../../../components/ui/StatCard'
 import { getApiErrorMessage } from '../../../api/client'
 import { useToast } from '../../../contexts/ToastContext'
-import {
-  useAdminAnalyticsOverview,
-} from '../../../hooks/api/admin/useAdminAnalytics'
+import { useAdminAnalyticsBookings, useAdminAnalyticsOverview } from '../../../hooks/api/admin/useAdminAnalytics'
 import { useAdminRecentBookings } from '../../../hooks/api/admin/useAdminBookings'
 import { LOYALTY_TIER_LABELS } from '../../../constants/loyaltyTier'
 import { formatCurrency } from '../../../lib/utils'
@@ -39,11 +37,20 @@ const TIER_COLORS = ['#94a3b8', '#06b6a4', '#f59e0b', '#8b5cf6']
 export function AdminDashboardPage() {
   const { showToast } = useToast()
   const overviewQuery = useAdminAnalyticsOverview()
+  const bookingTrendQuery = useAdminAnalyticsBookings({ group_by: 'DAY' })
   const recentBookingsQuery = useAdminRecentBookings(5)
 
-  const isLoading = overviewQuery.isLoading || recentBookingsQuery.isLoading
+  const isLoading =
+    overviewQuery.isLoading ||
+    bookingTrendQuery.isLoading ||
+    recentBookingsQuery.isLoading
   const overview = overviewQuery.data?.overview
-  const dailyStats = overviewQuery.data?.dailyStats ?? []
+  const dailyStats = (bookingTrendQuery.data?.trend ?? []).map((row) => ({
+    date: row.period,
+    label: row.label,
+    bookings: row.count,
+    revenue: row.revenue,
+  }))
   const recentBookings = recentBookingsQuery.data ?? []
 
   useEffect(() => {
@@ -64,6 +71,15 @@ export function AdminDashboardPage() {
     }
   }, [recentBookingsQuery.isError, recentBookingsQuery.error, showToast])
 
+  useEffect(() => {
+    if (bookingTrendQuery.isError) {
+      showToast(
+        getApiErrorMessage(bookingTrendQuery.error, 'Không tải được xu hướng booking.'),
+        'error',
+      )
+    }
+  }, [bookingTrendQuery.isError, bookingTrendQuery.error, showToast])
+
   if (isLoading || !overview) {
     return <DashboardPageSkeleton />
   }
@@ -73,10 +89,9 @@ export function AdminDashboardPage() {
     value,
   }))
 
-  const completionRate =
-    overview.total_bookings > 0
-      ? Math.round((overview.completed_bookings / overview.total_bookings) * 100)
-      : 0
+  const completionRate = Math.round(overview.completion_rate || 0)
+
+  const last7Days = dailyStats.slice(-7)
 
   return (
     <div>
@@ -101,7 +116,7 @@ export function AdminDashboardPage() {
         />
         <StatCard
           label="Khách đang hoạt động"
-          value={overview.active_customers}
+          value={overview.unique_registered_customers.toLocaleString('vi-VN')}
           icon={Users}
           accent="indigo"
         />
@@ -121,18 +136,40 @@ export function AdminDashboardPage() {
           <CardContent>
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={dailyStats}>
+                <LineChart data={last7Days}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip />
+                  <YAxis yAxisId="left" tick={{ fontSize: 12 }} />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(value) => `${Math.round(value / 1_000_000)}tr`}
+                  />
+                  <Tooltip
+                    formatter={(value, name) =>
+                      name === 'Doanh thu'
+                        ? formatCurrency(Number(value))
+                        : Number(value).toLocaleString('vi-VN')
+                    }
+                  />
                   <Line
+                    yAxisId="left"
                     type="monotone"
                     dataKey="bookings"
                     stroke="#06b6a4"
                     strokeWidth={3}
                     dot={{ r: 4, fill: '#06b6a4' }}
                     name="Đặt lịch"
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#8b5cf6"
+                    strokeWidth={2}
+                    dot={{ r: 3, fill: '#8b5cf6' }}
+                    name="Doanh thu"
                   />
                 </LineChart>
               </ResponsiveContainer>

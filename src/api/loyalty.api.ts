@@ -1,7 +1,7 @@
 import type { ApiResponse } from '../types/api'
 import type {
   ApiLoyaltyCustomer,
-  ApiLoyaltyCustomerDetail,
+  ApiLoyaltyCustomerDetailResponse,
   ApiPointTransaction,
   ApiTierRule,
   ApiExpiringPoint,
@@ -104,7 +104,7 @@ export async function getAdminLoyaltyCustomersApi(
 }
 
 export async function getAdminLoyaltyCustomerByIdApi(customerId: string) {
-  const { data } = await apiClient.get<ApiResponse<ApiLoyaltyCustomerDetail>>(
+  const { data } = await apiClient.get<ApiResponse<ApiLoyaltyCustomerDetailResponse>>(
     `/admin/loyalty/customers/${customerId}`,
   )
   return data.data

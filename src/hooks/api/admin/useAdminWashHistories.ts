@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
+import { getStaffBookingsApi } from '../../../api/booking.api'
 import {
   getWashHistoriesApi,
   type WashHistoryListParams,
@@ -88,7 +89,29 @@ export function useAdminWashHistories(filters: AdminWashHistoryFilters = {}) {
     queryKey: adminQueryKeys.washHistories(apiParams),
     queryFn: async () => {
       const result = await getWashHistoriesApi(apiParams)
-      const histories = await mapWashHistoriesWithBookingFallback(result.histories)
+      // BE `GET /admin/wash-histories` không join ngược từ booking — với booking
+      // vãng lai, các field `customer` / `vehicle` thường rỗng và field legacy
+      // `customer_name` / `license_plate` lại bị populate bằng ObjectId 24-char
+      // (do snapshot từ booking). Fetch thêm danh sách booking trong cùng cửa
+      // sổ thời gian để mapper fallback sang `guest_name` / `guest_phone` /
+      // `license_plate` cho các bản ghi walk-in.
+      const bookingListParams: Parameters<typeof getStaffBookingsApi>[0] = {
+        limit: 100,
+      }
+      if (apiParams.garage_id) {
+        bookingListParams.garage_id = apiParams.garage_id
+      }
+      if (apiParams.from) {
+        bookingListParams.from = apiParams.from
+      }
+      if (apiParams.to) {
+        bookingListParams.to = apiParams.to
+      }
+      const { bookings: cachedBookings } = await getStaffBookingsApi(bookingListParams)
+      const histories = await mapWashHistoriesWithBookingFallback(
+        result.histories,
+        cachedBookings,
+      )
       return {
         histories,
         meta: result.meta,

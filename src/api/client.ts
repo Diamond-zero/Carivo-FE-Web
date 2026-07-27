@@ -30,6 +30,8 @@ const API_ERROR_MESSAGES: Record<string, string> = {
     'Tài khoản không có quyền thực hiện thao tác này. Vui lòng đăng xuất và đăng nhập lại bằng tài khoản nhân viên.',
   STAFF_GARAGE_ACCESS_DENIED:
     'Bạn không thể thao tác booking thuộc garage khác.',
+  STAFF_BOOKING_ASSIGNMENT_REQUIRED:
+    'Bạn đã hoàn thành bước này — booking không còn gắn với tài khoản của bạn. Tải lại trang để thấy trạng thái mới nhất.',
   BOOKING_PENDING_PAYOS_PAYMENT:
     'Booking đang có link PayOS chờ thanh toán. Vui lòng hủy PayOS trước khi thu tiền mặt.',
   BOOKING_NOT_COMPLETED:

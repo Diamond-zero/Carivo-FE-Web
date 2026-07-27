@@ -1,6 +1,14 @@
 import type { ApiResponse } from '../types/api'
-import type { ApiAnalyticsParams, ApiAuditLog, ApiListResponse } from '../types/api/admin'
 import { apiClient } from './client'
+
+export interface ApiAnalyticsParams {
+  from?: string
+  to?: string
+  garage_id?: string
+  service_package_id?: string
+  vehicle_type?: 'MOTORBIKE' | 'CAR'
+  group_by?: 'DAY' | 'WEEK' | 'MONTH'
+}
 
 export async function getAnalyticsOverviewApi(params?: ApiAnalyticsParams) {
   const { data } = await apiClient.get<ApiResponse<Record<string, unknown>>>(
@@ -58,22 +66,29 @@ export async function getAnalyticsPromotionsApi(params?: ApiAnalyticsParams) {
   return data.data
 }
 
-export interface AuditLogListParams {
-  page?: number
-  limit?: number
-  actor_id?: string
-  action?: string
-  resource_type?: string
-  resource_id?: string
-  ip?: string
-  from?: string
-  to?: string
+export async function getAnalyticsPaymentsApi(params?: ApiAnalyticsParams) {
+  const { data } = await apiClient.get<ApiResponse<Record<string, unknown>>>(
+    '/admin/analytics/payments',
+    { params },
+  )
+  return data.data
 }
 
-export async function getAdminAuditLogsApi(params?: AuditLogListParams) {
-  const { data } = await apiClient.get<ApiListResponse<ApiAuditLog[]>>(
-    '/admin/audit-logs',
-    { params: { limit: 50, ...params } },
+export async function getAnalyticsSurveyApi(
+  surveyId: string,
+  params?: ApiAnalyticsParams,
+) {
+  const { data } = await apiClient.get<ApiResponse<Record<string, unknown>>>(
+    `/admin/analytics/surveys/${surveyId}`,
+    { params },
   )
-  return { logs: data.data, meta: data.meta }
+  return data.data
 }
+
+// Re-export the audit log API + types from its dedicated module so callers
+// that previously imported them from `analytics.api` keep working.
+export {
+  getAdminAuditLogsApi,
+  type AuditLogListParams,
+  type AuditLogListResult,
+} from './auditLog.api'

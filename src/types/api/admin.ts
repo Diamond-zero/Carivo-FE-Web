@@ -102,25 +102,10 @@ export interface ApiLoyaltyCustomer {
   updated_at?: string
 }
 
-export interface ApiLoyaltyCustomerDetail extends ApiLoyaltyCustomer {
+export interface ApiLoyaltyCustomerDetailResponse {
+  loyalty: ApiLoyaltyCustomer
   current_tier_rule?: ApiTierRule | null
   next_tier_rule?: ApiTierRule | null
-  tier_history?: Array<{
-    id: string
-    from_tier?: string | null
-    to_tier: string
-    reason?: string
-    created_at: string
-  }>
-  point_transactions?: Array<{
-    id: string
-    type: 'EARN' | 'REDEEM' | 'REFUND' | 'EXPIRE' | 'ADJUST'
-    points: number
-    balance_after: number
-    description?: string
-    booking_id?: string | null
-    created_at: string
-  }>
 }
 
 export type ApiSurveyQuestionType =

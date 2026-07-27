@@ -25,14 +25,18 @@ export interface StaffProfileCreatePayload {
   staff_code: string
   staff_type: StaffTypeValue
   garage_id?: string | null
-  is_active?: boolean
 }
 
+/**
+ * BE StaffProfileUpdateRequest (PATCH /staff-profiles/:id) chỉ nhận
+ * `staff_code` và `garage_id` — schema `.strict()` sẽ reject field lạ.
+ *   - `staff_type` phải đổi qua workflow staff-type-change-requests.
+ *   - `is_active` phải đổi qua endpoint riêng
+ *     PATCH /staff-profiles/:id/status (toggleStaffProfileStatusApi).
+ */
 export interface StaffProfileUpdatePayload {
   staff_code?: string
-  staff_type?: StaffTypeValue
   garage_id?: string | null
-  is_active?: boolean
 }
 
 export async function getStaffProfilesApi(params?: StaffProfileListParams) {

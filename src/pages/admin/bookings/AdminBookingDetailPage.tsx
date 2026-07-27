@@ -234,7 +234,19 @@ export function AdminBookingDetailPage() {
 
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <BookingStatusBadge status={booking.status} />
-            <PaymentStatusBadge status={booking.payment_status} />
+            {booking.payment_status !== 'UNPAID' ? (
+              <Link
+                to={`/admin/payments/by-booking/${booking.id}`}
+                className="inline-flex items-center gap-1"
+              >
+                <PaymentStatusBadge status={booking.payment_status} />
+                <span className="text-xs text-brand-600 hover:underline">
+                  Xem payment →
+                </span>
+              </Link>
+            ) : (
+              <PaymentStatusBadge status={booking.payment_status} />
+            )}
             {booking.is_walk_in ? (
               <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-medium text-violet-700">
                 Vãng lai
@@ -266,7 +278,7 @@ export function AdminBookingDetailPage() {
                 <CardTitle className="text-base">Tiến trình</CardTitle>
               </CardHeader>
               <CardContent>
-                <BookingTimeline booking={booking} />
+                <BookingTimeline booking={booking} orientation="vertical" />
               </CardContent>
             </Card>
           </div>

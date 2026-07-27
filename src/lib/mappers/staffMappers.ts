@@ -6,6 +6,7 @@ import type { WashBay, WashBayStatus } from '../../types/washBay'
 import type { WashHistory } from '../../types/washHistory'
 import type { StaffCustomerSummary } from '../../utils/customerLookup'
 import { normalizePhoneForDisplay } from '../auth/mapApiTypes'
+import { normalizeServicePackageName } from '../../utils/servicePackageLabels'
 import type {
   ApiBooking,
   ApiBookingServiceStep,
@@ -56,7 +57,12 @@ export function mapApiBooking(booking: ApiBooking): Booking {
     payment_status: booking.payment_status as PaymentStatus,
     status: booking.status as BookingStatus,
     note: booking.note,
-    service_package_name: booking.service_package?.name,
+    service_package_name: normalizeServicePackageName(booking.service_package?.name),
+    service_package_points_estimated:
+      typeof booking.service_package?.points_earned === 'number' &&
+      booking.service_package.points_earned > 0 && !booking.is_walk_in
+        ? booking.service_package.points_earned
+        : undefined,
     customer_name: booking.customer?.full_name ?? booking.guest_name,
     customer_phone: booking.customer?.phone
       ? normalizePhoneForDisplay(booking.customer.phone)
@@ -76,14 +82,14 @@ export function mapApiBooking(booking: ApiBooking): Booking {
     voucher_discount_amount: booking.voucher_discount_amount ?? null,
     // === Care-staff assignment (BE enriched fields) ===
     requires_care_staff: booking.requires_care_staff ?? booking.service_package?.requires_care_staff,
-    care_staff_required_count: booking.care_staff_required_count ?? null,
+    care_staff_required_count: booking.care_staff_required_count ?? 0,
     assigned_care_staff_ids: booking.assigned_care_staff_ids ?? [],
     // === Inspection-staff assignment (BE enriched fields) ===
     // Cần thiết cho `getCreateInspectionGuard` trên InspectionPage — guard check
     // `assigned_inspection_staff_id === currentUserId` để staff chỉ thấy booking
     // mà mình đã claim (sau khi gọi PATCH claim-inspection).
     assigned_inspection_staff_id: booking.assigned_inspection_staff_id ?? null,
-    raw: booking,
+    raw: booking as unknown as Record<string, unknown> & import('../../types/api/staff').ApiBooking,
   }
 }
 
@@ -257,12 +263,17 @@ export function mapApiWashHistory(
     garage_id: item.garage_id,
     license_plate: resolveWashHistoryLicensePlate(item, booking),
     service_package_id: item.service_package_id,
-    service_package_name: item.service_package?.name ?? item.service_package_name,
+    service_package_name: normalizeServicePackageName(
+      item.service_package?.name ?? item.service_package_name,
+    ),
     customer_name: resolveWashHistoryCustomerName(item, booking),
     customer_phone: resolveWashHistoryCustomerPhone(item, booking),
     is_walk_in: resolveWashHistoryIsWalkIn(item, booking),
     final_price: item.amount_paid ?? item.final_price ?? 0,
     payment_method: item.payment_method,
+    paid_at: item.paid_at ?? null,
+    service_started_at: item.service_started_at ?? null,
+    service_completed_at: item.service_completed_at ?? null,
     washed_at:
       item.paid_at ??
       item.service_completed_at ??
