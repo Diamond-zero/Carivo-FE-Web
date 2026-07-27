@@ -12,6 +12,13 @@ export interface WashHistory {
   is_walk_in?: boolean
   final_price: number
   payment_method: 'CASH' | 'PAYOS'
+  /** ISO datetime — moment booking thanh toán (BE `paid_at`). */
+  paid_at?: string | null
+  /** ISO datetime — moment staff bắt đầu service (BE `service_started_at`). */
+  service_started_at?: string | null
+  /** ISO datetime — moment staff xác nhận hoàn thành (BE `service_completed_at`). */
+  service_completed_at?: string | null
+  /** ISO datetime tổng quát (alias `paid_at`/legacy `washed_at`). */
   washed_at: string
   earned_points: number
 }

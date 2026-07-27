@@ -1,6 +1,5 @@
 import {
   ArrowLeft,
-  Bell,
   Car,
   Lock,
   Mail,
@@ -12,7 +11,7 @@ import {
   Unlock,
   UserX,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { getApiErrorMessage } from '../../../api/client'
 import type { AdminUpdateUserPayload } from '../../../api/user.api'
@@ -44,6 +43,7 @@ import {
   useUpdateAdminCustomerRole,
   useUpdateAdminCustomerStatus,
 } from '../../../hooks/api/admin/useAdminCustomers'
+import { useAdminGarages } from '../../../hooks/api/admin/useAdminGarages'
 import { cn } from '../../../lib/utils'
 
 const ROLE_OPTIONS: Array<{ value: 'CUSTOMER' | 'STAFF' | 'ADMIN'; label: string }> = [
@@ -80,12 +80,20 @@ export function AdminCustomerDetailPage() {
   const updateUserMutation = useUpdateAdminCustomer()
   const updateRoleMutation = useUpdateAdminCustomerRole()
   const deleteUserMutation = useDeleteAdminCustomer()
+  const { allGarages } = useAdminGarages()
+  const garageNameById = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const garage of allGarages) {
+      map[garage.id] = garage.name
+    }
+    return map
+  }, [allGarages])
 
   if (!id) {
     return <Navigate to="/admin/users/customers" replace />
   }
 
-  if (!isLoading && (isError || !user || !loyalty)) {
+  if (!isLoading && (isError || !user)) {
     return (
       <div>
         <PageHeader
@@ -220,7 +228,7 @@ export function AdminCustomerDetailPage() {
 
   return (
     <div>
-      {isLoading || !user || !loyalty ? (
+      {isLoading || !user ? (
         <DashboardPageSkeleton />
       ) : (
         <>
@@ -240,12 +248,6 @@ export function AdminCustomerDetailPage() {
                   <Button variant="secondary">
                     <Trophy className="h-4 w-4" />
                     Loyalty
-                  </Button>
-                </Link>
-                <Link to={`/admin/users/customers/${user.id}/notifications`}>
-                  <Button variant="secondary">
-                    <Bell className="h-4 w-4" />
-                    Thông báo
                   </Button>
                 </Link>
                 <Button variant="secondary" onClick={openEdit}>
@@ -298,14 +300,24 @@ export function AdminCustomerDetailPage() {
                   </div>
                   <div>
                     <p className="font-semibold text-slate-900">{user.full_name}</p>
-                    <TierBadge tier={loyalty.current_tier} />
+                    {loyalty ? (
+                      <TierBadge tier={loyalty.current_tier} />
+                    ) : (
+                      <span className="mt-1 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                        Chưa có loyalty
+                      </span>
+                    )}
+                    <p className="mt-1 text-sm text-slate-600">
+                      <Phone className="mr-1 inline h-3.5 w-3.5 text-slate-400" />
+                      {user.phone || 'Chưa cập nhật số điện thoại'}
+                    </p>
                   </div>
                 </div>
 
                 <div className="space-y-3 rounded-xl bg-slate-50 p-4 text-sm">
                   <div className="flex items-center gap-2 text-slate-700">
                     <Phone className="h-4 w-4 text-slate-400" />
-                    {user.phone}
+                    <span className="font-medium">{user.phone || '—'}</span>
                   </div>
                   {user.email ? (
                     <div className="flex items-center gap-2 text-slate-700">
@@ -329,7 +341,23 @@ export function AdminCustomerDetailPage() {
             </Card>
 
             <div className="lg:col-span-2">
-              <CustomerLoyaltyCard loyalty={loyalty} />
+              {loyalty ? (
+                <CustomerLoyaltyCard loyalty={loyalty} />
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Loyalty</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <EmptyState
+                      compact
+                      icon={Trophy}
+                      title="Chưa có dữ liệu loyalty"
+                      description="Khách hàng chưa phát sinh giao dịch — loyalty sẽ tự tạo sau lần đầu booking hoàn tất."
+                    />
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
 
@@ -370,7 +398,10 @@ export function AdminCustomerDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0 pb-2">
-                <AdminCustomerBookingsTable bookings={bookings} />
+                <AdminCustomerBookingsTable
+                  bookings={bookings}
+                  garageNameById={garageNameById}
+                />
               </CardContent>
             </Card>
           </div>

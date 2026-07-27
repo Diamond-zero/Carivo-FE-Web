@@ -64,4 +64,8 @@ export const adminQueryKeys = {
     [...adminQueryKeys.all, 'staff-type-change-impact', staffProfileId, params] as const,
   customerVouchers: (params?: unknown) =>
     [...adminQueryKeys.all, 'customer-vouchers', params] as const,
+  payments: (params?: unknown) => [...adminQueryKeys.all, 'payments', params] as const,
+  payment: (id: string) => [...adminQueryKeys.all, 'payment', id] as const,
+  paymentByBooking: (bookingId: string) =>
+    [...adminQueryKeys.all, 'payment-by-booking', bookingId] as const,
 }

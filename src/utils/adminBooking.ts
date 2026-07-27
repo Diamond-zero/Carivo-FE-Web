@@ -32,9 +32,36 @@ export function getAdminBookingArrivalStatus(booking: Booking) {
 export function getAdminBookingExceptionReason(booking: Booking): string | null {
   const raw = booking.raw
   if (!raw) return null
-  if (raw.status === 'CANCELED') return raw.cancel_reason ?? null
-  if (raw.status === 'NO_SHOW') return raw.no_show_reason ?? null
-  if (raw.rescheduled_at) return raw.reschedule_reason ?? null
+  if (raw.status === 'CANCELED') return decodeReasonCode(raw.cancel_reason ?? null)
+  if (raw.status === 'NO_SHOW') return decodeReasonCode(raw.no_show_reason ?? null)
+  if (raw.rescheduled_at) return decodeReasonCode(raw.reschedule_reason ?? null)
   if (raw.late_resolution_note) return raw.late_resolution_note
   return null
+}
+
+/**
+ * Dictionary hiển thị lý do (reschedule / cancel / no-show) — BE backend lưu
+ * dạng code enum, FE map sang nhãn tiếng Việt thân thiện. Nếu code không nằm
+ * trong dictionary (ghi chú tự do hoặc code BE mới thêm) thì trả về nguyên
+ * chuỗi — tránh mất thông tin.
+ */
+const REASON_CODE_LABELS: Record<string, string> = {
+  CUSTOMER_EARLY_REQUEST: 'Khách đến sớm',
+  STAFF_DELAY: 'Staff hoãn dịch vụ',
+  CUSTOMER_CHANGE_MIND: 'Khách đổi ý',
+  CUSTOMER_SCHEDULE_CONFLICT: 'Khách bận lịch',
+  VEHICLE_NOT_READY: 'Xe chưa sẵn sàng',
+  WEATHER_FORCE_MAJURE: 'Thời tiết xấu',
+  GARAGE_INCIDENT: 'Sự cố garage',
+  STAFF_UNAVAILABLE: 'Nhân viên không khả dụng',
+  FORCE_MAJEURE: 'Bất khả kháng',
+  NO_SHOW: 'Khách không đến',
+  NO_SHOW_CUSTOMER_LATE: 'Khách đến quá trễ',
+}
+
+function decodeReasonCode(value: string | null | undefined): string | null {
+  if (!value) return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  return REASON_CODE_LABELS[trimmed] ?? trimmed
 }

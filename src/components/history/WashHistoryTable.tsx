@@ -127,6 +127,11 @@ export function WashHistoryTable({
         header: 'Điểm',
         cell: (info) => {
           const points = info.getValue()
+          const isWalkIn = Boolean(info.row.original.is_walk_in)
+
+          if (isWalkIn) {
+            return <span className="text-xs text-slate-500">0</span>
+          }
 
           if (points <= 0) {
             return <span className="text-xs text-slate-400">—</span>

@@ -16,7 +16,7 @@ import { adminQueryKeys } from './queryKeys'
 
 export function useAdminVehicles(params?: VehicleListParams) {
   const { isAuthenticated } = useAdminAuth()
-  return useQuery({
+  const query = useQuery({
     queryKey: adminQueryKeys.vehicles(params),
     queryFn: async () => {
       const result = await getAdminVehiclesApi(params)
@@ -28,6 +28,14 @@ export function useAdminVehicles(params?: VehicleListParams) {
     enabled: isAuthenticated,
     staleTime: 30_000,
   })
+  return {
+    vehicles: query.data?.vehicles ?? [],
+    meta: query.data?.meta,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  }
 }
 
 export function useAdminVehicle(vehicleId?: string) {

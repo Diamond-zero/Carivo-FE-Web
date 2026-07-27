@@ -3,24 +3,36 @@ import {
   getAnalyticsBookingsApi,
   getAnalyticsGaragesApi,
   getAnalyticsOverviewApi,
+  getAnalyticsPaymentsApi,
   getAnalyticsPromotionsApi,
   getAnalyticsRevenueApi,
   getAnalyticsServicesApi,
   getAnalyticsWashBaysApi,
+  type ApiAnalyticsParams,
 } from '../../../api/analytics.api'
-import type { ApiAnalyticsParams } from '../../../types/api/admin'
 import { useAdminAuth } from '../../../contexts/AdminAuthContext'
 import {
   mapAnalyticsOverview,
+  mapBookingAnalyticsOverview,
   mapBookingStatusStats,
-  mapDailyBookingStats,
+  mapBookingTrend,
+  mapGarageDistributionFromBookings,
   mapGaragePerformanceRows,
-  mapGarageRevenueStats,
-  mapMonthlyRevenueStats,
+  mapPromotionOverview,
   mapPromotionPerformanceRows,
+  mapPromotionUsageByGarage,
+  mapRevenueByGarage,
+  mapRevenueByPaymentMethod,
+  mapRevenueByServicePackage,
+  mapRevenueByVehicleType,
+  mapRevenueMetrics,
+  mapRevenueTrend,
   mapServicePerformanceRows,
-  mapVehicleTypeBookingStats,
+  mapTimeOfDayDistribution,
+  mapVehicleTypeDistribution,
+  mapWashBayMetrics,
   mapWashBayPerformanceRows,
+  mapWashBayVehicleTypeSplit,
 } from '../../../lib/mappers/adminAnalyticsMappers'
 import { adminQueryKeys } from './queryKeys'
 
@@ -33,7 +45,6 @@ export function useAdminAnalyticsOverview(params?: ApiAnalyticsParams) {
       const data = await getAnalyticsOverviewApi(params)
       return {
         overview: mapAnalyticsOverview(data),
-        dailyStats: mapDailyBookingStats(data),
         raw: data,
       }
     },
@@ -50,10 +61,12 @@ export function useAdminAnalyticsBookings(params?: ApiAnalyticsParams) {
     queryFn: async () => {
       const data = await getAnalyticsBookingsApi(params)
       return {
-        overview: mapAnalyticsOverview(data),
-        dailyStats: mapDailyBookingStats(data),
+        overview: mapBookingAnalyticsOverview(data),
+        trend: mapBookingTrend(data),
         statusStats: mapBookingStatusStats(data),
-        vehicleTypeStats: mapVehicleTypeBookingStats(data),
+        vehicleTypeStats: mapVehicleTypeDistribution(data),
+        timeOfDayStats: mapTimeOfDayDistribution(data),
+        garageStats: mapGarageDistributionFromBookings(data),
         raw: data,
       }
     },
@@ -70,9 +83,12 @@ export function useAdminAnalyticsRevenue(params?: ApiAnalyticsParams) {
     queryFn: async () => {
       const data = await getAnalyticsRevenueApi(params)
       return {
-        overview: mapAnalyticsOverview(data),
-        monthlyStats: mapMonthlyRevenueStats(data),
-        garageStats: mapGarageRevenueStats(data),
+        metrics: mapRevenueMetrics(data),
+        trend: mapRevenueTrend(data),
+        byGarage: mapRevenueByGarage(data),
+        byServicePackage: mapRevenueByServicePackage(data),
+        byVehicleType: mapRevenueByVehicleType(data),
+        byPaymentMethod: mapRevenueByPaymentMethod(data),
         raw: data,
       }
     },
@@ -89,7 +105,9 @@ export function useAdminAnalyticsWashBays(params?: ApiAnalyticsParams) {
     queryFn: async () => {
       const data = await getAnalyticsWashBaysApi(params)
       return {
+        metrics: mapWashBayMetrics(data),
         rows: mapWashBayPerformanceRows(data),
+        vehicleTypeSplit: mapWashBayVehicleTypeSplit(data),
         raw: data,
       }
     },
@@ -140,9 +158,25 @@ export function useAdminAnalyticsPromotions(params?: ApiAnalyticsParams) {
     queryFn: async () => {
       const data = await getAnalyticsPromotionsApi(params)
       return {
+        overview: mapPromotionOverview(data),
         rows: mapPromotionPerformanceRows(data),
+        usageByGarage: mapPromotionUsageByGarage(data),
         raw: data,
       }
+    },
+    enabled: isAuthenticated,
+    staleTime: 60_000,
+  })
+}
+
+export function useAdminAnalyticsPayments(params?: ApiAnalyticsParams) {
+  const { isAuthenticated } = useAdminAuth()
+
+  return useQuery({
+    queryKey: [...adminQueryKeys.analyticsPromotions(params), 'payments'] as const,
+    queryFn: async () => {
+      const data = await getAnalyticsPaymentsApi(params)
+      return data
     },
     enabled: isAuthenticated,
     staleTime: 60_000,

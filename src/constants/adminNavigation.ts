@@ -3,6 +3,7 @@ import {
   ArrowRightLeft,
   BarChart3,
   Building2,
+  CircleDollarSign,
   ClipboardList,
   FileSearch,
   Gift,
@@ -114,6 +115,12 @@ export const adminNavItems: AdminNavItem[] = [
     section: 'management',
   },
   {
+    label: 'Thanh toán',
+    path: '/admin/payments',
+    icon: CircleDollarSign,
+    section: 'management',
+  },
+  {
     label: 'Voucher bồi thường',
     path: '/admin/customer-vouchers',
     icon: Ticket,
@@ -182,4 +189,5 @@ export const ADMIN_NAV_EXPAND_PREFIXES: Array<{
   { prefix: '/admin/staff-type-change-history', groupLabel: 'Đổi chức năng nhân viên' },
   { prefix: '/admin/customer-vouchers', groupLabel: 'Voucher bồi thường' },
   { prefix: '/admin/arrivals', groupLabel: 'Vận hành cổng' },
+  { prefix: '/admin/payments', groupLabel: 'Thanh toán' },
 ]

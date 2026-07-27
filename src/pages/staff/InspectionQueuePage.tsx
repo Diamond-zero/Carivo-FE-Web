@@ -22,7 +22,7 @@ import {
   ScanSearch,
   SearchX,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { ClaimInspectionModal } from '../../components/booking/ClaimInspectionModal'
@@ -41,6 +41,7 @@ import {
   useClaimInspection,
   useWorkspaceBookings,
 } from '../../hooks/api/staff/useWorkspaceBookings'
+import { useInspectionQueueEnrichment } from '../../hooks/api/staff/useInspectionQueueEnrichment'
 import {
   staffQueryKeys,
   workspaceQueryKeys,
@@ -89,23 +90,101 @@ export function InspectionQueuePage() {
     { refetchInterval: 15_000 },
   )
 
+  // === Mount-time cache reconciliation ===
+  // Khi user navigate vào /staff/inspection-queue (đặc biệt sau khi vừa
+  // logout/login, hoặc switch từ staff type khác sang KIEM_XE) cache cũ
+  // của `staffQueryKeys.bookingDetail(id)` hoặc `workspaceQueryKeys.bookings`
+  // có thể còn data từ session trước → `useWorkspaceBookings.staleTime: 0`
+  // + `refetchOnMount: 'always'` chỉ mark stale + refetch in-background,
+  // UI render lần đầu với data cũ → `canClaim`/`isMine` derive sai → cột
+  // "Thao tác" trống (chỉ "—"), user phải Ctrl+R mới thấy nút. Reload
+  // thì cache wipe hết → render đúng ngay. Fix: invalidate + reset cả
+  // workspace + detail enrichment ngay khi mount, để query tiếp theo
+  // fetch thật sự từ BE, không tận dụng cache.
+  // Phạm vi: chỉ ảnh hưởng cache của garage hiện tại → an toàn multi-tenant.
+  useEffect(() => {
+    if (!garageId) return
+    void queryClient.invalidateQueries({
+      queryKey: workspaceQueryKeys.bookings(garageId),
+    })
+    void queryClient.invalidateQueries({
+      queryKey: staffQueryKeys.bookings(garageId),
+    })
+    void refetch()
+  }, [garageId, queryClient, refetch])
+
   const allBookings = useMemo(
     () => (data?.bookings ? mapWorkspaceBookings(data.bookings) : []),
     [data],
   )
 
+  // === Enrichment ===
+  // Workspace list redacted — gọi thêm detail (`/admin/bookings/:id`) cho mỗi row
+  // để lấy customer.name/phone, service_package.name, final_price, points_earned.
+  // Staff VEHICLE_INSPECTION_STAFF có `booking.read_assigned` nên với booking đã
+  // claim sẽ trả đầy đủ; booking chưa claim (queue) → 403 → fallback sang
+  // workspace data. Khi BE đẩy các field này vào workspace list, hook này
+  // trở thành no-op.
+  const enrichment = useInspectionQueueEnrichment(
+    allBookings.map((b) => b.id),
+  )
+
+  // Merge enrichment lên workspace Booking — detail (khi có) ghi đè lên
+  // workspace redacted values. Các field workflow-specific (available_actions,
+  // workflow_phase) vẫn lấy từ workspace vì đó là single source of truth cho
+  // capability gating.
+  const enrichedBookings = useMemo(() => {
+    if (allBookings.length === 0) return allBookings
+    return allBookings.map((booking) => {
+      const detail = enrichment.byBookingId.get(booking.id)
+      if (!detail) return booking
+      return {
+        ...booking,
+        // === Customer (priority: detail > workspace) ===
+        is_walk_in: detail.is_walk_in,
+        guest_name: detail.guest_name ?? booking.guest_name,
+        guest_phone: detail.guest_phone ?? booking.guest_phone,
+        customer_id: detail.customer_id ?? booking.customer_id,
+        customer_name:
+          detail.customer_name?.trim() || booking.customer_name?.trim()
+            ? (detail.customer_name?.trim() || booking.customer_name?.trim()) ?? null
+            : null,
+        customer_phone:
+          detail.customer_phone ?? booking.customer_phone ?? null,
+        // === Service package (priority: detail > workspace) ===
+        service_package_id: detail.service_package_id || booking.service_package_id,
+        service_package_name:
+          detail.service_package_name?.trim() ||
+          booking.service_package_name?.trim() ||
+          '',
+        service_package_points_estimated:
+          typeof detail.service_package_points_estimated === 'number'
+            ? detail.service_package_points_estimated
+            : undefined,
+        // === Price / points ===
+        final_price: detail.final_price ?? booking.final_price,
+        earned_points:
+          typeof detail.earned_points === 'number'
+            ? detail.earned_points
+            : booking.earned_points,
+        // === Lưu detail vào raw để debug / future ===
+        raw: detail.raw ?? booking.raw,
+      }
+    })
+  }, [allBookings, enrichment.byBookingId])
+
   // Local search: biển số + tên khách + SĐT. Workspace API không hỗ trợ search
   // param, nhưng data set của queue đã nhỏ (chỉ CHECKED_IN) nên filter client OK.
   const visibleBookings = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return allBookings
-    return allBookings.filter((booking) => {
+    if (!q) return enrichedBookings
+    return enrichedBookings.filter((booking) => {
       const plate = (booking.license_plate ?? '').toLowerCase()
       const name = (booking.customer_name ?? '').toLowerCase()
       const phone = (getBookingPhone(booking) ?? '').toLowerCase()
       return plate.includes(q) || name.includes(q) || phone.includes(q)
     })
-  }, [allBookings, search])
+  }, [enrichedBookings, search])
 
   // Stats chỉ tính trên data hiện tại (1 ngày / không filter date = hôm nay).
   const stats = useMemo(() => {
@@ -395,23 +474,67 @@ export function InspectionQueuePage() {
                                 </p>
                               </td>
                               <td className="px-4 py-3">
-                                <p className="max-w-[150px] truncate text-sm text-slate-900" title={booking.service_package_name || '—'}>
-                                  {booking.service_package_name || '—'}
+                                <p
+                                  className="max-w-[150px] truncate text-sm text-slate-900"
+                                  title={booking.service_package_name || '—'}
+                                >
+                                  {booking.service_package_name || (
+                                    <span className="font-normal italic text-slate-400">
+                                      Chưa gán gói
+                                    </span>
+                                  )}
                                 </p>
+                                {!booking.is_walk_in ? (
+                                  <p
+                                    className="text-[11px] text-slate-500"
+                                    title="Khách thân thiết trong hệ thống"
+                                  >
+                                    Khách thân thiết
+                                  </p>
+                                ) : booking.is_walk_in ? (
+                                  <p
+                                    className="text-[11px] text-slate-500"
+                                    title="Khách vãng lai — không tích điểm"
+                                  >
+                                    Khách vãng lai
+                                  </p>
+                                ) : null}
                               </td>
                               <td className="px-4 py-3 text-right">
                                 <p className="text-sm font-medium text-slate-900">
                                   {booking.final_price > 0
                                     ? formatPrice(booking.final_price)
-                                    : '—'}
+                                    : (
+                                      <span className="font-normal italic text-slate-400">
+                                        Chưa tính
+                                      </span>
+                                    )}
                                 </p>
                               </td>
                               <td className="px-4 py-3 text-right">
-                                <p className="text-sm font-medium text-amber-600">
-                                  {booking.earned_points > 0
-                                    ? `+${booking.earned_points}`
-                                    : '—'}
-                                </p>
+                                {booking.is_walk_in ? (
+                                  <p
+                                    className="text-sm font-medium text-slate-400"
+                                    title="Khách vãng lai không tích điểm"
+                                  >
+                                    0
+                                  </p>
+                                ) : (booking.service_package_points_estimated ?? 0) >
+                                  0 ? (
+                                  <p
+                                    className="text-sm font-semibold text-amber-600"
+                                    title="Điểm ước tính sẽ cộng sau khi hoàn tất dịch vụ"
+                                  >
+                                    +{booking.service_package_points_estimated}
+                                  </p>
+                                ) : (
+                                  <p
+                                    className="text-sm font-medium text-slate-400"
+                                    title="Gói dịch vụ không tích điểm"
+                                  >
+                                    —
+                                  </p>
+                                )}
                               </td>
                               <td className="px-4 py-3">
                                 <p className="text-sm font-semibold text-slate-900">

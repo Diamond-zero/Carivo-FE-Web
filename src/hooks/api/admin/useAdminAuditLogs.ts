@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   getAdminAuditLogsApi,
   type AuditLogListParams,
-} from '../../../api/analytics.api'
+} from '../../../api/auditLog.api'
 import { useAdminAuth } from '../../../contexts/AdminAuthContext'
 import { mapApiAuditLog } from '../../../lib/mappers/adminMappers'
 import { adminQueryKeys } from './queryKeys'
@@ -22,5 +22,6 @@ export function useAdminAuditLogs(params?: AuditLogListParams) {
     enabled: isAuthenticated,
     staleTime: 0,
     refetchOnMount: 'always',
+    placeholderData: (previous) => previous,
   })
 }

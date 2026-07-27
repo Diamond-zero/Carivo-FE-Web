@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import {
   flexRender,
   getCoreRowModel,
@@ -25,6 +25,16 @@ interface DataTableProps<TData> {
   loading?: boolean
   skeletonRows?: number
   className?: string
+  /**
+   * Có bộ lọc đang active hay không — dùng để tuỳ biến empty state.
+   * Khi true và data rỗng, ưu tiên thông báo "không có dữ liệu khớp bộ lọc".
+   */
+  hasActiveFilter?: boolean
+  /**
+   * Stagger animation chỉ áp dụng cho các dòng dữ liệu (khi render tbody).
+   * Hữu ích cho các bảng có cảm giác "trôi" vào từ từ khi filter thay đổi.
+   */
+  enableStagger?: boolean
 }
 
 export function DataTable<TData>({
@@ -35,6 +45,8 @@ export function DataTable<TData>({
   loading = false,
   skeletonRows = 5,
   className,
+  hasActiveFilter = false,
+  enableStagger = false,
 }: DataTableProps<TData>) {
   const table = useReactTable({
     columns,
@@ -50,6 +62,12 @@ export function DataTable<TData>({
       />
     )
   }
+
+  const emptyDescription =
+    hasActiveFilter && emptyState
+      ? emptyState.description ??
+        'Không có dữ liệu khớp với bộ lọc hiện tại. Hãy thử điều chỉnh bộ lọc.'
+      : emptyState?.description ?? emptyMessage
 
   return (
     <div
@@ -87,22 +105,32 @@ export function DataTable<TData>({
                     <EmptyState
                       icon={emptyState.icon}
                       title={emptyState.title}
-                      description={emptyState.description ?? emptyMessage}
+                      description={emptyDescription}
                       action={emptyState.action}
                       compact
                     />
                   ) : (
                     <p className="px-4 py-10 text-center text-sm text-slate-500">
-                      {emptyMessage}
+                      {emptyDescription}
                     </p>
                   )}
                 </td>
               </tr>
             ) : (
-              table.getRowModel().rows.map((row) => (
+              table.getRowModel().rows.map((row, rowIndex) => (
                 <tr
                   key={row.id}
-                  className="transition-colors hover:bg-brand-50/40"
+                  className={cn(
+                    'transition-colors hover:bg-brand-50/40',
+                    enableStagger && 'carivo-stagger-row',
+                  )}
+                  style={
+                    enableStagger
+                      ? ({
+                          animationDelay: `${Math.min(rowIndex, 18) * 25}ms`,
+                        } as CSSProperties)
+                      : undefined
+                  }
                 >
                   {row.getVisibleCells().map((cell) => (
                     <td

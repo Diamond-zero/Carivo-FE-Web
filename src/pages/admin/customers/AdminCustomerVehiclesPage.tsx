@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Car, Pencil, Plus } from 'lucide-react'
 
 import { Card } from '../../../components/ui/Card'
-import { PageHeader } from '../../../components/ui/PageHeader'
+import { PageHeader } from '../../../components/layout/PageHeader'
 import { Button } from '../../../components/ui/Button'
 import { Badge } from '../../../components/ui/Badge'
 import { EmptyState } from '../../../components/ui/EmptyState'
@@ -31,7 +31,10 @@ export function AdminCustomerVehiclesPage() {
   const customerId = id ?? ''
   const { showToast } = useToast()
   const { customer } = useAdminCustomer(customerId)
-  const { vehicles, isLoading } = useAdminVehicles({ customer_id: customerId })
+  const { vehicles, isLoading } = useAdminVehicles({
+    customer_id: customerId,
+    is_active: true,
+  })
   const createMutation = useCreateAdminVehicle()
   const updateMutation = useUpdateAdminVehicle()
   const deleteMutation = useDeleteAdminVehicle()
@@ -154,11 +157,14 @@ export function AdminCustomerVehiclesPage() {
         <Card className="p-8 text-center text-sm text-slate-500">Đang tải danh sách phương tiện...</Card>
       ) : !vehicles || vehicles.length === 0 ? (
         <EmptyState
-          icon={<Car className="h-10 w-10" />}
+          icon={Car}
           title="Chưa có phương tiện"
           description="Khách hàng này chưa đăng ký phương tiện nào trong hệ thống."
-          actionLabel="Thêm phương tiện"
-          onAction={openCreate}
+          action={
+            <Button onClick={openCreate}>
+              <Plus className="mr-2 h-4 w-4" /> Thêm phương tiện
+            </Button>
+          }
         />
       ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

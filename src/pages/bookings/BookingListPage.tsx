@@ -53,6 +53,7 @@ import {
   type BookingFilters,
 } from '../../utils/bookingFilters'
 import { formatPrice, formatTime } from '../../utils/format'
+import { normalizeServicePackageName } from '../../utils/servicePackageLabels'
 import {
   getBookingCustomerName,
   getBookingDisplayName,
@@ -145,7 +146,11 @@ export function BookingListPage() {
       // Khi admin source, inject `workflow_phase` từ workspace map vào raw
       // để `isBookingReleased` tầng 1 match. Spread raw cũ để giữ tất cả
       // field BE trả (handover_state, handover_released_at, ...).
-      return adminSource.data.bookings.map((booking) => {
+      // Cast về `Booking` để giữ type ổn định cho phần còn lại của page —
+      // nếu không sẽ tạo ra union `Booking | { raw: { workflow_phase, ... } }`
+      // khiến các hàm `(b: Booking) => …` (ServicePackageCell, getBookingCustomerName…)
+      // fail typecheck ở các dòng render/filter.
+      return adminSource.data.bookings.map((booking): Booking => {
         const workflowPhase = workflowPhaseByBookingId.get(booking.id)
         if (!workflowPhase) return booking
         return {
@@ -153,7 +158,7 @@ export function BookingListPage() {
           raw: {
             ...booking.raw,
             workflow_phase: workflowPhase,
-          },
+          } as Booking['raw'],
         }
       })
     }
@@ -656,11 +661,18 @@ function SummaryCard({ label, value, icon: Icon, accent }: SummaryCardProps) {
  *  - Fallback khi không có data → "Chưa gán gói".
  */
 function ServicePackageCell({ booking }: { booking: Booking }) {
-  const mainName = booking.service_package_name?.trim()
+  const mainName = normalizeServicePackageName(booking.service_package_name)
   const rawItems = (booking.raw as { booking_items?: ApiBookingItem[] } | undefined)
     ?.booking_items
   const addOns = Array.isArray(rawItems)
-    ? rawItems.filter((item) => item?.source === 'ADD_ON')
+    ? rawItems
+        .filter((item) => item?.source === 'ADD_ON')
+        .map((item) => ({
+          ...item,
+          // Add-on `name_snapshot` cũng có thể bị BE lưu tiếng Anh → chuẩn hoá
+          // tương tự để bảng đồng nhất ngôn ngữ.
+          name_snapshot: normalizeServicePackageName(item?.name_snapshot) || '—',
+        }))
     : []
 
   if (!mainName && addOns.length === 0) {

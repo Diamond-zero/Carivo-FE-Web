@@ -272,7 +272,7 @@ export function AdminPromotionForm({
 
         {isPercentage ? (
           <div>
-            <Label htmlFor="max_discount_amount">Trần giảm tối đa (VND)</Label>
+            <Label htmlFor="max_discount_amount">Giảm tối đa (VND)</Label>
             <Input
               id="max_discount_amount"
               type="number"

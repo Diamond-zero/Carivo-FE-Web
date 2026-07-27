@@ -143,3 +143,50 @@
     }
   }
 }
+
+/* ===== Nhật ký hệ thống — animation ===== */
+@layer utilities {
+  .carivo-stagger-row {
+    animation: carivo-stagger-row-in 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .carivo-fade-in {
+    animation: carivo-fade-in 0.42s ease-out both;
+  }
+
+  .carivo-pulse-soft {
+    animation: carivo-pulse-soft 2.4s ease-in-out infinite;
+  }
+}
+
+@keyframes carivo-stagger-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes carivo-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes carivo-pulse-soft {
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+}

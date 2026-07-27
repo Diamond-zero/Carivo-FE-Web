@@ -13,6 +13,7 @@ import { useToast } from '../../../contexts/ToastContext'
 import {
   useAdminStaffProfile,
   useCreateAdminStaff,
+  useToggleAdminStaffStatus,
   useUpdateAdminStaff,
 } from '../../../hooks/api/admin/useAdminStaff'
 import {
@@ -35,6 +36,7 @@ export function AdminStaffFormPage() {
   const profileQuery = useAdminStaffProfile(!isCreate ? profileId : undefined)
   const createMutation = useCreateAdminStaff()
   const updateMutation = useUpdateAdminStaff()
+  const toggleStatusMutation = useToggleAdminStaffStatus()
 
   const [transferOpen, setTransferOpen] = useState(false)
 
@@ -88,13 +90,16 @@ export function AdminStaffFormPage() {
   const handleCreateSubmit = async (values: AdminStaffCreateFormValues) => {
     const garageId =
       values.garage_id && values.garage_id.length > 0 ? values.garage_id : null
+    // BE createStaffProfileSchema (.strict()) chỉ nhận user_id, staff_code,
+    // staff_type, garage_id — KHÔNG nhận is_active. Staff mới tạo mặc định
+    // is_active = true; nếu admin muốn khoá ngay, phải gọi endpoint riêng
+    // PATCH /staff-profiles/:id/status.
     createMutation.mutate(
       {
         user_id: values.user_id,
         staff_code: values.staff_code,
         staff_type: values.staff_type as StaffType,
         garage_id: garageId,
-        is_active: values.is_active,
       },
       {
         onSuccess: (created) => {
@@ -115,15 +120,18 @@ export function AdminStaffFormPage() {
     if (!profileId) return
     const garageId =
       values.garage_id && values.garage_id.length > 0 ? values.garage_id : null
-    // BE StaffProfileUpdateRequest KHÔNG nhận staff_type — staff_type phải đổi qua
-    // "Điều chuyển vị trí" (AdminStaffTypeChangeRequestModal) để BE audit + revoke refresh token.
+    // BE StaffProfileUpdateRequest (PATCH /staff-profiles/:id) chỉ nhận
+    // `staff_code` và `garage_id` — schema `.strict()` sẽ reject field lạ.
+    //   - `staff_type` phải đổi qua workflow "Điều chuyển vị trí"
+    //     (AdminStaffTypeChangeRequestModal) để BE audit + revoke refresh token.
+    //   - `is_active` phải đổi qua endpoint riêng
+    //     PATCH /staff-profiles/:id/status (toggleStaffProfileStatusApi).
     updateMutation.mutate(
       {
         profileId,
         payload: {
           staff_code: values.staff_code,
           garage_id: garageId,
-          is_active: values.is_active,
         },
       },
       {
@@ -143,6 +151,36 @@ export function AdminStaffFormPage() {
 
   const canTransfer =
     !isCreate && Boolean(record) && record?.profile.is_active === true
+
+  const handleToggleStatus = () => {
+    if (!profileId || !record) return
+    const nextIsActive = !record.profile.is_active
+    const confirmMessage = nextIsActive
+      ? 'Mở khoá nhân viên này? Họ sẽ có thể đăng nhập và nhận booking.'
+      : 'Khoá nhân viên này? Họ sẽ không thể đăng nhập và nhận booking.'
+    if (typeof window !== 'undefined' && !window.confirm(confirmMessage)) {
+      return
+    }
+    toggleStatusMutation.mutate(
+      { profileId, isActive: nextIsActive },
+      {
+        onSuccess: (updated) => {
+          showToast(
+            nextIsActive
+              ? `Đã mở khoá ${updated.profile.staff_code}.`
+              : `Đã khoá ${updated.profile.staff_code}.`,
+            'success',
+          )
+        },
+        onError: (error) => {
+          showToast(
+            getApiErrorMessage(error, 'Không thể đổi trạng thái nhân viên.'),
+            'error',
+          )
+        },
+      },
+    )
+  }
 
   return (
     <div>
@@ -231,6 +269,15 @@ export function AdminStaffFormPage() {
                       ) => Promise<void>)
                 }
                 isSubmitting={isSubmitting}
+                statusControl={
+                  !isCreate && record
+                    ? {
+                        isActive: record.profile.is_active,
+                        isToggling: toggleStatusMutation.isPending,
+                        onToggle: handleToggleStatus,
+                      }
+                    : undefined
+                }
               />
             </CardContent>
           </Card>

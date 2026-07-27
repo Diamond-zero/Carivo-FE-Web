@@ -16,11 +16,31 @@ const columnHelper = createColumnHelper<Booking>()
 interface AdminBookingListTableProps {
   bookings: Booking[]
   hasActiveFilter?: boolean
+  /** Optional: BE/admin-supplied map `garageId -> display name`. */
+  garageNameById?: Record<string, string>
+}
+
+function resolveGarageName(
+  garageId: string,
+  garageNameById?: Record<string, string>,
+) {
+  return (
+    garageNameById?.[garageId] ?? getAdminGarageName(garageId) ?? garageId
+  )
+}
+
+function resolveServicePackageName(booking: Booking) {
+  return (
+    booking.service_package_name ??
+    getAdminServicePackageName(booking.service_package_id) ??
+    booking.service_package_id
+  )
 }
 
 export function AdminBookingListTable({
   bookings,
   hasActiveFilter = false,
+  garageNameById,
 }: AdminBookingListTableProps) {
   const columns = useMemo(
     () => [
@@ -37,7 +57,7 @@ export function AdminBookingListTable({
       }),
       columnHelper.accessor('garage_id', {
         header: 'Chi nhánh',
-        cell: (info) => getAdminGarageName(info.getValue()),
+        cell: (info) => resolveGarageName(info.getValue(), garageNameById),
       }),
       columnHelper.display({
         id: 'customer',
@@ -59,7 +79,7 @@ export function AdminBookingListTable({
       }),
       columnHelper.accessor('service_package_id', {
         header: 'Gói DV',
-        cell: (info) => getAdminServicePackageName(info.getValue()),
+        cell: ({ row }) => resolveServicePackageName(row.original),
       }),
       columnHelper.accessor('start_time', {
         header: 'Giờ hẹn',
@@ -127,7 +147,7 @@ export function AdminBookingListTable({
         ),
       }),
     ],
-    [],
+    [garageNameById],
   )
 
   return (

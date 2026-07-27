@@ -87,7 +87,7 @@ export {
   toggleAdminPromotionActive,
   updateAdminPromotion,
 } from './adminPromotionStore'
-export { getAdminAuditLogsByEntity, mockAdminAuditLogs } from './auditLogs'
+export { getAdminAuditLogsByResourceType, mockAdminAuditLogs } from './auditLogs'
 export { mockAdminSurveys } from './surveys'
 export {
   getCustomerActiveStatus,

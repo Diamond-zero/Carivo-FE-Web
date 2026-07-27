@@ -1,12 +1,19 @@
-import { useEffect } from 'react'
-import { CalendarCheck, Car, Percent } from 'lucide-react'
+import { useEffect, useMemo } from 'react'
+import {
+  CalendarCheck,
+  Car,
+  Clock,
+  Percent,
+  TrendingUp,
+} from 'lucide-react'
 import {
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
+  ComposedChart,
+  Legend,
   Line,
-  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -15,13 +22,16 @@ import {
   YAxis,
 } from 'recharts'
 import { getApiErrorMessage } from '../../../api/client'
+import { AdminAnalyticsFiltersPanel } from '../../../components/admin/analytics/AdminAnalyticsFiltersPanel'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { StatCard } from '../../../components/ui/StatCard'
 import { useToast } from '../../../contexts/ToastContext'
 import { useAdminAnalyticsBookings } from '../../../hooks/api/admin/useAdminAnalytics'
+import { useAnalyticsFilters } from '../../../hooks/useAnalyticsFilters'
 import { formatCurrency } from '../../../lib/utils'
+import { analyticsFiltersToParams } from '../../../utils/adminAnalyticsFilters'
 
 const VEHICLE_COLORS = ['#06b6a4', '#8b5cf6']
 const STATUS_COLORS = [
@@ -36,7 +46,10 @@ const STATUS_COLORS = [
 
 export function AdminAnalyticsBookingsPage() {
   const { showToast } = useToast()
-  const { data, isLoading, isError, error } = useAdminAnalyticsBookings()
+  const { filters, setFilters, reset } = useAnalyticsFilters()
+
+  const params = useMemo(() => analyticsFiltersToParams(filters), [filters])
+  const { data, isLoading, isError, error } = useAdminAnalyticsBookings(params)
 
   useEffect(() => {
     if (isError) {
@@ -48,20 +61,28 @@ export function AdminAnalyticsBookingsPage() {
     return <DashboardPageSkeleton />
   }
 
-  const { overview, dailyStats, statusStats, vehicleTypeStats } = data
-  const completionRate =
-    overview.total_bookings > 0
-      ? Math.round((overview.completed_bookings / overview.total_bookings) * 100)
+  const { overview, trend, statusStats, vehicleTypeStats, timeOfDayStats, garageStats } = data
+  const completionRate = overview.completion_rate
+  const cancellationRate = overview.cancellation_rate
+  const lastTrend = trend[trend.length - 1]
+  const firstTrend = trend[0]
+  const trendDelta =
+    firstTrend && firstTrend.count > 0 && lastTrend
+      ? Math.round(((lastTrend.count - firstTrend.count) / firstTrend.count) * 100)
       : 0
-  const weeklyBookings = dailyStats.reduce((sum, item) => sum + item.bookings, 0)
-  const weeklyRevenue = dailyStats.reduce((sum, item) => sum + item.revenue, 0)
 
   return (
     <div>
       <PageHeader
         eyebrow="Carivo Quản trị · Phân tích"
         title="Thống kê đặt lịch"
-        description="Thống kê lượt đặt, tỷ lệ hoàn thành và xu hướng 7 ngày gần nhất."
+        description="Phân tích lượt đặt theo trạng thái, loại xe, khung giờ và xu hướng trong khoảng thời gian đã chọn."
+      />
+
+      <AdminAnalyticsFiltersPanel
+        filters={filters}
+        onChange={setFilters}
+        onReset={reset}
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -70,36 +91,43 @@ export function AdminAnalyticsBookingsPage() {
           value={overview.total_bookings.toLocaleString('vi-VN')}
           icon={CalendarCheck}
           accent="brand"
+          hint={
+            trendDelta === 0
+              ? 'So với đầu kỳ'
+              : `${trendDelta > 0 ? '+' : ''}${trendDelta}% so với đầu kỳ`
+          }
         />
         <StatCard
           label="Hoàn thành"
           value={overview.completed_bookings.toLocaleString('vi-VN')}
           icon={CalendarCheck}
           accent="emerald"
+          hint={`${completionRate.toFixed(1)}% tỉ lệ hoàn thành`}
         />
         <StatCard
-          label="Tỷ lệ hoàn thành"
-          value={`${completionRate}%`}
-          icon={Percent}
+          label="Vãng lai / Thành viên"
+          value={`${overview.walk_in_bookings.toLocaleString('vi-VN')} / ${overview.registered_customer_bookings.toLocaleString('vi-VN')}`}
+          icon={TrendingUp}
           accent="violet"
         />
         <StatCard
-          label="7 ngày — doanh thu"
-          value={formatCurrency(weeklyRevenue)}
-          icon={Car}
+          label="Thời lượng thực tế TB"
+          value={`${overview.actual_duration_average_minutes || overview.scheduled_duration_average_minutes} ph`}
+          icon={Clock}
           accent="amber"
+          hint={`Đặt lịch trễ: ${overview.late_booking_count.toLocaleString('vi-VN')}`}
         />
       </div>
 
       <div className="mb-6 grid gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader>
-            <CardTitle className="text-base">Đặt lịch & doanh thu 7 ngày</CardTitle>
+            <CardTitle className="text-base">Xu hướng booking theo kỳ</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={dailyStats}>
+                <ComposedChart data={trend}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                   <YAxis yAxisId="left" tick={{ fontSize: 12 }} />
@@ -116,14 +144,13 @@ export function AdminAnalyticsBookingsPage() {
                         : Number(value).toLocaleString('vi-VN')
                     }
                   />
-                  <Line
+                  <Legend />
+                  <Bar
                     yAxisId="left"
-                    type="monotone"
-                    dataKey="bookings"
-                    stroke="#06b6a4"
-                    strokeWidth={3}
-                    dot={{ r: 4, fill: '#06b6a4' }}
-                    name="Đặt lịch"
+                    dataKey="count"
+                    fill="#06b6a4"
+                    radius={[6, 6, 0, 0]}
+                    name="Booking"
                   />
                   <Line
                     yAxisId="right"
@@ -134,11 +161,14 @@ export function AdminAnalyticsBookingsPage() {
                     dot={{ r: 3, fill: '#8b5cf6' }}
                     name="Doanh thu"
                   />
-                </LineChart>
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
             <p className="mt-2 text-xs text-slate-500">
-              Tổng {weeklyBookings} booking trong 7 ngày qua.
+              {trend.length} kỳ trong khoảng phân tích.{' '}
+              {lastTrend
+                ? `Kỳ gần nhất: ${lastTrend.count.toLocaleString('vi-VN')} booking.`
+                : ''}
             </p>
           </CardContent>
         </Card>
@@ -161,14 +191,17 @@ export function AdminAnalyticsBookingsPage() {
                     outerRadius={90}
                     paddingAngle={4}
                   >
-                    {vehicleTypeStats.map((_, index) => (
+                    {vehicleTypeStats.map((entry, index) => (
                       <Cell
-                        key={index}
+                        key={entry.vehicle_type}
                         fill={VEHICLE_COLORS[index % VEHICLE_COLORS.length]}
                       />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip
+                    formatter={(value) => Number(value).toLocaleString('vi-VN')}
+                  />
+                  <Legend />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -176,28 +209,124 @@ export function AdminAnalyticsBookingsPage() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Phân bố theo trạng thái</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={statusStats}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={0} angle={-20} textAnchor="end" height={60} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip />
-                <Bar dataKey="count" name="Số lượng" radius={[6, 6, 0, 0]}>
-                  {statusStats.map((_, index) => (
-                    <Cell key={index} fill={STATUS_COLORS[index % STATUS_COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="mb-6 grid gap-6 xl:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Phân bố theo trạng thái</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={statusStats}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11 }}
+                    interval={0}
+                    angle={-20}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip formatter={(value) => Number(value).toLocaleString('vi-VN')} />
+                  <Bar dataKey="count" name="Số lượng" radius={[6, 6, 0, 0]}>
+                    {statusStats.map((_, index) => (
+                      <Cell
+                        key={index}
+                        fill={STATUS_COLORS[index % STATUS_COLORS.length]}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Phân bố theo khung giờ</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={timeOfDayStats}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip formatter={(value) => Number(value).toLocaleString('vi-VN')} />
+                  <Bar dataKey="count" fill="#06b6a4" radius={[6, 6, 0, 0]} name="Booking" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-3">
+        <Card className="xl:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">Phân bố theo chi nhánh</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={garageStats}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={0} angle={-15} textAnchor="end" height={60} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip formatter={(value) => Number(value).toLocaleString('vi-VN')} />
+                  <Bar dataKey="count" fill="#0ea5e9" radius={[6, 6, 0, 0]} name="Booking" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Tỉ lệ quan trọng</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-2 text-sm text-slate-600">
+                <Percent className="h-4 w-4 text-emerald-500" />
+                Hoàn thành
+              </span>
+              <span className="text-lg font-semibold text-emerald-600">
+                {completionRate.toFixed(1)}%
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-2 text-sm text-slate-600">
+                <Percent className="h-4 w-4 text-red-500" />
+                Hủy
+              </span>
+              <span className="text-lg font-semibold text-red-600">
+                {cancellationRate.toFixed(1)}%
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-2 text-sm text-slate-600">
+                <Percent className="h-4 w-4 text-orange-500" />
+                Không đến
+              </span>
+              <span className="text-lg font-semibold text-orange-600">
+                {overview.no_show_bookings.toLocaleString('vi-VN')} ({((overview.no_show_bookings / Math.max(overview.total_bookings, 1)) * 100).toFixed(1)}%)
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-2 text-sm text-slate-600">
+                <Car className="h-4 w-4 text-indigo-500" />
+                Đổi lịch
+              </span>
+              <span className="text-lg font-semibold text-indigo-600">
+                {overview.reschedule_count.toLocaleString('vi-VN')}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

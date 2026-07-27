@@ -29,6 +29,16 @@ interface AdminStaffFormProps {
    * hiển thị cạnh form khi edit. Khi không truyền, form chỉ render field.
    */
   onRequestTypeChange?: () => void
+  /**
+   * Optional: trạng thái + handler đổi is_active. Chỉ dùng ở chế độ edit.
+   * BE yêu cầu gọi endpoint riêng `PATCH /staff-profiles/:id/status`, không
+   * nhận is_active trong StaffProfileUpdateRequest (schema .strict()).
+   */
+  statusControl?: {
+    isActive: boolean
+    isToggling: boolean
+    onToggle: () => void
+  }
   onSubmit:
     | ((values: AdminStaffCreateFormValues) => Promise<void>)
     | ((values: AdminStaffEditFormValues) => Promise<void>)
@@ -39,6 +49,7 @@ export function AdminStaffForm({
   mode,
   initialRecord,
   onRequestTypeChange,
+  statusControl,
   onSubmit,
   isSubmitting = false,
 }: AdminStaffFormProps) {
@@ -48,6 +59,8 @@ export function AdminStaffForm({
   // Create mode giữ nguyên staff_type. Edit mode KHÔNG cho sửa staff_type
   // (BE cấm trong StaffProfileUpdateRequest, chỉ đổi qua workflow
   // staff-type-change-requests).
+  // Create mặc định is_active = true (BE không nhận is_active trong body tạo);
+  // is_active sẽ được PATCH riêng sau khi tạo nếu cần khoá.
   const createForm = useForm<AdminStaffCreateFormValues>({
     resolver: zodResolver(adminStaffCreateSchema),
     defaultValues: {
@@ -55,7 +68,6 @@ export function AdminStaffForm({
       staff_code: initialRecord?.profile.staff_code ?? '',
       staff_type: initialRecord?.profile.staff_type ?? 'CUSTOMER_SERVICE_STAFF',
       garage_id: initialRecord?.profile.garage_id ?? '',
-      is_active: initialRecord?.profile.is_active ?? true,
     },
   })
 
@@ -65,12 +77,14 @@ export function AdminStaffForm({
       user_id: initialRecord?.user.id ?? '',
       staff_code: initialRecord?.profile.staff_code ?? '',
       garage_id: initialRecord?.profile.garage_id ?? '',
-      is_active: initialRecord?.profile.is_active ?? true,
     },
   })
 
   const form = mode === 'create' ? createForm : editForm
   const errors = form.formState.errors
+  const isActive = statusControl?.isActive ?? initialRecord?.profile.is_active ?? true
+  const isToggling = statusControl?.isToggling ?? false
+  const onToggleStatus = statusControl?.onToggle
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
@@ -111,10 +125,14 @@ export function AdminStaffForm({
           <Label htmlFor="staff_code">Mã nhân viên</Label>
           <Input
             id="staff_code"
-            placeholder="STF009"
+            placeholder="Vd. STF009, CARE003, INSP001…"
             error={errors.staff_code?.message}
             {...form.register('staff_code')}
           />
+          <p className="mt-1 text-xs text-slate-500">
+            2–30 ký tự, chỉ gồm chữ cái, chữ số, gạch dưới (_) hoặc gạch
+            ngang (-). Hệ thống chấp nhận nhiều prefix khác nhau tuỳ vai trò.
+          </p>
         </div>
 
         {mode === 'create' ? (
@@ -178,16 +196,39 @@ export function AdminStaffForm({
         </Select>
       </div>
 
-      <div className="flex items-center gap-3 rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
-        <input
-          id="is_active"
-          type="checkbox"
-          className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-          {...form.register('is_active')}
-        />
-        <Label htmlFor="is_active" className="mb-0 cursor-pointer">
-          Đang làm việc (is_active)
-        </Label>
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
+        <div>
+          <Label className="mb-0">Trạng thái làm việc</Label>
+          <p className="mt-1 text-xs text-slate-500">
+            {isActive
+              ? 'Nhân viên đang làm việc — có thể nhận booking và đăng nhập.'
+              : 'Nhân viên tạm khoá — không thể nhận booking và đăng nhập.'}
+          </p>
+        </div>
+        {mode === 'edit' && onToggleStatus ? (
+          <Button
+            type="button"
+            variant={isActive ? 'danger' : 'primary'}
+            onClick={onToggleStatus}
+            disabled={isToggling || isSubmitting}
+          >
+            {isToggling
+              ? 'Đang cập nhật…'
+              : isActive
+                ? 'Khoá nhân viên'
+                : 'Mở khoá nhân viên'}
+          </Button>
+        ) : (
+          <span
+            className={
+              isActive
+                ? 'inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800'
+                : 'inline-flex rounded-full bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700'
+            }
+          >
+            {isActive ? 'Đang làm việc' : 'Tạm khoá'}
+          </span>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4">

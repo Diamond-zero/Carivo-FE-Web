@@ -1,8 +1,9 @@
 import { Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ServiceWorkflowItemCard } from '../../../components/service/ServiceWorkflowItemCard'
 import { Button } from '../../../components/ui/Button'
 import { useToast } from '../../../contexts/ToastContext'
+import { getApiErrorCode, getApiErrorMessage } from '../../../api/client'
 import {
   useAdminCompleteEarlyServiceItem,
   useAdminConfirmCompleteServiceItem,
@@ -17,12 +18,25 @@ interface ServiceWorkflowTabProps {
 }
 
 /**
+ * Nhận diện lỗi "double-submit sau success": sau khi staff xác nhận hoàn thành /
+ * complete-early, BE sẽ release assignment → submit lần 2 (React Strict Mode,
+ * click đúp, v.v.) sẽ trả 403 STAFF_BOOKING_ASSIGNMENT_REQUIRED. UI đã cập
+ * nhật phía trên nên ta nuốt lỗi này thay vì hiện toast gây hiểu nhầm.
+ */
+function isStaleAssignmentError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const code = getApiErrorCode(error)
+  return code === 'STAFF_BOOKING_ASSIGNMENT_REQUIRED'
+}
+
+/**
  * Tab "Tiến trình dịch vụ" cho admin booking detail page.
  * - Polling mỗi 30s + refetch khi component mount.
  * - Hiển thị 4 phase BE trả: PENDING / RUNNING / PAUSED / INCIDENT_HOLD / COMPLETED.
  */
 export function ServiceWorkflowTab({ bookingId }: ServiceWorkflowTabProps) {
   const { showToast } = useToast()
+  const inFlightItemsRef = useRef<Set<string>>(new Set())
   const workflowQuery = useAdminServiceWorkflow(bookingId)
   const [activeItemKey, setActiveItemKey] = useState<string | null>(null)
 
@@ -42,13 +56,30 @@ export function ServiceWorkflowTab({ bookingId }: ServiceWorkflowTabProps) {
     itemKey: string,
     successMsg: string,
   ) => {
+    // Guard chống double-submit: khi user click đúp, HMR hot reload, hoặc React
+    // Strict Mode dev re-invoke, mutation vẫn đang pending → lần 2 BE throw
+    // 403 STAFF_BOOKING_ASSIGNMENT_REQUIRED (vì assignment đã được release sau
+    // khi complete) và toast error đè lên toast success, gây hiểu nhầm.
+    if (inFlightItemsRef.current.has(itemKey)) {
+      return
+    }
+    inFlightItemsRef.current.add(itemKey)
     try {
       await mutateFn({ bookingId, itemKey })
       showToast(successMsg, 'success')
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Thao tác thất bại.'
-      showToast(message, 'error')
+      // Sau khi success, các lần submit tiếp theo (kể cả React Strict Mode)
+      // sẽ bị BE từ chối vì assignment đã release. Coi như idempotent — UI
+      // đã cập nhật → tải lại query là đủ, không cần toast error gây hiểu nhầm.
+      if (isStaleAssignmentError(error)) {
+        return
+      }
+      showToast(
+        getApiErrorMessage(error, 'Thao tác thất bại. Vui lòng thử lại.'),
+        'error',
+      )
+    } finally {
+      inFlightItemsRef.current.delete(itemKey)
     }
   }
 
@@ -127,7 +158,7 @@ export function ServiceWorkflowTab({ bookingId }: ServiceWorkflowTabProps) {
               void runMutation(
                 confirmComplete.mutateAsync,
                 item.item_key,
-                'Đã xác nhận hoàn thành.',
+                'Đã hoàn thành.',
               ).finally(() => setActiveItemKey(null))
             }}
             onPause={() => {

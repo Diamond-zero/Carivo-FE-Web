@@ -4,8 +4,6 @@
  * GET /staff/workspace/bookings/:bookingId/workflow
  */
 
-import type { ApiResponse } from './api'
-
 /** Workflow phases theo BE định nghĩa (BE/WDP301-Project/backend/src/shared/constants/bookingWorkflow.constant.js) */
 export type WorkflowPhase =
   | 'WAITING_CHECK_IN'

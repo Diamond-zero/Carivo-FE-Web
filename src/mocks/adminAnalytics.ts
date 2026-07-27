@@ -1,20 +1,32 @@
 import type {
-  AnalyticsOverview,
-  BookingStatusStat,
-  DailyBookingStat,
-  GarageRevenueStat,
-  MonthlyRevenueStat,
+  AnalyticsDayPoint,
+  AnalyticsRevenueDistributionRow,
+  AnalyticsStatusDistributionRow,
+  AnalyticsVehicleTypeDistributionRow,
+  AnalyticsWashBayPerformanceRow,
   RecentBookingRow,
-  VehicleTypeBookingStat,
-  WashBayPerformanceRow,
 } from '../types/adminAnalytics'
 
-export const mockAnalyticsOverview: AnalyticsOverview = {
+export const mockAnalyticsOverview = {
   total_bookings: 1284,
   completed_bookings: 1096,
+  canceled_bookings: 18,
+  no_show_bookings: 5,
+  completion_rate: 85.4,
+  cancellation_rate: 1.4,
+  no_show_rate: 0.4,
+  registered_customer_bookings: 842,
+  unique_registered_customers: 312,
+  walk_in_bookings: 442,
   total_revenue: 428500000,
+  original_revenue: 462800000,
+  total_discount: 34300000,
+  average_order_value: 334000,
   active_customers: 312,
   average_booking_value: 334000,
+  period_from: '2026-06-01T00:00:00.000Z',
+  period_to: '2026-06-30T23:59:59.999Z',
+  group_by: 'DAY' as const,
   tier_distribution: {
     BRONZE: 142,
     SILVER: 98,
@@ -23,7 +35,7 @@ export const mockAnalyticsOverview: AnalyticsOverview = {
   },
 }
 
-export const mockDailyBookingStats: DailyBookingStat[] = [
+export const mockDailyBookingStats: AnalyticsDayPoint[] = [
   { date: '2026-06-04', label: 'T2', bookings: 38, revenue: 12400000 },
   { date: '2026-06-05', label: 'T3', bookings: 45, revenue: 15100000 },
   { date: '2026-06-06', label: 'T4', bookings: 52, revenue: 17800000 },
@@ -81,37 +93,37 @@ export const mockRecentAdminBookings: RecentBookingRow[] = [
   },
 ]
 
-export const mockMonthlyRevenueStats: MonthlyRevenueStat[] = [
-  { month: '2026-01', label: 'T1', revenue: 52000000 },
-  { month: '2026-02', label: 'T2', revenue: 61000000 },
-  { month: '2026-03', label: 'T3', revenue: 68000000 },
-  { month: '2026-04', label: 'T4', revenue: 72000000 },
-  { month: '2026-05', label: 'T5', revenue: 78500000 },
-  { month: '2026-06', label: 'T6', revenue: 97200000 },
+export const mockMonthlyRevenueStats: AnalyticsDayPoint[] = [
+  { date: '2026-01', label: 'T1', bookings: 0, revenue: 52000000 },
+  { date: '2026-02', label: 'T2', bookings: 0, revenue: 61000000 },
+  { date: '2026-03', label: 'T3', bookings: 0, revenue: 68000000 },
+  { date: '2026-04', label: 'T4', bookings: 0, revenue: 72000000 },
+  { date: '2026-05', label: 'T5', bookings: 0, revenue: 78500000 },
+  { date: '2026-06', label: 'T6', bookings: 0, revenue: 97200000 },
 ]
 
-export const mockGarageRevenueStats: GarageRevenueStat[] = [
+export const mockGarageRevenueStats: AnalyticsRevenueDistributionRow[] = [
   {
-    garage_id: 'garage-fpt-hl-01',
-    garage_name: 'Carivo FPT Hòa Lạc',
+    id: 'garage-fpt-hl-01',
+    label: 'Carivo FPT Hòa Lạc',
     revenue: 198500000,
-    bookings: 612,
+    count: 612,
   },
   {
-    garage_id: 'garage-q7-hcm-01',
-    garage_name: 'Carivo Quận 7',
+    id: 'garage-q7-hcm-01',
+    label: 'Carivo Quận 7',
     revenue: 142300000,
-    bookings: 438,
+    count: 438,
   },
   {
-    garage_id: 'garage-dn-haichau-01',
-    garage_name: 'Carivo Hải Châu',
+    id: 'garage-dn-haichau-01',
+    label: 'Carivo Hải Châu',
     revenue: 87700000,
-    bookings: 234,
+    count: 234,
   },
 ]
 
-export const mockBookingStatusStats: BookingStatusStat[] = [
+export const mockBookingStatusStats: AnalyticsStatusDistributionRow[] = [
   { status: 'COMPLETED', label: 'Hoàn thành', count: 1096 },
   { status: 'IN_PROGRESS', label: 'Đang thực hiện', count: 48 },
   { status: 'CONFIRMED', label: 'Đã xác nhận', count: 62 },
@@ -121,70 +133,82 @@ export const mockBookingStatusStats: BookingStatusStat[] = [
   { status: 'NO_SHOW', label: 'Không đến', count: 5 },
 ]
 
-export const mockVehicleTypeBookingStats: VehicleTypeBookingStat[] = [
+export const mockVehicleTypeBookingStats: AnalyticsVehicleTypeDistributionRow[] = [
   { vehicle_type: 'CAR', label: 'Ô tô', count: 842 },
   { vehicle_type: 'MOTORBIKE', label: 'Xe máy', count: 442 },
 ]
 
-export const mockWashBayPerformanceRows: WashBayPerformanceRow[] = [
+export const mockWashBayPerformanceRows: AnalyticsWashBayPerformanceRow[] = [
   {
     bay_id: 'bay-001',
     bay_code: 'HL-CAR-01',
     bay_name: 'Buồng ô tô 1',
+    garage_id: 'garage-fpt-hl-01',
     garage_name: 'Carivo FPT Hòa Lạc',
-    utilization_percent: 78,
-    sessions_today: 14,
-    avg_session_minutes: 28,
-    avg_wait_minutes: 6,
+    booking_count: 14,
+    occupied_minutes: 420,
+    estimated_utilization: 78,
+    revenue: 5400000,
+    average_service_duration_minutes: 28,
   },
   {
     bay_id: 'bay-002',
     bay_code: 'HL-CAR-02',
     bay_name: 'Buồng ô tô 2',
+    garage_id: 'garage-fpt-hl-01',
     garage_name: 'Carivo FPT Hòa Lạc',
-    utilization_percent: 65,
-    sessions_today: 11,
-    avg_session_minutes: 32,
-    avg_wait_minutes: 9,
+    booking_count: 11,
+    occupied_minutes: 360,
+    estimated_utilization: 65,
+    revenue: 4100000,
+    average_service_duration_minutes: 32,
   },
   {
     bay_id: 'bay-q7-car-01',
     bay_code: 'Q7-CAR-01',
     bay_name: 'Buồng Q7 ô tô',
+    garage_id: 'garage-q7-hcm-01',
     garage_name: 'Carivo Quận 7',
-    utilization_percent: 82,
-    sessions_today: 16,
-    avg_session_minutes: 26,
-    avg_wait_minutes: 12,
+    booking_count: 16,
+    occupied_minutes: 410,
+    estimated_utilization: 82,
+    revenue: 6200000,
+    average_service_duration_minutes: 26,
   },
   {
     bay_id: 'bay-q7-bike-01',
     bay_code: 'Q7-BIKE-01',
     bay_name: 'Buồng Q7 xe máy',
+    garage_id: 'garage-q7-hcm-01',
     garage_name: 'Carivo Quận 7',
-    utilization_percent: 71,
-    sessions_today: 22,
-    avg_session_minutes: 14,
-    avg_wait_minutes: 4,
+    booking_count: 22,
+    occupied_minutes: 310,
+    estimated_utilization: 71,
+    revenue: 2900000,
+    average_service_duration_minutes: 14,
   },
   {
     bay_id: 'bay-dn-car-01',
     bay_code: 'DN-CAR-01',
     bay_name: 'Buồng ĐN ô tô',
+    garage_id: 'garage-dn-haichau-01',
     garage_name: 'Carivo Hải Châu',
-    utilization_percent: 58,
-    sessions_today: 9,
-    avg_session_minutes: 30,
-    avg_wait_minutes: 8,
+    booking_count: 9,
+    occupied_minutes: 270,
+    estimated_utilization: 58,
+    revenue: 3700000,
+    average_service_duration_minutes: 30,
   },
   {
     bay_id: 'bay-dn-bike-01',
     bay_code: 'DN-BIKE-01',
     bay_name: 'Buồng ĐN xe máy',
+    garage_id: 'garage-dn-haichau-01',
     garage_name: 'Carivo Hải Châu',
-    utilization_percent: 54,
-    sessions_today: 18,
-    avg_session_minutes: 12,
-    avg_wait_minutes: 5,
+    booking_count: 18,
+    occupied_minutes: 220,
+    estimated_utilization: 54,
+    revenue: 1500000,
+    average_service_duration_minutes: 12,
   },
 ]

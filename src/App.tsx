@@ -22,12 +22,13 @@ import {
   AdminCustomerDetailPage,
   AdminCustomerListPage,
   AdminCustomerLoyaltyPage,
-  AdminCustomerNotificationsPage,
   AdminCustomerVehiclesPage,
   AdminDashboardPage,
   AdminGarageFormPage,
   AdminGarageListPage,
   AdminLayout,
+  AdminPaymentDetailPage,
+  AdminPaymentsListPage,
   AdminPromotionFormPage,
   AdminPromotionListPage,
   AdminResearchExportPage,
@@ -170,14 +171,6 @@ function App() {
                   element={
                     <LazyPage>
                       <AdminCustomerLoyaltyPage />
-                    </LazyPage>
-                  }
-                />
-                <Route
-                  path="/admin/users/customers/:id/notifications"
-                  element={
-                    <LazyPage>
-                      <AdminCustomerNotificationsPage />
                     </LazyPage>
                   }
                 />
@@ -418,6 +411,30 @@ function App() {
                   element={
                     <LazyPage>
                       <AdminAuditLogsPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/payments"
+                  element={
+                    <LazyPage>
+                      <AdminPaymentsListPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/payments/by-booking/:bookingId"
+                  element={
+                    <LazyPage>
+                      <AdminPaymentDetailPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/payments/:paymentId"
+                  element={
+                    <LazyPage>
+                      <AdminPaymentDetailPage />
                     </LazyPage>
                   }
                 />
