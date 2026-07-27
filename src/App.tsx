@@ -44,7 +44,6 @@ import {
   AdminStaffTypeChangeRequestsPage,
   AdminSurveysPage,
   AdminLoyaltyOverviewPage,
-  AdminWaitlistsPage,
   AdminWashHistoryPage,
   AdminTierRulesPage,
   AdminUsersListPage,
@@ -66,7 +65,6 @@ import {
   ServiceExecutionPage,
   SettingsPage,
   StaffLayout,
-  StaffWaitlistListPage,
   StaffCompensationVouchersPage,
   StaffHandoverPage,
   StaffCustomerCasesPage,
@@ -304,11 +302,7 @@ function App() {
                 />
                 <Route
                   path="/admin/waitlists"
-                  element={
-                    <LazyPage>
-                      <AdminWaitlistsPage />
-                    </LazyPage>
-                  }
+                  element={<Navigate to="/admin/bookings" replace />}
                 />
                 <Route
                   path="/admin/wash-histories"
@@ -660,16 +654,10 @@ function App() {
                     </LazyPage>
                   }
                 />
-                <Route element={<CapabilityRoute capability="waitlist.manage_garage" />}>
-                  <Route
-                    path="/staff/waitlists"
-                    element={
-                      <LazyPage>
-                        <StaffWaitlistListPage />
-                      </LazyPage>
-                    }
-                  />
-                </Route>
+                <Route
+                  path="/staff/waitlists"
+                  element={<Navigate to="/dashboard" replace />}
+                />
                 <Route element={<CapabilityRoute capability="incident.compensation.issue" />}>
                   <Route
                     path="/staff/vouchers"
