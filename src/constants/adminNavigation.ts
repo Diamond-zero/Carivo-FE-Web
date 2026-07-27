@@ -85,7 +85,6 @@ export const adminNavItems: AdminNavItem[] = [
     section: 'management',
     children: [
       { label: 'Danh sách booking', path: '/admin/bookings' },
-      { label: 'Danh sách chờ', path: '/admin/waitlists' },
       { label: 'Lịch sử rửa', path: '/admin/wash-histories' },
     ],
   },
@@ -181,7 +180,6 @@ export const ADMIN_NAV_EXPAND_PREFIXES: Array<{
   { prefix: '/admin/users', groupLabel: 'Người dùng' },
   { prefix: '/admin/garages', groupLabel: 'Garage' },
   { prefix: '/admin/bookings', groupLabel: 'Đặt lịch' },
-  { prefix: '/admin/waitlists', groupLabel: 'Đặt lịch' },
   { prefix: '/admin/wash-histories', groupLabel: 'Đặt lịch' },
   { prefix: '/admin/loyalty', groupLabel: 'Loyalty' },
   { prefix: '/admin/analytics', groupLabel: 'Phân tích' },

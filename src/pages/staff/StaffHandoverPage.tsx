@@ -34,6 +34,7 @@ import {
 import { useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getApiErrorCode, getApiErrorMessage } from '../../api/client'
+import axios from 'axios'
 import {
   HANDOVER_RESPONSE_LABELS,
   HANDOVER_STATE_LABELS,
@@ -64,38 +65,66 @@ import { useStaffBookingDetail } from '../../hooks/api/staff/useStaffBookingDeta
 import { formatDateTime } from '../../utils/format'
 
 /**
- * Nhận diện lỗi idempotent "walk-in đã được ghi nhận trước đó": sau lần submit
- * 1 thành công, BE đã đổi customer_response → ACCEPTED và save DB. Lần submit
- * 2 (do race với React Strict Mode / HMR / user click lại) BE trả lỗi kiểu
- * 400/409 walk_in_already_recorded. UI đã cập nhật → ta nuốt lỗi này thay vì
- * hiện toast đỏ gây hiểu nhầm (đồng bộ pattern với `isStaleAssignmentError`
- * bên ServiceItemList / ServiceWorkflowTab).
+ * Nhận diện lỗi idempotent "state đã được ghi nhận trước đó" cho cả 3 handler
+ * ready/walk-in/release. Race pattern giống nhau: lần submit 1 thành công → BE
+ * đã đổi state + save DB → invalidate TanStack Query cache → nhưng trong cùng
+ * frame lần 2 vẫn qua được state-based guard (cache chưa kịp refetch), vào BE
+ * một lần nữa → BE trả 400/409. UI đã cập nhật (state-based guard đúng cho
+ * lần 3 trở đi) → ta nuốt lỗi lần 2 thay vì hiện toast đỏ gây hiểu nhầm.
+ *
+ * Match theo cả 3 tầng để robust với BE thay đổi error_code:
+ *  1. error_code khớp danh sách đã biết (fallback nếu BE có code mới thì patch sau).
+ *  2. HTTP 409 Conflict (chuẩn REST cho idempotency violation).
+ *  3. Message BE chứa keyword "already" / "duplicate" / "exists" (heuristic
+ *     cuối cùng cho BE dùng message thay error_code, vd Prisma unique violation).
+ *
+ * Pattern sync với `isStaleAssignmentError` ở ServiceItemList / ServiceWorkflowTab.
  */
-function isStaleWalkInError(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false
-  const code = getApiErrorCode(error)
-  return (
-    code === 'WALK_IN_ALREADY_RECORDED' ||
-    code === 'BOOKING_HANDOVER_WALK_IN_ALREADY_ACCEPTED' ||
-    code === 'BOOKING_HANDOVER_CUSTOMER_RESPONSE_INVALID'
-  )
+function getApiErrorStatus(error: unknown): number | undefined {
+  if (!axios.isAxiosError(error)) return undefined
+  return error.response?.status
 }
 
-/**
- * Nhận diện lỗi idempotent "xe đã được bàn giao trước đó" tương tự
- * `isStaleWalkInError`. Sau lần `release` thành công, BE đã đổi
- * `handover.state = RELEASED` → lần release thứ 2 (do race React Strict Mode
- * / HMR / user click lại) BE trả lỗi 400/409 kiểu `booking_handover_already_released`.
- * UI đã cập nhật (`handoverReleased = true`, button đổi label "Đã bàn giao xe",
- * disable) → nuốt lỗi để khỏi hiện toast đỏ gây hiểu nhầm.
- */
-function isStaleReleaseError(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false
+function getApiErrorMessageText(error: unknown): string {
+  const data = (axios.isAxiosError(error) ? error.response?.data : undefined) as
+    | { message?: string; error_code?: string }
+    | undefined
+  return data?.message ?? ''
+}
+
+function matchesIdempotentPattern(error: unknown, knownCodes: readonly string[]): boolean {
   const code = getApiErrorCode(error)
-  return (
-    code === 'BOOKING_HANDOVER_ALREADY_RELEASED' ||
-    code === 'BOOKING_HANDOVER_STATE_INVALID'
-  )
+  if (code && knownCodes.includes(code)) return true
+  const status = getApiErrorStatus(error)
+  if (status === 409) return true
+  const text = `${getApiErrorMessageText(error)} ${code ?? ''}`.toLowerCase()
+  return /already|duplicate|exists|đã (được|tồn tại)|trùng/.test(text)
+}
+
+function isStaleReadyError(error: unknown): boolean {
+  // handleReady race: 500 "duplicate key" / 409 "handover already exists" /
+  // Prisma P2002 unique violation khi tạo BookingHandover 2 lần.
+  return matchesIdempotentPattern(error, [
+    'BOOKING_HANDOVER_ALREADY_EXISTS',
+    'BOOKING_HANDOVER_ALREADY_READY',
+    'DUPLICATE_KEY',
+    'UNIQUE_VIOLATION',
+  ])
+}
+
+function isStaleWalkInError(error: unknown): boolean {
+  return matchesIdempotentPattern(error, [
+    'WALK_IN_ALREADY_RECORDED',
+    'BOOKING_HANDOVER_WALK_IN_ALREADY_ACCEPTED',
+    'BOOKING_HANDOVER_CUSTOMER_RESPONSE_INVALID',
+  ])
+}
+
+function isStaleReleaseError(error: unknown): boolean {
+  return matchesIdempotentPattern(error, [
+    'BOOKING_HANDOVER_ALREADY_RELEASED',
+    'BOOKING_HANDOVER_STATE_INVALID',
+  ])
 }
 
 export function StaffHandoverPage() {
@@ -207,6 +236,10 @@ export function StaffHandoverPage() {
       showToast('Hoàn thành đã chuẩn bị bàn giao.', 'success')
       setStaffNotes('')
     } catch (error) {
+      // Nuốt lỗi idempotent (race sau success) — UI đã đổi sang
+      // READY_FOR_CUSTOMER, không cần báo staff, sẽ gây hiểu nhầm
+      // "thành công mà vẫn báo lỗi".
+      if (isStaleReadyError(error)) return
       showToast(
         getApiErrorMessage(error, 'Không thể chuẩn bị bàn giao.'),
         'error',

@@ -4,7 +4,6 @@ import {
   Camera as CameraIcon,
   ClipboardList,
   History,
-  Hourglass,
   LayoutDashboard,
   ScanSearch,
   Search,
@@ -113,13 +112,6 @@ export const staffNavItems: StaffNavItem[] = [
     icon: CameraIcon,
     section: 'operations',
     requiredCapability: 'booking.plate_scan',
-  },
-  {
-    label: 'Danh sách chờ',
-    path: '/staff/waitlists',
-    icon: Hourglass,
-    section: 'operations',
-    requiredCapability: 'waitlist.manage_garage',
   },
   {
     label: 'Hồ sơ khiếu nại',
