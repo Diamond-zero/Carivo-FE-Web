@@ -31,6 +31,7 @@ import {
  * được chọn theo role đang active thay vì cứng nhắc lấy ADMIN token.
  */
 const STAFF_ALLOWED_ADMIN_PATHS: readonly string[] = [
+  '/admin/pricing/quotes/walk-in',
   '/admin/bookings',
   '/admin/waitlists',
   '/admin/wash-histories',

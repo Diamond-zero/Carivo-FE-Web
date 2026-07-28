@@ -6,11 +6,15 @@ import {
   Search,
   SearchX,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useSearchParams } from 'react-router-dom'
 import { z } from 'zod'
 import { getApiErrorMessage } from '../../api/client'
+import {
+  confirmBookingVehiclePriceApi,
+  reviewBookingVehiclePriceApi,
+} from '../../api/pricing.api'
 import { BookingStatusBadge } from '../../components/booking/BookingStatusBadge'
 import { GuardedActionButton } from '../../components/booking/GuardedActionButton'
 import { LateArrivalModal } from '../../components/booking/LateArrivalModal'
@@ -20,11 +24,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Ca
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Input } from '../../components/ui/Input'
 import { Label } from '../../components/ui/Label'
+import { Select } from '../../components/ui/Select'
+import { Textarea } from '../../components/ui/Textarea'
 import { useAuth } from '../../contexts/AuthContext'
 import { useBookings } from '../../contexts/BookingContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useCheckInSearch } from '../../hooks/api/staff/useCheckInSearch'
 import type { Booking } from '../../types/booking'
+import type {
+  VehiclePriceReview,
+  VehiclePricingSnapshot,
+} from '../../types/api/pricing'
 import type {
   ApiLateArrivalOptions,
   LateArrivalResolution,
@@ -102,6 +112,14 @@ export function CheckInPage() {
     null,
   )
   const [isCheckingIn, setIsCheckingIn] = useState(false)
+  const [vehicleSnapshot, setVehicleSnapshot] =
+    useState<VehiclePricingSnapshot | null>(null)
+  const [priceReview, setPriceReview] = useState<VehiclePriceReview | null>(null)
+  const [isReviewingPrice, setIsReviewingPrice] = useState(false)
+  const [isConfirmingPrice, setIsConfirmingPrice] = useState(false)
+  const [customerConfirmed, setCustomerConfirmed] = useState(false)
+  const [adjustmentReason, setAdjustmentReason] = useState('')
+  const [classificationVerified, setClassificationVerified] = useState(false)
   const [lateArrival, setLateArrival] = useState<{
     booking: Booking
     minutes: number
@@ -124,6 +142,35 @@ export function CheckInPage() {
     ? results.find((booking) => booking.id === selectedId) ??
       getBookingById(selectedId)
     : null
+
+  const selectBooking = useCallback((booking: Booking | null) => {
+    setSelectedId(booking?.id ?? null)
+    if (!booking) {
+      setVehicleSnapshot(null)
+      setPriceReview(null)
+      setClassificationVerified(false)
+      return
+    }
+
+    const raw = booking.raw
+    const source = (
+      raw?.verified_vehicle_snapshot ||
+      raw?.quoted_vehicle_snapshot ||
+      raw?.vehicle ||
+      {}
+    ) as Partial<VehiclePricingSnapshot>
+    setVehicleSnapshot({
+      vehicle_type: booking.vehicle_type,
+      engine_type: source.engine_type || null,
+      motorbike_cc_group: source.motorbike_cc_group || null,
+      car_body_type: source.car_body_type || null,
+      seat_count: source.seat_count || null,
+    })
+    setPriceReview(null)
+    setCustomerConfirmed(false)
+    setAdjustmentReason('')
+    setClassificationVerified(raw?.pricing_review_status !== 'REVIEW_REQUIRED')
+  }, [])
 
   useEffect(() => {
     const bookingId = searchParams.get('bookingId')
@@ -149,7 +196,7 @@ export function CheckInPage() {
 
         if (booking.status === 'CONFIRMED') {
           setResults([booking])
-          setSelectedId(booking.id)
+          selectBooking(booking)
           setHasSearched(true)
           setValue('query', booking.license_plate)
           return
@@ -173,7 +220,7 @@ export function CheckInPage() {
     return () => {
       cancelled = true
     }
-  }, [searchParams, getBookingById, setValue, checkInSearch])
+  }, [searchParams, getBookingById, setValue, checkInSearch, selectBooking])
 
   const onSearch = async (data: SearchFormValues) => {
     setSubmitError(null)
@@ -182,11 +229,11 @@ export function CheckInPage() {
     try {
       const found = await checkInSearch.mutateAsync(data.query)
       setResults(found)
-      setSelectedId(found.length === 1 ? found[0].id : null)
+      selectBooking(found.length === 1 ? found[0] : null)
       setHasSearched(true)
     } catch (error) {
       setResults([])
-      setSelectedId(null)
+      selectBooking(null)
       setHasSearched(true)
       setSubmitError(
         getApiErrorMessage(error, 'Không thể tìm booking. Vui lòng thử lại.'),
@@ -229,12 +276,78 @@ export function CheckInPage() {
     setSuccessMessage(result.message)
     setCheckedInBookingId(selectedId)
     setResults([])
-    setSelectedId(null)
+    selectBooking(null)
     setHasSearched(false)
     setValue('query', '')
     // Clear ?bookingId để tránh useEffect loadBookingFromLink chạy lại booking vừa check-in
     if (searchParams.get('bookingId')) {
       setSearchParams({}, { replace: true })
+    }
+  }
+
+  const updateVehicleSnapshot = (
+    values: Partial<VehiclePricingSnapshot>,
+  ) => {
+    setVehicleSnapshot((current) => (current ? { ...current, ...values } : current))
+    setPriceReview(null)
+    setClassificationVerified(false)
+    setCustomerConfirmed(false)
+  }
+
+  const handleReviewPrice = async () => {
+    if (!selectedBooking || !vehicleSnapshot) return
+    setSubmitError(null)
+    setIsReviewingPrice(true)
+    try {
+      const review = await reviewBookingVehiclePriceApi(
+        selectedBooking.id,
+        vehicleSnapshot,
+      )
+      setPriceReview(review)
+      setClassificationVerified(!review.requires_customer_confirmation)
+      if (!review.requires_customer_confirmation) {
+        showToast('Phân loại xe thực tế khớp với booking.', 'success')
+      }
+    } catch (error) {
+      setSubmitError(
+        getApiErrorMessage(
+          error,
+          'Không thể xác minh giá hoặc garage không còn đủ công suất.',
+        ),
+      )
+    } finally {
+      setIsReviewingPrice(false)
+    }
+  }
+
+  const handleConfirmPrice = async () => {
+    if (
+      !selectedBooking ||
+      !vehicleSnapshot ||
+      !customerConfirmed ||
+      adjustmentReason.trim().length < 3
+    ) {
+      setSubmitError('Cần khách xác nhận và nhập lý do chênh lệch.')
+      return
+    }
+    setSubmitError(null)
+    setIsConfirmingPrice(true)
+    try {
+      const result = await confirmBookingVehiclePriceApi(selectedBooking.id, {
+        vehicle_snapshot: vehicleSnapshot,
+        customer_confirmed: true,
+        reason: adjustmentReason.trim(),
+      })
+      setPriceReview(result.review)
+      setClassificationVerified(true)
+      await refreshBookings()
+      showToast('Đã ghi nhận khách xác nhận chênh lệch.', 'success')
+    } catch (error) {
+      setSubmitError(
+        getApiErrorMessage(error, 'Không thể xác nhận chênh lệch giá.'),
+      )
+    } finally {
+      setIsConfirmingPrice(false)
     }
   }
 
@@ -281,7 +394,7 @@ export function CheckInPage() {
       await refreshBookings()
       setLateArrival(null)
       setResults([])
-      setSelectedId(null)
+      selectBooking(null)
       setHasSearched(false)
       setValue('query', '')
       if (searchParams.get('bookingId')) {
@@ -292,8 +405,18 @@ export function CheckInPage() {
   }
 
   const checkInGuard = selectedBooking
-    ? getCheckInGuard(selectedBooking, session?.staffProfile.garage_id)
+    ? getCheckInGuard(
+        selectedBooking,
+        session?.staffProfile.garage_id ?? undefined,
+      )
     : { allowed: false, reason: 'Vui lòng chọn booking cần check-in.' }
+
+  const verifiedCheckInGuard = classificationVerified
+    ? checkInGuard
+    : {
+        allowed: false,
+        reason: 'Cần xác minh phân loại xe thực tế trước khi check-in.',
+      }
 
   const isSearching = isSubmitting || checkInSearch.isPending
 
@@ -363,7 +486,7 @@ export function CheckInPage() {
                     key={booking.id}
                     booking={booking}
                     selected={selectedId === booking.id}
-                    onSelect={() => setSelectedId(booking.id)}
+                    onSelect={() => selectBooking(booking)}
                   />
                 ))}
               </div>
@@ -389,8 +512,171 @@ export function CheckInPage() {
                   </div>
                 </dl>
 
+                {vehicleSnapshot ? (
+                  <div className="mt-4 space-y-3 border-t border-slate-200 pt-4">
+                    <p className="text-sm font-semibold text-slate-900">
+                      Phân loại xe thực tế
+                    </p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <Label htmlFor="checkin-engine" required>
+                          Động cơ
+                        </Label>
+                        <Select
+                          id="checkin-engine"
+                          value={vehicleSnapshot.engine_type || ''}
+                          onChange={(event) =>
+                            updateVehicleSnapshot({
+                              engine_type:
+                                (event.target.value as 'GASOLINE' | 'ELECTRIC') ||
+                                null,
+                            })
+                          }
+                        >
+                          <option value="">Chọn động cơ</option>
+                          <option value="GASOLINE">Xăng</option>
+                          <option value="ELECTRIC">Điện</option>
+                        </Select>
+                      </div>
+                      {vehicleSnapshot.vehicle_type === 'CAR' ? (
+                        <>
+                          <div>
+                            <Label htmlFor="checkin-body" required>
+                              Kiểu dáng
+                            </Label>
+                            <Select
+                              id="checkin-body"
+                              value={vehicleSnapshot.car_body_type || ''}
+                              onChange={(event) =>
+                                updateVehicleSnapshot({
+                                  car_body_type:
+                                    (event.target
+                                      .value as VehiclePricingSnapshot['car_body_type']) ||
+                                    null,
+                                })
+                              }
+                            >
+                              <option value="">Chọn kiểu dáng</option>
+                              <option value="HATCHBACK">Hatchback</option>
+                              <option value="SEDAN">Sedan</option>
+                              <option value="SUV">SUV</option>
+                              <option value="MPV">MPV</option>
+                              <option value="PICKUP">Pickup</option>
+                              <option value="VAN">Van</option>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label htmlFor="checkin-seats" required>
+                              Số chỗ
+                            </Label>
+                            <Input
+                              id="checkin-seats"
+                              type="number"
+                              min={2}
+                              max={16}
+                              value={vehicleSnapshot.seat_count || ''}
+                              onChange={(event) =>
+                                updateVehicleSnapshot({
+                                  seat_count: event.target.value
+                                    ? Number(event.target.value)
+                                    : null,
+                                })
+                              }
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <div>
+                          <Label htmlFor="checkin-cc" required>
+                            Phân khối
+                          </Label>
+                          <Select
+                            id="checkin-cc"
+                            value={vehicleSnapshot.motorbike_cc_group || ''}
+                            onChange={(event) =>
+                              updateVehicleSnapshot({
+                                motorbike_cc_group:
+                                  (event.target
+                                    .value as VehiclePricingSnapshot['motorbike_cc_group']) ||
+                                  null,
+                              })
+                            }
+                          >
+                            <option value="">Chọn phân khối</option>
+                            <option value="UNDER_175CC">Dưới 175cc</option>
+                            <option value="OVER_175CC">Từ 175cc</option>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      variant="secondary"
+                      fullWidth
+                      disabled={isReviewingPrice}
+                      onClick={handleReviewPrice}
+                    >
+                      {isReviewingPrice ? 'Đang kiểm tra...' : 'Kiểm tra phân loại và giá'}
+                    </Button>
+
+                    {priceReview?.requires_customer_confirmation ? (
+                      <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                        <p className="font-semibold text-amber-900">
+                          Xe thực tế khác khai báo, cần khách xác nhận
+                        </p>
+                        <div className="grid gap-2 text-sm sm:grid-cols-2">
+                          <span>
+                            Giá cũ: {formatPrice(priceReview.previous_final_price)}
+                          </span>
+                          <span>
+                            Giá mới: {formatPrice(priceReview.adjusted_final_price)}
+                          </span>
+                          <span>
+                            Thời lượng cũ: {priceReview.previous_duration_minutes} phút
+                          </span>
+                          <span>
+                            Thời lượng mới: {priceReview.adjusted_duration_minutes} phút
+                          </span>
+                        </div>
+                        <Textarea
+                          value={adjustmentReason}
+                          onChange={(event) => setAdjustmentReason(event.target.value)}
+                          placeholder="Lý do điều chỉnh phân loại"
+                        />
+                        <label className="flex items-start gap-2 text-sm text-amber-900">
+                          <input
+                            type="checkbox"
+                            className="mt-1"
+                            checked={customerConfirmed}
+                            onChange={(event) =>
+                              setCustomerConfirmed(event.target.checked)
+                            }
+                          />
+                          Khách đã xem và đồng ý giá, thời lượng mới
+                        </label>
+                        <Button
+                          fullWidth
+                          disabled={
+                            isConfirmingPrice ||
+                            !customerConfirmed ||
+                            adjustmentReason.trim().length < 3
+                          }
+                          onClick={handleConfirmPrice}
+                        >
+                          {isConfirmingPrice
+                            ? 'Đang xác nhận...'
+                            : 'Ghi nhận khách xác nhận'}
+                        </Button>
+                      </div>
+                    ) : classificationVerified ? (
+                      <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+                        Đã xác minh phân loại xe và công suất phục vụ.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 <GuardedActionButton
-                  guard={checkInGuard}
+                  guard={verifiedCheckInGuard}
                   fullWidth
                   className="mt-4"
                   disabled={isCheckingIn}

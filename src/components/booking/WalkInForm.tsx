@@ -1,7 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
+import { getApiErrorMessage } from '../../api/client'
+import { createWalkInPriceQuoteApi } from '../../api/pricing.api'
 import { useBookings } from '../../contexts/BookingContext'
 import {
   walkInSchema,
@@ -9,6 +11,7 @@ import {
 } from '../../lib/validations/walkIn'
 import type { WalkInBookingForm } from '../../types/booking'
 import type { VehicleType } from '../../types/washBay'
+import type { PriceQuote } from '../../types/api/pricing'
 import {
   getWalkInStartTime,
   type WalkInTimeSlotOption,
@@ -26,6 +29,7 @@ interface WalkInFormProps {
   onSubmit: (data: WalkInBookingForm) => Promise<void>
   isSubmitting?: boolean
   garage?: {
+    id: string
     name: string
     code?: string
   }
@@ -53,11 +57,16 @@ export function WalkInForm({
   const [timeSlot, setTimeSlot] = useState<WalkInTimeSlotOption>('now')
   const [customTime, setCustomTime] = useState('')
   const [selectedAddOnIds, setSelectedAddOnIds] = useState<string[]>([])
+  const [quoteResult, setQuoteResult] = useState<{
+    requestKey: string
+    quote: PriceQuote | null
+    error: string | null
+  } | null>(null)
 
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     setValue,
     formState: { errors },
   } = useForm<WalkInFormValues>({
@@ -68,13 +77,21 @@ export function WalkInForm({
       guest_email: '',
       license_plate: '',
       vehicle_type: 'CAR',
+      engine_type: 'GASOLINE',
+      motorbike_cc_group: null,
+      car_body_type: null,
+      seat_count: null,
       service_package_id: '',
       promotion_code: '',
       note: '',
     },
   })
 
-  const vehicleType = watch('vehicle_type')
+  const vehicleType = useWatch({ control, name: 'vehicle_type' })
+  const engineType = useWatch({ control, name: 'engine_type' })
+  const motorbikeCcGroup = useWatch({ control, name: 'motorbike_cc_group' })
+  const carBodyType = useWatch({ control, name: 'car_body_type' })
+  const seatCount = useWatch({ control, name: 'seat_count' })
 
   /**
    * Quan trọng: phải đồng bộ vehicle_type với BookingContext để BE fetch
@@ -99,7 +116,7 @@ export function WalkInForm({
       setServicePackageVehicleType(null)
     }
   }, [setServicePackageVehicleType])
-  const servicePackageId = watch('service_package_id')
+  const servicePackageId = useWatch({ control, name: 'service_package_id' })
 
   const packages = useMemo(
     () =>
@@ -143,22 +160,6 @@ export function WalkInForm({
     return new Set([selectedPackage.id])
   }, [selectedPackage])
 
-  useEffect(() => {
-    if (
-      servicePackageId &&
-      !packages.some((pkg) => pkg.id === servicePackageId)
-    ) {
-      setValue('service_package_id', '')
-    }
-    setSelectedAddOnIds((current) =>
-      current.filter(
-        (id) =>
-          addOnPackages.some((pkg) => pkg.id === id) &&
-          !includedInPrimaryPackage.has(id),
-      ),
-    )
-  }, [packages, addOnPackages, servicePackageId, setValue, includedInPrimaryPackage])
-
   /**
    * So khớp ID an toàn: chấp nhận cả string lẫn ObjectId (BE có thể trả ObjectId,
    * FE lưu string). Nếu DB chứa ObjectId, `===` thường sẽ miss → dùng `.toString()`.
@@ -176,6 +177,111 @@ export function WalkInForm({
     timeSlot,
     timeSlot === 'custom' ? customTime : undefined,
   )
+  const validSelectedAddOnIds = useMemo(
+    () =>
+      selectedAddOnIds.filter(
+        (id) =>
+          addOnPackages.some((pkg) => pkg.id === id) &&
+          !includedInPrimaryPackage.has(id),
+      ),
+    [selectedAddOnIds, addOnPackages, includedInPrimaryPackage],
+  )
+  const classificationReady =
+    Boolean(engineType) &&
+    (vehicleType === 'CAR'
+      ? Boolean(carBodyType && seatCount)
+      : Boolean(motorbikeCcGroup))
+  const quoteRequestKey =
+    garage?.id && servicePackageId && classificationReady
+      ? JSON.stringify([
+          garage.id,
+          servicePackageId,
+          [...validSelectedAddOnIds].sort(),
+          vehicleType,
+          engineType,
+          motorbikeCcGroup,
+          carBodyType,
+          seatCount,
+          previewStartTime || 'NOW',
+        ])
+      : null
+  const priceQuote =
+    quoteResult?.requestKey === quoteRequestKey ? quoteResult.quote : null
+  const quoteError =
+    quoteResult?.requestKey === quoteRequestKey ? quoteResult.error : null
+  const quotedPriceByServiceId = useMemo(
+    () =>
+      new Map(
+        (priceQuote?.items ?? []).map((item) => [
+          item.service_package_id,
+          item.price_snapshot,
+        ]),
+      ),
+    [priceQuote],
+  )
+  const isQuoting = Boolean(
+    quoteRequestKey && quoteResult?.requestKey !== quoteRequestKey,
+  )
+
+  useEffect(() => {
+    if (!garage?.id || !servicePackageId || !quoteRequestKey) {
+      return
+    }
+
+    let cancelled = false
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const quote = await createWalkInPriceQuoteApi({
+          garage_id: garage.id,
+          vehicle_snapshot: {
+            vehicle_type: vehicleType,
+            engine_type: engineType,
+            motorbike_cc_group:
+              vehicleType === 'MOTORBIKE' ? motorbikeCcGroup || null : null,
+            car_body_type: vehicleType === 'CAR' ? carBodyType || null : null,
+            seat_count: vehicleType === 'CAR' ? seatCount || null : null,
+          },
+          service_package_id: servicePackageId,
+          add_on_service_ids: validSelectedAddOnIds,
+          effective_at: previewStartTime || new Date().toISOString(),
+        })
+        if (!cancelled) {
+          setQuoteResult({
+            requestKey: quoteRequestKey,
+            quote,
+            error: null,
+          })
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setQuoteResult({
+            requestKey: quoteRequestKey,
+            quote: null,
+            error: getApiErrorMessage(
+              error,
+              'Không có bảng giá phù hợp với phân loại xe này.',
+            ),
+          })
+        }
+      }
+    }, 350)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeoutId)
+    }
+  }, [
+    garage?.id,
+    servicePackageId,
+    quoteRequestKey,
+    validSelectedAddOnIds,
+    vehicleType,
+    engineType,
+    motorbikeCcGroup,
+    carBodyType,
+    seatCount,
+    previewStartTime,
+  ])
 
   const handleFormSubmit = async (data: WalkInFormValues) => {
     if (timeSlot === 'custom' && !customTime) {
@@ -194,11 +300,9 @@ export function WalkInForm({
       return
     }
 
-    // Defensive: loại bỏ add-on trùng với service đã có trong gói combo primary
-    // trước khi gửi payload — tránh trường hợp BE trả lỗi DUPLICATE_SERVICE_ITEM.
-    const safeAddOnIds = selectedAddOnIds.filter(
-      (id) => !isAddOnConflictingWithPrimary(id),
-    )
+    if (!priceQuote) {
+      return
+    }
 
     await onSubmit({
       guest_name: data.guest_name,
@@ -206,12 +310,23 @@ export function WalkInForm({
       guest_email: data.guest_email?.trim() || '',
       license_plate: data.license_plate,
       vehicle_type: data.vehicle_type,
+      engine_type: data.engine_type,
+      motorbike_cc_group:
+        data.vehicle_type === 'MOTORBIKE'
+          ? data.motorbike_cc_group || null
+          : null,
+      car_body_type:
+        data.vehicle_type === 'CAR' ? data.car_body_type || null : null,
+      seat_count: data.vehicle_type === 'CAR' ? data.seat_count || null : null,
+      quote_id: priceQuote.id,
       service_package_id: data.service_package_id,
       serve_now: timeSlot === 'now',
       start_time,
       promotion_code: data.promotion_code?.trim() || undefined,
       add_on_service_ids:
-        safeAddOnIds.length > 0 ? safeAddOnIds : undefined,
+        validSelectedAddOnIds.length > 0
+          ? validSelectedAddOnIds
+          : undefined,
       note: data.note || undefined,
     })
   }
@@ -241,6 +356,70 @@ export function WalkInForm({
             {...register('guest_name')}
           />
         </div>
+
+        <div>
+          <Label htmlFor="engine_type" required>
+            Loại động cơ
+          </Label>
+          <Select id="engine_type" {...register('engine_type')}>
+            <option value="GASOLINE">Xăng</option>
+            <option value="ELECTRIC">Điện</option>
+          </Select>
+        </div>
+
+        {vehicleType === 'CAR' ? (
+          <>
+            <div>
+              <Label htmlFor="car_body_type" required>
+                Kiểu dáng
+              </Label>
+              <Select
+                id="car_body_type"
+                error={errors.car_body_type?.message}
+                {...register('car_body_type')}
+              >
+                <option value="">Chọn kiểu dáng</option>
+                <option value="HATCHBACK">Hatchback</option>
+                <option value="SEDAN">Sedan</option>
+                <option value="SUV">SUV</option>
+                <option value="MPV">MPV</option>
+                <option value="PICKUP">Pickup</option>
+                <option value="VAN">Van</option>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="seat_count" required>
+                Số chỗ ngồi
+              </Label>
+              <Input
+                id="seat_count"
+                type="number"
+                min={2}
+                max={16}
+                error={errors.seat_count?.message}
+                {...register('seat_count', {
+                  setValueAs: (value) =>
+                    value === '' || value === undefined ? null : Number(value),
+                })}
+              />
+            </div>
+          </>
+        ) : (
+          <div>
+            <Label htmlFor="motorbike_cc_group" required>
+              Nhóm phân khối
+            </Label>
+            <Select
+              id="motorbike_cc_group"
+              error={errors.motorbike_cc_group?.message}
+              {...register('motorbike_cc_group')}
+            >
+              <option value="">Chọn nhóm phân khối</option>
+              <option value="UNDER_175CC">Dưới 175cc</option>
+              <option value="OVER_175CC">Từ 175cc</option>
+            </Select>
+          </div>
+        )}
 
         <div>
           <Label htmlFor="guest_phone" required>
@@ -284,7 +463,15 @@ export function WalkInForm({
           <Label htmlFor="vehicle_type" required>
             Loại xe
           </Label>
-          <Select id="vehicle_type" {...register('vehicle_type')}>
+          <Select
+            id="vehicle_type"
+            {...register('vehicle_type', {
+              onChange: () => {
+                setValue('service_package_id', '')
+                setSelectedAddOnIds([])
+              },
+            })}
+          >
             <option value="CAR">{VEHICLE_TYPE_LABELS.CAR}</option>
             <option value="MOTORBIKE">{VEHICLE_TYPE_LABELS.MOTORBIKE}</option>
           </Select>
@@ -297,12 +484,14 @@ export function WalkInForm({
           <Select
             id="service_package_id"
             error={errors.service_package_id?.message}
-            {...register('service_package_id')}
+            {...register('service_package_id', {
+              onChange: () => setSelectedAddOnIds([]),
+            })}
           >
             <option value="">Chọn gói dịch vụ</option>
             {packages.map((pkg) => (
               <option key={pkg.id} value={pkg.id}>
-                {pkg.name} — {formatPrice(pkg.base_price)}
+                {pkg.name} — Từ {formatPrice(pkg.base_price)}
               </option>
             ))}
           </Select>
@@ -357,7 +546,9 @@ export function WalkInForm({
                       ) : null}
                     </span>
                     <span className="mt-0.5 block text-slate-500">
-                      {formatPrice(pkg.base_price)}
+                      {quotedPriceByServiceId.has(pkg.id)
+                        ? formatPrice(quotedPriceByServiceId.get(pkg.id) ?? 0)
+                        : `Từ ${formatPrice(pkg.base_price)}`}
                     </span>
                   </span>
                 </label>
@@ -373,6 +564,25 @@ export function WalkInForm({
           ) : null}
         </div>
       ) : null}
+
+      <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+        {isQuoting ? (
+          <span className="text-slate-600">Đang lấy báo giá...</span>
+        ) : priceQuote ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="font-medium text-slate-700">
+              Báo giá theo phân loại xe
+            </span>
+            <span className="font-bold text-brand-700">
+              {formatPrice(priceQuote.subtotal)} · {priceQuote.total_duration_minutes} phút
+            </span>
+          </div>
+        ) : (
+          <span className={quoteError ? 'text-red-600' : 'text-slate-500'}>
+            {quoteError || 'Chọn đủ phân loại xe và dịch vụ để lấy báo giá.'}
+          </span>
+        )}
+      </div>
 
       <div>
         <Label htmlFor="promotion_code">Mã khuyến mãi</Label>
@@ -443,7 +653,9 @@ export function WalkInForm({
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm text-brand-800">
             <span>{selectedPackage.name}</span>
             <span className="font-semibold">
-              {formatPrice(selectedPackage.base_price)}
+              {priceQuote
+                ? formatPrice(priceQuote.subtotal)
+                : 'Đang lấy báo giá...'}
             </span>
           </div>
           <p className="mt-1 text-xs text-brand-700">
@@ -453,7 +665,7 @@ export function WalkInForm({
         </div>
       ) : null}
 
-      <Button type="submit" fullWidth disabled={isSubmitting}>
+      <Button type="submit" fullWidth disabled={isSubmitting || !priceQuote}>
         {isSubmitting ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />

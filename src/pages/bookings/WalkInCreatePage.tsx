@@ -99,6 +99,7 @@ export function WalkInCreatePage() {
               garage={
                 session?.garage
                   ? {
+                      id: session.garage.id,
                       name: session.garage.name,
                       code: session.garage.garage_code,
                     }

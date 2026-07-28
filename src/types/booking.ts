@@ -94,6 +94,11 @@ export interface WalkInBookingForm {
   guest_email?: string
   license_plate: string
   vehicle_type: VehicleType
+  engine_type: 'GASOLINE' | 'ELECTRIC'
+  motorbike_cc_group?: 'UNDER_175CC' | 'OVER_175CC' | null
+  car_body_type?: 'HATCHBACK' | 'SEDAN' | 'SUV' | 'MPV' | 'PICKUP' | 'VAN' | null
+  seat_count?: number | null
+  quote_id?: string
   service_package_id: string
   /** Scheduled walk-in — omit when serve_now is true. */
   start_time?: string

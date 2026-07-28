@@ -75,9 +75,12 @@ export const adminNavItems: AdminNavItem[] = [
   },
   {
     label: 'Gói dịch vụ',
-    path: '/admin/services/packages',
     icon: Package,
     section: 'management',
+    children: [
+      { label: 'Danh sách gói', path: '/admin/services/packages' },
+      { label: 'Bảng giá phân loại', path: '/admin/services/prices' },
+    ],
   },
   {
     label: 'Đặt lịch',
@@ -179,6 +182,7 @@ export const ADMIN_NAV_EXPAND_PREFIXES: Array<{
 }> = [
   { prefix: '/admin/users', groupLabel: 'Người dùng' },
   { prefix: '/admin/garages', groupLabel: 'Garage' },
+  { prefix: '/admin/services', groupLabel: 'Gói dịch vụ' },
   { prefix: '/admin/bookings', groupLabel: 'Đặt lịch' },
   { prefix: '/admin/wash-histories', groupLabel: 'Đặt lịch' },
   { prefix: '/admin/loyalty', groupLabel: 'Loyalty' },

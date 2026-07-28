@@ -14,6 +14,10 @@ export interface ApiBookingVehicle {
   raw_license_plate: string
   normalized_license_plate: string
   vehicle_type: VehicleType
+  engine_type?: 'GASOLINE' | 'ELECTRIC' | null
+  motorbike_cc_group?: 'UNDER_175CC' | 'OVER_175CC' | null
+  car_body_type?: 'HATCHBACK' | 'SEDAN' | 'SUV' | 'MPV' | 'PICKUP' | 'VAN' | null
+  seat_count?: number | null
   brand?: string
   model?: string
   color?: string
@@ -134,6 +138,9 @@ export interface ApiBooking {
   license_plate: string | null
   normalized_license_plate?: string | null
   vehicle_type: VehicleType
+  quoted_vehicle_snapshot?: import('./pricing').VehiclePricingSnapshot | null
+  verified_vehicle_snapshot?: import('./pricing').VehiclePricingSnapshot | null
+  pricing_review_status?: 'NOT_REQUIRED' | 'REVIEW_REQUIRED' | 'CUSTOMER_ACCEPTED'
   created_by_staff_id?: string | null
   garage_id: string
   wash_bay_id: string | null
@@ -508,6 +515,11 @@ export interface WalkInBookingApiPayload {
   service_package_id: string
   license_plate: string
   vehicle_type: VehicleType
+  engine_type: 'GASOLINE' | 'ELECTRIC'
+  motorbike_cc_group?: 'UNDER_175CC' | 'OVER_175CC' | null
+  car_body_type?: 'HATCHBACK' | 'SEDAN' | 'SUV' | 'MPV' | 'PICKUP' | 'VAN' | null
+  seat_count?: number | null
+  quote_id?: string
   start_time?: string
   serve_now?: boolean
   suggestion_days?: number

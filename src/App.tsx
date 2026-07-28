@@ -35,6 +35,7 @@ import {
   AdminServicePackageFormPage,
   AdminServicePackageListPage,
   AdminServicePackageStepsPage,
+  AdminServicePriceRulesPage,
   AdminSettingsPage,
   AdminCustomerVouchersPage,
   AdminStaffFormPage,
@@ -281,6 +282,14 @@ function App() {
                   element={
                     <LazyPage>
                       <AdminServicePackageStepsPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/services/prices"
+                  element={
+                    <LazyPage>
+                      <AdminServicePriceRulesPage />
                     </LazyPage>
                   }
                 />

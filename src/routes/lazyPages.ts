@@ -127,6 +127,11 @@ export const AdminServicePackageStepsPage = lazyNamed(
   'AdminServicePackageStepsPage',
 )
 
+export const AdminServicePriceRulesPage = lazyNamed(
+  () => import('../pages/admin/services/AdminServicePriceRulesPage'),
+  'AdminServicePriceRulesPage',
+)
+
 export const AdminBookingListPage = lazyNamed(
   () => import('../pages/admin/bookings/AdminBookingListPage'),
   'AdminBookingListPage',
