@@ -17,7 +17,7 @@ export type MockLoginErrorCode =
 export interface StaffAuthSession {
   user: User
   staffProfile: StaffProfile
-  garage: Garage
+  garage: Garage | null
 }
 
 const ERROR_MESSAGES: Record<MockLoginErrorCode, string> = {
@@ -80,7 +80,8 @@ export function mockStaffLogin(
     throw new MockLoginError('STAFF_INACTIVE')
   }
 
-  const { password: _password, ...user } = account
+  const { password: accountPassword, ...user } = account
+  void accountPassword
 
   return {
     user,

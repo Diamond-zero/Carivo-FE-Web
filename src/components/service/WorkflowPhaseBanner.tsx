@@ -6,6 +6,7 @@
  */
 
 import { Camera, CheckCircle2, CircleAlert, ShieldAlert } from 'lucide-react'
+import type { ReactNode } from 'react'
 import type {
   ApiWorkspaceWorkflow,
   AvailableAction,
@@ -271,7 +272,7 @@ function buildInspectionHints(
 function buildServiceItemHint(
   workflow: ApiWorkspaceWorkflow | null | undefined,
   blockers: WorkflowBlocker[],
-): string | null {
+): ReactNode {
   if (!workflow || !blockers.includes('SERVICE_ITEMS_NOT_DONE')) {
     return null
   }

@@ -46,7 +46,7 @@ export function InspectionPage() {
       seen.add(booking.id)
       const guard = getCreateInspectionGuard(
         booking,
-        session?.staffProfile.garage_id,
+        session?.staffProfile.garage_id ?? undefined,
         session?.user?.id,
       )
       return guard.allowed

@@ -41,6 +41,11 @@ import { getAssignWashBayGuard } from '../../utils/bookingActionGuards'
 import { bookingRequiresWashBay } from '../../utils/washBay'
 import { useStaffBookingDetail } from '../../hooks/api/staff/useStaffBookingDetail'
 import { useStaffCapabilities } from '../../hooks/useCan'
+import {
+  getApiErrorCode,
+  getApiErrorMessage,
+  getApiStatusCode,
+} from '../../api/client'
 
 export function BookingDetailPage() {
   const { id } = useParams()
@@ -86,7 +91,7 @@ export function BookingDetailPage() {
     if (id && booking && ['IN_PROGRESS', 'CHECKED_IN', 'COMPLETED'].includes(booking.status)) {
       void fetchServiceSteps(id)
     }
-  }, [id, booking?.status, fetchServiceSteps])
+  }, [id, booking, booking?.status, fetchServiceSteps])
 
   useEffect(() => {
     const state = location.state as { openMarkPaid?: boolean } | null
@@ -108,13 +113,29 @@ export function BookingDetailPage() {
   }
 
   if (!booking) {
+    const status = getApiStatusCode(detailQuery.error)
+    const code = getApiErrorCode(detailQuery.error)
+    const isForbidden = status === 403
+    const isNotFound = status === 404 || code === 'BOOKING_NOT_FOUND'
+
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center text-center">
         <h1 className="text-xl font-semibold text-slate-900">
-          Không tìm thấy booking
+          {isForbidden
+            ? 'Bạn không có quyền xem chi tiết booking này'
+            : isNotFound
+              ? 'Không tìm thấy booking'
+              : 'Không thể tải chi tiết booking'}
         </h1>
         <p className="mt-2 text-sm text-slate-500">
-          Mã booking không tồn tại trong hệ thống.
+          {isForbidden
+            ? 'Booking tồn tại nhưng không thuộc phạm vi chi tiết được phân công cho tài khoản này.'
+            : isNotFound
+              ? 'Mã booking không tồn tại trong hệ thống.'
+              : getApiErrorMessage(
+                  detailQuery.error,
+                  'Không thể tải dữ liệu booking. Vui lòng thử lại.',
+                )}
         </p>
         <Link to="/bookings" className="mt-6">
           <Button variant="secondary">
@@ -126,7 +147,7 @@ export function BookingDetailPage() {
     )
   }
 
-  const staffGarageId = session?.staffProfile.garage_id
+  const staffGarageId = session?.staffProfile.garage_id ?? undefined
   const listAction = getBookingListAction(booking, staffGarageId, staffCapabilities)
   const serviceSteps = id ? getServiceStepsByBookingId(id) : []
   const washBay = booking.wash_bay_id

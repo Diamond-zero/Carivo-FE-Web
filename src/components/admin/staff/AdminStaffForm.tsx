@@ -80,20 +80,26 @@ export function AdminStaffForm({
     },
   })
 
-  const form = mode === 'create' ? createForm : editForm
-  const errors = form.formState.errors
+  const handleFormSubmit =
+    mode === 'create'
+      ? createForm.handleSubmit((values) =>
+          (onSubmit as (data: AdminStaffCreateFormValues) => Promise<void>)(values),
+        )
+      : editForm.handleSubmit((values) =>
+          (onSubmit as (data: AdminStaffEditFormValues) => Promise<void>)(values),
+        )
   const isActive = statusControl?.isActive ?? initialRecord?.profile.is_active ?? true
   const isToggling = statusControl?.isToggling ?? false
   const onToggleStatus = statusControl?.onToggle
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+    <form onSubmit={handleFormSubmit} className="space-y-5">
       <div>
         <Label htmlFor="user_id">Tài khoản nhân viên (user_id)</Label>
         {mode === 'create' ? (
           <Select
             id="user_id"
-            error={errors.user_id?.message}
+            error={createForm.formState.errors.user_id?.message}
             {...createForm.register('user_id')}
           >
             <option value="">Chọn tài khoản STAFF</option>
@@ -126,8 +132,14 @@ export function AdminStaffForm({
           <Input
             id="staff_code"
             placeholder="Vd. STF009, CARE003, INSP001…"
-            error={errors.staff_code?.message}
-            {...form.register('staff_code')}
+            error={
+              mode === 'create'
+                ? createForm.formState.errors.staff_code?.message
+                : editForm.formState.errors.staff_code?.message
+            }
+            {...(mode === 'create'
+              ? createForm.register('staff_code')
+              : editForm.register('staff_code'))}
           />
           <p className="mt-1 text-xs text-slate-500">
             2–30 ký tự, chỉ gồm chữ cái, chữ số, gạch dưới (_) hoặc gạch
@@ -140,7 +152,7 @@ export function AdminStaffForm({
             <Label htmlFor="staff_type">Vai trò</Label>
             <Select
               id="staff_type"
-              error={errors.staff_type?.message}
+              error={createForm.formState.errors.staff_type?.message}
               {...createForm.register('staff_type')}
             >
               {STAFF_TYPES.map((type) => (
@@ -184,8 +196,14 @@ export function AdminStaffForm({
         <Label htmlFor="garage_id">Garage làm việc</Label>
         <Select
           id="garage_id"
-          error={errors.garage_id?.message}
-          {...form.register('garage_id')}
+          error={
+            mode === 'create'
+              ? createForm.formState.errors.garage_id?.message
+              : editForm.formState.errors.garage_id?.message
+          }
+          {...(mode === 'create'
+            ? createForm.register('garage_id')
+            : editForm.register('garage_id'))}
         >
           <option value="">Chưa phân công garage</option>
           {garages.map((garage) => (

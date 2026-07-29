@@ -140,12 +140,14 @@ export function AdminCustomerVehiclesPage() {
     <div className="space-y-6">
       <PageHeader
         title={`Phương tiện của ${customer?.full_name ?? 'khách hàng'}`}
-        subtitle="Quản lý danh sách xe đã đăng ký cho khách hàng"
+        description="Quản lý danh sách xe đã đăng ký cho khách hàng"
         action={
           <div className="flex items-center gap-2">
-            <Button variant="secondary" as={Link} to={`/admin/users/customers/${customerId}`}>
-              <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại
-            </Button>
+            <Link to={`/admin/users/customers/${customerId}`}>
+              <Button variant="secondary">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại
+              </Button>
+            </Link>
             <Button onClick={openCreate}>
               <Plus className="mr-2 h-4 w-4" /> Thêm phương tiện
             </Button>
@@ -223,7 +225,7 @@ function VehicleGroup({ title, vehicles, onEdit }: VehicleGroupProps) {
     <Card className="p-6">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-        <Badge tone="neutral">{vehicles.length}</Badge>
+        <Badge>{vehicles.length}</Badge>
       </div>
       {vehicles.length === 0 ? (
         <p className="rounded-lg border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
@@ -246,7 +248,7 @@ function VehicleGroup({ title, vehicles, onEdit }: VehicleGroupProps) {
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                {vehicle.is_default ? <Badge tone="brand">Mặc định</Badge> : null}
+                {vehicle.is_default ? <Badge variant="info">Mặc định</Badge> : null}
                 <Button variant="ghost" size="sm" onClick={() => onEdit(vehicle)}>
                   <Pencil className="h-4 w-4" /> Sửa
                 </Button>

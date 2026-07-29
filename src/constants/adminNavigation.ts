@@ -6,6 +6,7 @@ import {
   CircleDollarSign,
   ClipboardList,
   FileSearch,
+  FolderKanban,
   Gift,
   LayoutDashboard,
   MessageSquare,
@@ -129,6 +130,12 @@ export const adminNavItems: AdminNavItem[] = [
     section: 'management',
   },
   {
+    label: 'Hồ sơ khiếu nại',
+    path: '/admin/customer-cases',
+    icon: FolderKanban,
+    section: 'management',
+  },
+  {
     label: 'Đổi chức năng nhân viên',
     icon: ArrowRightLeft,
     section: 'management',
@@ -190,6 +197,7 @@ export const ADMIN_NAV_EXPAND_PREFIXES: Array<{
   { prefix: '/admin/staff-type-change-requests', groupLabel: 'Đổi chức năng nhân viên' },
   { prefix: '/admin/staff-type-change-history', groupLabel: 'Đổi chức năng nhân viên' },
   { prefix: '/admin/customer-vouchers', groupLabel: 'Voucher bồi thường' },
+  { prefix: '/admin/customer-cases', groupLabel: 'Hồ sơ khiếu nại' },
   { prefix: '/admin/arrivals', groupLabel: 'Vận hành cổng' },
   { prefix: '/admin/payments', groupLabel: 'Thanh toán' },
 ]

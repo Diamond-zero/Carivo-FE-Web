@@ -91,10 +91,10 @@ export function useAdminCustomers(filters: AdminCustomerListFilters = {}) {
     gcTime: 5 * 60_000,
   })
 
-  const allCustomers: User[] = query.data ?? []
+  const allCustomers: User[] = useMemo(() => query.data ?? [], [query.data])
   const customers = useMemo(
     () => filterUsers(allCustomers, filters),
-    [allCustomers, filters.query, filters.isActiveFilter],
+    [allCustomers, filters],
   )
 
   return {
@@ -197,7 +197,10 @@ export function useAdminCustomerDetail(customerId?: string) {
   const bookingsQuery = useQuery({
     queryKey: adminQueryKeys.bookings({ customer_id: customerId }),
     queryFn: async () => {
-      const result = await getStaffBookingsApi({ customer_id: customerId })
+      const result = await getStaffBookingsApi({
+        customer_id: customerId,
+        limit: 100,
+      })
       return result.bookings
         .map(mapApiBooking)
         .sort(
@@ -462,7 +465,7 @@ export function useDeleteAdminCustomer() {
         )
       }
     },
-    onSettled: (_data, userId) => {
+    onSettled: (_data, _error, userId) => {
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.users() })
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.customers() })
       void queryClient.invalidateQueries({

@@ -43,7 +43,6 @@ import {
   CardHeader,
   CardTitle,
 } from '../../../components/ui/Card'
-import { Label } from '../../../components/ui/Label'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { useToast } from '../../../contexts/ToastContext'
 import {
@@ -101,6 +100,16 @@ export function StaffPlateScanDetailPage() {
   const [alternateModalOpen, setAlternateModalOpen] = useState(false)
   const [retryFiles, setRetryFiles] = useState<File[]>([])
   const [retryIsUploading, setRetryIsUploading] = useState(false)
+  const candidates: ApiPlateScanCandidate[] = useMemo(
+    () => detailQuery.data?.candidates ?? [],
+    [detailQuery.data?.candidates],
+  )
+  const selectedCandidate = useMemo(
+    () =>
+      candidates.find((candidate) => candidate.booking_id === selectedCandidateId) ??
+      null,
+    [candidates, selectedCandidateId],
+  )
 
   if (detailQuery.isLoading) return <DashboardPageSkeleton />
 
@@ -124,7 +133,6 @@ export function StaffPlateScanDetailPage() {
   }
 
   const scan = detailQuery.data
-  const candidates: ApiPlateScanCandidate[] = scan.candidates ?? []
   const frames: ApiPlateScanFrame[] = scan.frame_results ?? []
   const status = scan.status
 
@@ -139,12 +147,6 @@ export function StaffPlateScanDetailPage() {
     status === 'REJECTED' ||
     status === 'EXPIRED' ||
     status === 'FAILED'
-
-  const selectedCandidate = useMemo(
-    () =>
-      candidates.find((c) => c.booking_id === selectedCandidateId) ?? null,
-    [candidates, selectedCandidateId],
-  )
 
   const requiresOverride =
     selectedCandidate !== null && selectedCandidate.match_type !== 'EXACT'

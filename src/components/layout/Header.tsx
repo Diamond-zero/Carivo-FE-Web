@@ -4,11 +4,7 @@ import { STAFF_TYPE_COLORS, STAFF_TYPE_LABELS } from '../../constants/staffType'
 import { useAuth } from '../../contexts/AuthContext'
 import { cn } from '../../lib/utils'
 
-interface HeaderProps {
-  onMenuClick?: () => void
-}
-
-export function Header({ onMenuClick: _onMenuClick }: HeaderProps) {
+export function Header() {
   const navigate = useNavigate()
   const { session, logout } = useAuth()
 
@@ -30,7 +26,7 @@ export function Header({ onMenuClick: _onMenuClick }: HeaderProps) {
             </h1>
             <div className="flex items-center gap-1.5 text-xs text-slate-500">
               <MapPin className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">{garage.name}</span>
+              <span className="truncate">{garage?.name ?? 'Chưa phân garage'}</span>
             </div>
           </div>
         </div>

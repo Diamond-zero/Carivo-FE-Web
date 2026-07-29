@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form'
 import { useAdminCustomers } from '../../../hooks/api/admin/useAdminCustomers'
 import {
   adminVehicleCreateSchema,
-  vehicleBaseFormSchema,
   type AdminVehicleCreateValues,
   type VehicleFormValues,
 } from '../../../lib/validations/adminVehicle'
@@ -56,27 +55,10 @@ export function AdminVehicleFormModal({
 }: AdminVehicleFormModalProps) {
   const { allCustomers } = useAdminCustomers()
 
-  const createForm = useForm<AdminVehicleCreateValues>({
+  const form = useForm<AdminVehicleCreateValues>({
     resolver: zodResolver(adminVehicleCreateSchema),
     defaultValues: {
       customer_id: fixedCustomerId ?? '',
-      raw_license_plate: '',
-      vehicle_type: 'CAR',
-      engine_type: 'GASOLINE',
-      motorbike_cc_group: null,
-      car_body_type: 'SEDAN',
-      seat_count: 4,
-      brand: '',
-      model: '',
-      color: '',
-      is_default: false,
-      is_active: true,
-    },
-  })
-
-  const editForm = useForm<VehicleFormValues>({
-    resolver: zodResolver(vehicleBaseFormSchema),
-    defaultValues: {
       raw_license_plate: '',
       vehicle_type: 'CAR',
       engine_type: 'GASOLINE',
@@ -95,8 +77,8 @@ export function AdminVehicleFormModal({
     if (!open) return
 
     if (mode === 'create') {
-      createForm.reset({
-        customer_id: fixedCustomerId ?? allCustomers[0]?.user.id ?? '',
+      form.reset({
+        customer_id: fixedCustomerId ?? allCustomers[0]?.id ?? '',
         raw_license_plate: '',
         vehicle_type: 'CAR',
         engine_type: 'GASOLINE',
@@ -113,7 +95,8 @@ export function AdminVehicleFormModal({
     }
 
     if (initialVehicle) {
-      editForm.reset({
+      form.reset({
+        customer_id: initialVehicle.customer_id,
         raw_license_plate: initialVehicle.raw_license_plate,
         vehicle_type: initialVehicle.vehicle_type,
         engine_type: initialVehicle.engine_type ?? 'GASOLINE',
@@ -127,13 +110,11 @@ export function AdminVehicleFormModal({
         is_active: initialVehicle.is_active,
       })
     }
-  }, [open, mode, initialVehicle, fixedCustomerId, createForm, editForm, allCustomers])
+  }, [open, mode, initialVehicle, fixedCustomerId, form, allCustomers])
 
-  const vehicleType = (mode === 'create'
-    ? createForm.watch('vehicle_type')
-    : editForm.watch('vehicle_type')) as 'MOTORBIKE' | 'CAR'
+  const vehicleType = form.watch('vehicle_type')
 
-  const renderFields = (form: typeof createForm | typeof editForm) => (
+  const renderFields = () => (
     <div className="space-y-4">
       {mode === 'create' && !fixedCustomerId ? (
         <div>
@@ -147,8 +128,8 @@ export function AdminVehicleFormModal({
           >
             <option value="">Chọn khách hàng</option>
             {allCustomers.map((customer) => (
-              <option key={customer.user.id} value={customer.user.id}>
-                {customer.user.full_name} — {customer.user.phone}
+              <option key={customer.id} value={customer.id}>
+                {customer.full_name} — {customer.phone}
               </option>
             ))}
           </Select>
@@ -322,10 +303,10 @@ export function AdminVehicleFormModal({
     >
       {mode === 'create' ? (
         <form
-          onSubmit={createForm.handleSubmit((values) => onSubmit(values))}
+          onSubmit={form.handleSubmit((values) => onSubmit(values))}
           className="space-y-5"
         >
-          {renderFields(createForm)}
+          {renderFields()}
           <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
             <Button type="button" variant="secondary" onClick={onClose}>
               Hủy
@@ -344,10 +325,24 @@ export function AdminVehicleFormModal({
         </form>
       ) : (
         <form
-          onSubmit={editForm.handleSubmit((values) => onSubmit(values))}
+          onSubmit={form.handleSubmit((values) =>
+            onSubmit({
+              raw_license_plate: values.raw_license_plate,
+              vehicle_type: values.vehicle_type,
+              engine_type: values.engine_type,
+              motorbike_cc_group: values.motorbike_cc_group,
+              car_body_type: values.car_body_type,
+              seat_count: values.seat_count,
+              brand: values.brand,
+              model: values.model,
+              color: values.color,
+              is_default: values.is_default,
+              is_active: values.is_active,
+            }),
+          )}
           className="space-y-5"
         >
-          {renderFields(editForm)}
+          {renderFields()}
           <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
             <Button type="button" variant="secondary" onClick={onClose}>
               Hủy

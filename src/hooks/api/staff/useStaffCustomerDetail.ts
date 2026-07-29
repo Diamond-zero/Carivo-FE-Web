@@ -16,7 +16,7 @@ import { staffQueryKeys } from './queryKeys'
 export function useStaffCustomerDetail(customerId?: string) {
   const { session, isAuthenticated } = useAuth()
   const { bookings } = useBookings()
-  const garageId = session?.staffProfile.garage_id
+  const garageId = session?.staffProfile.garage_id ?? undefined
 
   const profileQuery = useQuery({
     queryKey: staffQueryKeys.customerDetail(garageId, customerId),

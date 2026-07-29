@@ -51,8 +51,6 @@ export interface UseCameraCaptureOptions {
   width?: number
   /** Height canvas (BE yêu cầu tối thiểu 360px). */
   height?: number
-  /** Tự start stream khi mount. Mặc định false. */
-  autoStart?: boolean
 }
 
 const DEFAULT_MAX_FRAMES = 5
@@ -120,7 +118,6 @@ export function useCameraCapture(options: UseCameraCaptureOptions = {}) {
     quality = DEFAULT_QUALITY,
     width = DEFAULT_WIDTH,
     height = DEFAULT_HEIGHT,
-    autoStart = false,
   } = options
 
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -239,14 +236,6 @@ export function useCameraCapture(options: UseCameraCaptureOptions = {}) {
       })
     }
   }, [stopStream])
-
-  // autoStart
-  useEffect(() => {
-    if (autoStart && status === 'idle') {
-      void start()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoStart])
 
   // ---- Capture ------------------------------------------------------------
 

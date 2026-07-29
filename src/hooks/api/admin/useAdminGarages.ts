@@ -101,10 +101,10 @@ export function useAdminGarages(filters: AdminGarageListFilters = {}) {
     staleTime: 30_000,
   })
 
-  const allGarages = query.data ?? []
+  const allGarages = useMemo(() => query.data ?? [], [query.data])
   const garages = useMemo(
     () => filterGarageSummaries(allGarages, filters),
-    [allGarages, filters.query, filters.statusFilter],
+    [allGarages, filters],
   )
 
   return {

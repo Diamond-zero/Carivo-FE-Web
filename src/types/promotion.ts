@@ -1,6 +1,8 @@
 import type { LoyaltyTier } from './loyalty'
 import type { VehicleType } from './washBay'
 
+export type { LoyaltyTier } from './loyalty'
+
 export type DiscountType = 'PERCENTAGE' | 'FIXED_AMOUNT'
 export type PromotionAudience = 'ALL' | 'CUSTOMER' | 'WALK_IN'
 

@@ -1,7 +1,27 @@
 import type { Promotion } from '../../types/promotion'
 
+const promotionDefaults = {
+  audience: 'ALL',
+  phone_required: false,
+  per_phone_limit: null,
+  applicable_vehicle_types: [],
+  applicable_service_package_ids: [],
+  per_customer_limit: null,
+  reserved_count: 0,
+} satisfies Pick<
+  Promotion,
+  | 'audience'
+  | 'phone_required'
+  | 'per_phone_limit'
+  | 'applicable_vehicle_types'
+  | 'applicable_service_package_ids'
+  | 'per_customer_limit'
+  | 'reserved_count'
+>
+
 export const mockAdminPromotions: Promotion[] = [
   {
+    ...promotionDefaults,
     id: 'promo-001',
     code: 'CARIVO10',
     name: 'Giảm 10% đơn đầu',
@@ -18,6 +38,7 @@ export const mockAdminPromotions: Promotion[] = [
     is_active: true,
   },
   {
+    ...promotionDefaults,
     id: 'promo-002',
     code: 'GOLD50K',
     name: 'Voucher Gold 50K',
@@ -34,6 +55,7 @@ export const mockAdminPromotions: Promotion[] = [
     is_active: true,
   },
   {
+    ...promotionDefaults,
     id: 'promo-003',
     code: 'WEEKEND15',
     name: 'Cuối tuần -15%',
@@ -50,6 +72,7 @@ export const mockAdminPromotions: Promotion[] = [
     is_active: true,
   },
   {
+    ...promotionDefaults,
     id: 'promo-004',
     code: 'BIKE20K',
     name: 'Xe máy giảm 20K',
@@ -66,6 +89,7 @@ export const mockAdminPromotions: Promotion[] = [
     is_active: false,
   },
   {
+    ...promotionDefaults,
     id: 'promo-005',
     code: 'PLATINUMVIP',
     name: 'Platinum VIP',

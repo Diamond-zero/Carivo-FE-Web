@@ -5,7 +5,6 @@ import type {
   ApiResearchReport,
   ApiResearchFilters,
   ApiSurvey,
-  ApiSurveyQuestion,
   ApiSurveyResponse,
 } from '../types/api/admin'
 import { apiClient } from './client'
@@ -143,6 +142,7 @@ export async function submitSurveyResponseApi(
 export interface ResearchListParams {
   page?: number
   limit?: number
+  search?: string
   status?: 'DRAFT' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
   type?: 'SURVEY_INSIGHT'
   created_by?: string

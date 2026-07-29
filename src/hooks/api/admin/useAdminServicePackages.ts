@@ -76,16 +76,10 @@ export function useAdminServicePackages(filters: AdminServicePackageListFilters 
     staleTime: 30_000,
   })
 
-  const allPackages = query.data ?? []
+  const allPackages = useMemo(() => query.data ?? [], [query.data])
   const packages = useMemo(
     () => filterServicePackages(allPackages, filters),
-    [
-      allPackages,
-      filters.query,
-      filters.vehicleTypeFilter,
-      filters.serviceTypeFilter,
-      filters.statusFilter,
-    ],
+    [allPackages, filters],
   )
 
   return {

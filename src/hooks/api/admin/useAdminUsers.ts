@@ -82,10 +82,10 @@ export function useAdminUsers(filters: AdminUsersListFilters = {}) {
     staleTime: 30_000,
   })
 
-  const allUsers = query.data ?? []
+  const allUsers = useMemo(() => query.data ?? [], [query.data])
   const users = useMemo(
     () => filterUsers(allUsers, filters),
-    [allUsers, filters.query, filters.roleFilter, filters.isActiveFilter],
+    [allUsers, filters],
   )
 
   return {

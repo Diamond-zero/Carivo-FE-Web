@@ -85,7 +85,22 @@ export function CameraCapturePanel({
   className,
   submitLabel = 'Gửi nhận diện',
 }: CameraCapturePanelProps) {
-  const camera = useCameraCapture({
+  const {
+    videoRef,
+    canvasRef,
+    isStreaming,
+    error,
+    errorMessage,
+    frames,
+    remainingFrames,
+    isSupported,
+    start,
+    stop,
+    reset,
+    capture,
+    clearFrames,
+    removeFrame,
+  } = useCameraCapture({
     maxFrames: 5,
     width: 1280,
     height: 720,
@@ -102,7 +117,7 @@ export function CameraCapturePanel({
 
     setIsShutterPressed(true)
     try {
-      const frame = await camera.capture()
+      const frame = await capture()
       if (!frame) {
         // Có thể camera chưa ready; silent — staff thấy state preview vẫn idle.
       }
@@ -110,11 +125,11 @@ export function CameraCapturePanel({
       // Animation nút shutter
       setTimeout(() => setIsShutterPressed(false), 200)
     }
-  }, [camera])
+  }, [capture])
 
   // Spacebar / Enter trigger capture khi streaming (tiện cho tablet)
   useEffect(() => {
-    if (!camera.isStreaming) return
+    if (!isStreaming) return
     const handler = (event: KeyboardEvent) => {
       // Tránh trigger khi đang focus vào input/textarea
       const target = event.target as HTMLElement | null
@@ -133,40 +148,40 @@ export function CameraCapturePanel({
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [camera.isStreaming, handleCapture])
+  }, [isStreaming, handleCapture])
 
   const handleSubmit = useCallback(() => {
-    if (camera.frames.length === 0 || isSubmitting) return
-    const files = camera.frames.map((frame) => frame.file)
+    if (frames.length === 0 || isSubmitting) return
+    const files = frames.map((frame) => frame.file)
     const mode = files.length > 1 ? 'LIVE_BATCH' : 'SINGLE'
     onSubmit(files, mode)
-  }, [camera.frames, isSubmitting, onSubmit])
+  }, [frames, isSubmitting, onSubmit])
 
   const handleStart = useCallback(() => {
-    void camera.start()
-  }, [camera])
+    void start()
+  }, [start])
 
   const handleStop = useCallback(() => {
-    camera.stop()
-  }, [camera])
+    stop()
+  }, [stop])
 
   const handleRemoveFrame = useCallback(
     (index: number) => {
-      camera.removeFrame(index)
+      removeFrame(index)
     },
-    [camera],
+    [removeFrame],
   )
 
   const handleRetake = useCallback(() => {
-    camera.clearFrames()
-    if (!camera.isStreaming) {
-      void camera.start()
+    clearFrames()
+    if (!isStreaming) {
+      void start()
     }
-  }, [camera])
+  }, [clearFrames, isStreaming, start])
 
   // ---- Render: states -----------------------------------------------------
 
-  if (!camera.isSupported) {
+  if (!isSupported) {
     return (
       <div
         className={cn(
@@ -186,8 +201,8 @@ export function CameraCapturePanel({
     )
   }
 
-  if (camera.error) {
-    const copy = ERROR_COPY[camera.error]
+  if (error) {
+    const copy = ERROR_COPY[error]
     return (
       <div
         className={cn(
@@ -200,9 +215,9 @@ export function CameraCapturePanel({
           {copy.title}
         </p>
         <p className="mt-1">{copy.description}</p>
-        {camera.errorMessage ? (
+        {errorMessage ? (
           <p className="mt-2 font-mono text-xs text-red-700">
-            {camera.errorMessage}
+            {errorMessage}
           </p>
         ) : null}
         <Button
@@ -210,8 +225,8 @@ export function CameraCapturePanel({
           variant="secondary"
           className="mt-3"
           onClick={() => {
-            camera.reset()
-            void camera.start()
+            reset()
+            void start()
           }}
         >
           <RefreshCcw className="h-3.5 w-3.5" />
@@ -226,18 +241,18 @@ export function CameraCapturePanel({
       {/* ----- Video preview / placeholder ----- */}
       <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-900 shadow-[var(--shadow-carivo-sm)]">
         <video
-          ref={camera.videoRef}
+          ref={videoRef}
           className={cn(
             'h-full w-full object-cover',
-            camera.isStreaming ? 'block' : 'hidden',
+            isStreaming ? 'block' : 'hidden',
           )}
           autoPlay
           playsInline
           muted
         />
-        <canvas ref={camera.canvasRef} className="hidden" />
+        <canvas ref={canvasRef} className="hidden" />
 
-        {!camera.isStreaming ? (
+        {!isStreaming ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-300">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-800/80">
               <Video className="h-8 w-8" />
@@ -250,7 +265,7 @@ export function CameraCapturePanel({
         ) : null}
 
         {/* Status overlay */}
-        {camera.isStreaming ? (
+        {isStreaming ? (
           <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-red-600/95 px-2.5 py-1 text-xs font-semibold text-white">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/80 opacity-75" />
@@ -260,17 +275,17 @@ export function CameraCapturePanel({
           </div>
         ) : null}
 
-        {camera.isStreaming ? (
+        {isStreaming ? (
           <div className="absolute right-3 top-3">
             <Badge variant="default" className="bg-black/60 text-white">
-              {camera.frames.length} / 5 frame
-              {camera.frames.length > 1 ? 's' : ''}
+              {frames.length} / 5 frame
+              {frames.length > 1 ? 's' : ''}
             </Badge>
           </div>
         ) : null}
 
         {/* Overlay hướng dẫn cho staff */}
-        {camera.isStreaming && camera.frames.length === 0 ? (
+        {isStreaming && frames.length === 0 ? (
           <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
             <Badge variant="default" className="bg-black/60 text-white">
               Căn biển số vào khung, nhấn Space / Chụp để capture
@@ -281,7 +296,7 @@ export function CameraCapturePanel({
 
       {/* ----- Capture controls ----- */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        {!camera.isStreaming ? (
+        {!isStreaming ? (
           <Button onClick={handleStart} disabled={isSubmitting}>
             <Video className="h-4 w-4" />
             Bật camera
@@ -294,7 +309,7 @@ export function CameraCapturePanel({
             </Button>
             <Button
               onClick={handleCapture}
-              disabled={isSubmitting || camera.frames.length >= 5}
+              disabled={isSubmitting || frames.length >= 5}
               size="lg"
               className={cn(
                 'transition-transform',
@@ -302,12 +317,12 @@ export function CameraCapturePanel({
               )}
             >
               <Camera className="h-5 w-5" />
-              Chụp {camera.remainingFrames > 0 ? `(${camera.remainingFrames} còn lại)` : ''}
+              Chụp {remainingFrames > 0 ? `(${remainingFrames} còn lại)` : ''}
             </Button>
           </div>
         )}
 
-        {camera.frames.length > 0 ? (
+        {frames.length > 0 ? (
           <Button
             variant="ghost"
             size="sm"
@@ -321,14 +336,14 @@ export function CameraCapturePanel({
       </div>
 
       {/* ----- Captured frames preview ----- */}
-      {camera.frames.length > 0 ? (
+      {frames.length > 0 ? (
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
           <Label className="mb-2">
-            Frame đã chụp ({camera.frames.length}
-            {camera.frames.length > 1 ? ' — LIVE_BATCH' : ' — SINGLE'})
+            Frame đã chụp ({frames.length}
+            {frames.length > 1 ? ' — LIVE_BATCH' : ' — SINGLE'})
           </Label>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-            {camera.frames.map((frame: CapturedFrame, index: number) => (
+            {frames.map((frame: CapturedFrame, index: number) => (
               <div
                 key={frame.previewUrl}
                 className="group relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-100"
@@ -359,12 +374,12 @@ export function CameraCapturePanel({
       {/* ----- Submit ----- */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-slate-500">
-          {camera.frames.length === 0 ? (
+          {frames.length === 0 ? (
             <>
               <CircleSlash className="mr-1 inline h-3 w-3" />
               Chưa có frame nào.
             </>
-          ) : camera.frames.length === 1 ? (
+          ) : frames.length === 1 ? (
             <>
               <ImageIcon className="mr-1 inline h-3 w-3" />
               Sẽ gửi 1 ảnh (SINGLE mode).
@@ -372,13 +387,13 @@ export function CameraCapturePanel({
           ) : (
             <>
               <ImageIcon className="mr-1 inline h-3 w-3" />
-              Sẽ gửi {camera.frames.length} ảnh (LIVE_BATCH mode — BE sẽ vote kết quả).
+              Sẽ gửi {frames.length} ảnh (LIVE_BATCH mode — BE sẽ vote kết quả).
             </>
           )}
         </p>
         <Button
           onClick={handleSubmit}
-          disabled={camera.frames.length === 0 || isSubmitting}
+          disabled={frames.length === 0 || isSubmitting}
           className="min-w-[140px]"
         >
           {isSubmitting ? (
@@ -391,7 +406,7 @@ export function CameraCapturePanel({
       </div>
 
       {/* Hidden trigger cho screen reader */}
-      <button type="button" onClick={() => camera.clearFrames()} className="hidden">
+      <button type="button" onClick={clearFrames} className="hidden">
         <Trash2 />
       </button>
     </div>

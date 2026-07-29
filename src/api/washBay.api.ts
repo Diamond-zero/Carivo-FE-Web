@@ -25,6 +25,13 @@ export interface WashBayCreatePayload {
 
 export type WashBayUpdatePayload = Partial<Omit<WashBayCreatePayload, 'garage_id' | 'status'>>
 
+export async function getStaffWorkspaceWashBaysApi() {
+  const { data } = await apiClient.get<ApiResponse<ApiWashBay[]>>(
+    '/staff/workspace/wash-bays',
+  )
+  return data.data
+}
+
 export async function getGarageWashBaysApi(garageId: string) {
   const { data } = await apiClient.get<ApiResponse<ApiWashBay[]>>(
     `/admin/garages/${garageId}/wash-bays`,

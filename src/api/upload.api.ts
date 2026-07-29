@@ -8,7 +8,9 @@ export type UploadPurpose =
   | 'USER_AVATAR'
   | 'VEHICLE_INSPECTION'
   | 'SURVEY_RESPONSE'
+  | 'CUSTOMER_CASE_EVIDENCE'
   | 'RESEARCH_ATTACHMENT'
+  | 'BOOKING_PLATE_SCAN'
 
 export type UploadRelatedType =
   | 'USER'
@@ -17,10 +19,12 @@ export type UploadRelatedType =
   | 'VEHICLE_INSPECTION'
   | 'SURVEY'
   | 'SURVEY_RESPONSE'
+  | 'CUSTOMER_CASE'
   | 'RESEARCH_REPORT'
   | 'WASH_HISTORY'
   | 'GARAGE'
   | 'SERVICE_PACKAGE'
+  | 'BOOKING_PLATE_SCAN'
 
 export interface UploadFileOptions {
   purpose?: UploadPurpose
@@ -47,7 +51,8 @@ export async function uploadFileApi(
   const formData = new FormData()
   formData.append('file', file)
   if (options.purpose) formData.append('purpose', options.purpose)
-  if (options.related_type) formData.append('related_type', options.related_type)
+  if (options.related_type)
+    formData.append('related_type', options.related_type)
   if (options.related_id) formData.append('related_id', options.related_id)
 
   const { data } = await apiClient.post<ApiResponse<UploadApiResponse>>(

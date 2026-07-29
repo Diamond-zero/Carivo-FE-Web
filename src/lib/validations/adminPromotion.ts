@@ -27,9 +27,7 @@ export const adminPromotionFormSchema = z
     description: z
       .string()
       .trim()
-      .max(2000, 'Mô tả tối đa 2000 ký tự')
-      .optional()
-      .default(''),
+      .max(2000, 'Mô tả tối đa 2000 ký tự'),
     discount_type: z.enum(discountTypes, { message: 'Chọn loại giảm giá' }),
     discount_value: z
       .number({ message: 'Nhập số tiền hoặc phần trăm giảm hợp lệ' })
@@ -47,10 +45,9 @@ export const adminPromotionFormSchema = z
       .number({ message: 'Nhập đơn tối thiểu hợp lệ' })
       .finite()
       .min(MIN_ORDER_AMOUNT_MIN, 'Đơn tối thiểu không được âm')
-      .max(FIXED_AMOUNT_MAX, `Đơn tối thiểu tối đa ${FIXED_AMOUNT_MAX.toLocaleString('vi-VN')} VND`)
-      .default(0),
-    audience: z.enum(audiences).default('ALL'),
-    phone_required: z.boolean().default(false),
+      .max(FIXED_AMOUNT_MAX, `Đơn tối thiểu tối đa ${FIXED_AMOUNT_MAX.toLocaleString('vi-VN')} VND`),
+    audience: z.enum(audiences),
+    phone_required: z.boolean(),
     per_phone_limit: z
       .number({ message: 'Nhập giới hạn mỗi SĐT hợp lệ' })
       .finite()
@@ -62,8 +59,8 @@ export const adminPromotionFormSchema = z
     applicable_tiers: z
       .array(z.enum(loyaltyTiers))
       .min(1, 'Chọn ít nhất 1 hạng áp dụng'),
-    applicable_vehicle_types: z.array(z.enum(vehicleTypes)).default([]),
-    applicable_service_package_ids: z.array(z.string()).default([]),
+    applicable_vehicle_types: z.array(z.enum(vehicleTypes)),
+    applicable_service_package_ids: z.array(z.string()),
     usage_limit: z
       .number({ message: 'Nhập giới hạn hợp lệ' })
       .finite()
@@ -175,11 +172,8 @@ export function fromDatetimeLocalValue(value: string) {
 export function fromDatetimeLocalToApiIso(value: string): string {
   if (!value) return value
 
-  const [datePart, timePart = '00:00'] = value.split('T')
+  const [datePart] = value.split('T')
   if (!datePart) return value
-
-  const [hours = '00', minutes = '00'] = timePart.split(':')
-  const seconds = '00'
 
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) {

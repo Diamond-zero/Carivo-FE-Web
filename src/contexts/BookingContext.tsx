@@ -28,12 +28,14 @@ import {
   createPayosPaymentApi,
   markBookingPaidWithCashApi,
 } from '../api/payment.api'
-import { getAvailableWashBaysApi } from '../api/washBay.api'
+import {
+  getAvailableWashBaysApi,
+  getStaffWorkspaceWashBaysApi,
+} from '../api/washBay.api'
 import { getWashHistoriesApi } from '../api/washHistory.api'
 import { getApiErrorMessage } from '../api/client'
 import { useAuth } from './AuthContext'
 import {
-  deriveWashBaysFromBookings,
   mapApiBooking,
   mapApiInspection,
   mapApiServicePackage,
@@ -57,6 +59,7 @@ import type { CreateInspectionInput } from '../utils/inspection'
 import { getSelectableWashBays } from '../utils/washBay'
 import { buildWalkInBookingPayload, getStaffGarageId } from '../utils/walkIn'
 import { staffQueryKeys, workspaceQueryKeys, staffTaskQueryKeys } from '../hooks/api/staff/queryKeys'
+import { useMyCapabilities } from '../hooks/api/staff/useStaffCapabilities'
 import { mapWashHistoriesWithBookingFallback } from '../utils/washHistoryEnrichment'
 import { DEFAULT_BOOKING_FILTERS, toBookingListApiParams } from '../utils/bookingFilters'
 
@@ -81,6 +84,9 @@ interface BookingContextValue {
   servicePackages: ServicePackage[]
   inspections: VehicleInspection[]
   washBays: WashBay[]
+  isLoadingWashBays: boolean
+  isWashBaysError: boolean
+  washBaysError: string | null
   washHistories: WashHistory[]
   isLoadingWashHistories: boolean
   isWashHistoriesError: boolean
@@ -122,6 +128,7 @@ interface BookingContextValue {
   startService: (
     bookingId: string,
     note?: string,
+    allowEarlyStart?: boolean,
   ) => Promise<ActionResult>
   completeServiceStep: (
     stepId: string,
@@ -145,8 +152,12 @@ const BookingContext = createContext<BookingContextValue | null>(null)
 
 export function BookingProvider({ children }: { children: ReactNode }) {
   const { session, isAuthenticated } = useAuth()
+  const staffCapabilities = useMyCapabilities()
   const queryClient = useQueryClient()
-  const garageId = session?.staffProfile.garage_id
+  const garageId = session?.staffProfile.garage_id ?? undefined
+  const canReadWashHistories = staffCapabilities.includes(
+    'wash_history.read_garage',
+  )
 
   const [stepsByBooking, setStepsByBooking] = useState<
     Record<string, BookingServiceStep[]>
@@ -168,11 +179,14 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     Booking['vehicle_type'] | null
   >(null)
 
-  // Staff không có quyền GET /admin/garages/:id/wash-bays — suy buồng rửa từ bookings.
   const washBaysQuery = useQuery({
     queryKey: staffQueryKeys.washBays(garageId),
-    queryFn: async () => [] as WashBay[],
-    enabled: false,
+    queryFn: async () => {
+      const washBays = await getStaffWorkspaceWashBaysApi()
+      return washBays.map((washBay) => mapApiWashBay(washBay, garageId))
+    },
+    enabled: isAuthenticated && Boolean(garageId),
+    staleTime: 30_000,
   })
 
   const bookingsQuery = useQuery({
@@ -215,52 +229,42 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       // walk-in / bản ghi cũ mà payload list BE không populate `vehicle` /
       // `customer`. Nếu bookings fetch fail (vd staff bị đổi garage), vẫn trả
       // danh sách gốc để UI không trắng trơn.
-      let cachedBookings: ApiBooking[] = []
+      let cachedBookings: ApiBooking[]
       try {
-        await queryClient.ensureQueryData({
+        const cached = await queryClient.ensureQueryData<{ raw: ApiBooking[] }>({
           queryKey: staffQueryKeys.bookings(garageId),
         })
-        cachedBookings =
-          queryClient.getQueryData<{ raw: ApiBooking[] }>(
-            staffQueryKeys.bookings(garageId),
-          )?.raw ?? []
+        cachedBookings = cached.raw
       } catch {
         cachedBookings = []
       }
 
       return mapWashHistoriesWithBookingFallback(result.histories, cachedBookings)
     },
-    enabled: isAuthenticated && Boolean(garageId),
+    enabled:
+      isAuthenticated &&
+      Boolean(garageId) &&
+      canReadWashHistories,
     staleTime: 30_000,
   })
 
-  const bookings = bookingsQuery.data?.mapped ?? []
-  const rawBookings: ApiBooking[] = bookingsQuery.data?.raw ?? []
-  const servicePackages = servicePackagesQuery.data ?? []
-  const washHistories = washHistoriesQuery.data ?? []
+  const bookings = useMemo(
+    () => bookingsQuery.data?.mapped ?? [],
+    [bookingsQuery.data?.mapped],
+  )
+  const servicePackages = useMemo(
+    () => servicePackagesQuery.data ?? [],
+    [servicePackagesQuery.data],
+  )
+  const washHistories = useMemo(
+    () => washHistoriesQuery.data ?? [],
+    [washHistoriesQuery.data],
+  )
 
   const washBays = useMemo(() => {
     if (!garageId) return []
-
-    const apiBays = washBaysQuery.data ?? []
-    const baseBays =
-      apiBays.length > 0
-        ? apiBays
-        : deriveWashBaysFromBookings(rawBookings, garageId)
-
-    const bayMap = new Map(baseBays.map((bay) => [bay.id, { ...bay }]))
-
-    for (const booking of rawBookings) {
-      if (booking.status !== 'IN_PROGRESS' || !booking.wash_bay_id) continue
-      const bay = bayMap.get(booking.wash_bay_id)
-      if (bay) {
-        bay.status = 'OCCUPIED'
-        bay.current_booking_id = booking.id
-      }
-    }
-
-    return Array.from(bayMap.values())
-  }, [garageId, washBaysQuery.data, rawBookings])
+    return washBaysQuery.data ?? []
+  }, [garageId, washBaysQuery.data])
 
   const invalidateBookings = useCallback(async () => {
     await queryClient.invalidateQueries({
@@ -696,6 +700,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
 
   const completeServiceStep = useCallback(
     (stepId: string, _staffProfileId: string) => {
+      void _staffProfileId
       const bookingId = findBookingIdByStepId(stepId)
       if (!bookingId) {
         return Promise.resolve({
@@ -747,8 +752,9 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   )
 
   const createInspection = useCallback(
-    (data: CreateInspectionInput, _staffProfileId: string) =>
-      wrapMutation(
+    (data: CreateInspectionInput, staffProfileId: string) => {
+      void staffProfileId
+      return wrapMutation(
         async () =>
           createInspectionMutation.mutateAsync({
             bookingId: data.booking_id,
@@ -756,7 +762,8 @@ export function BookingProvider({ children }: { children: ReactNode }) {
           }),
         'Đã lưu biên bản kiểm tra.',
         (inspection) => ({ inspectionId: inspection.id }),
-      ),
+      )
+    },
     [createInspectionMutation],
   )
 
@@ -782,6 +789,14 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       servicePackages,
       inspections: allInspections,
       washBays,
+      isLoadingWashBays: washBaysQuery.isLoading,
+      isWashBaysError: washBaysQuery.isError,
+      washBaysError: washBaysQuery.isError
+        ? getApiErrorMessage(
+            washBaysQuery.error,
+            'Không thể tải danh sách buồng rửa.',
+          )
+        : null,
       washHistories,
       isLoadingWashHistories: washHistoriesQuery.isLoading,
       isWashHistoriesError: washHistoriesQuery.isError,
@@ -826,6 +841,9 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       servicePackages,
       allInspections,
       washBays,
+      washBaysQuery.isLoading,
+      washBaysQuery.isError,
+      washBaysQuery.error,
       washHistories,
       washHistoriesQuery.isLoading,
       washHistoriesQuery.isError,

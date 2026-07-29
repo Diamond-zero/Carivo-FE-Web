@@ -9,7 +9,7 @@ import {
   type ReleaseHandoverPayload,
   type WalkInAcceptHandoverPayload,
 } from '../../../api/handover.api'
-import { staffQueryKeys } from './queryKeys'
+import { workspaceQueryKeys } from './queryKeys'
 
 export const staffHandoverQueryKeys = {
   detail: (bookingId: string) => ['staff', 'handover', bookingId] as const,
@@ -55,10 +55,10 @@ function invalidateHandoverAndBooking(
     queryKey: ['staff', 'booking', 'detail', bookingId],
   })
   void queryClient.invalidateQueries({
-    queryKey: staffQueryKeys.workspaceDetail(bookingId),
+    queryKey: workspaceQueryKeys.workflow(bookingId),
   })
   void queryClient.invalidateQueries({
-    queryKey: staffQueryKeys.workspaceBookings,
+    queryKey: ['workspace', 'bookings'],
   })
 }
 

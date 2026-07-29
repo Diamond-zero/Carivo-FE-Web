@@ -73,16 +73,7 @@ export function useAdminWashHistories(filters: AdminWashHistoryFilters = {}) {
   const { isAuthenticated } = useAdminAuth()
   const apiParams = useMemo(
     () => toAdminWashHistoryListParams(filters),
-    [
-      filters.garageId,
-      filters.customerId,
-      filters.servicePackageId,
-      filters.vehicleType,
-      filters.from,
-      filters.to,
-      filters.page,
-      filters.limit,
-    ],
+    [filters],
   )
 
   return useQuery({

@@ -96,7 +96,7 @@ export function AdminCustomerListTable({
         ),
       }),
     ],
-    [],
+    [onDelete, onToggleActive],
   )
 
   return (

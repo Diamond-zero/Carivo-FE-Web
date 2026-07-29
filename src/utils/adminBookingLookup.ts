@@ -1,13 +1,15 @@
-import type { Booking, BookingStatus, PaymentStatus } from '../types/booking'
+import type { Booking, BookingStatus } from '../types/booking'
 import type { VehicleType } from '../types/washBay'
 import { normalizeSearchText } from './booking'
 import { getAdminBookingPhone } from './adminBooking'
+
+export type AdminBookingPaymentStatus = 'UNPAID' | 'PENDING' | 'PAID' | 'WAIVED'
 
 export interface AdminBookingFilters {
   garageId: string | 'ALL'
   status: BookingStatus | 'ALL'
   vehicleType: VehicleType | 'ALL'
-  paymentStatus: PaymentStatus | 'ALL'
+  paymentStatus: AdminBookingPaymentStatus | 'ALL'
   dateFrom: string
   dateTo: string
   query: string

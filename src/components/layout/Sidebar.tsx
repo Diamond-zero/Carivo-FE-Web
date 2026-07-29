@@ -76,24 +76,22 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       if (list.length === 0) return true
       return list.some((c) => staffCapabilities.includes(c))
     }
-    return staffNavItems
-      .map((item) => {
+    return staffNavItems.flatMap<StaffNavItem>((item) => {
         if (!matchesAny(item.requiredCapability)) {
-          return null
+          return []
         }
         const visibleChildren = item.children?.filter((child) =>
           matchesAny(child.requiredCapability),
         )
         // Nếu là group mà cả children đều ẩn → ẩn luôn group.
         if (item.children && (!visibleChildren || visibleChildren.length === 0)) {
-          return null
+          return []
         }
-        return {
+        return [{
           ...item,
           children: item.children ? visibleChildren : undefined,
-        } satisfies StaffNavItem
+        }]
       })
-      .filter((item): item is StaffNavItem => item !== null)
   }, [staffCapabilities])
 
   useEffect(() => {
@@ -245,7 +243,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             </div>
             <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-400">
               <MapPin className="h-3.5 w-3.5 shrink-0 text-brand-400/80" />
-              <span className="truncate">{session.garage.name}</span>
+              <span className="truncate">{session.garage?.name ?? 'Chưa phân garage'}</span>
             </div>
           </Link>
         </div>

@@ -179,7 +179,7 @@ export function AdminCustomerDetailPage() {
     if (trimmedPhone) payload.phone = trimmedPhone
 
     if (Object.keys(payload).length === 0) {
-      showToast('Không có thay đổi nào để lưu.', 'info')
+      showToast('Không có thay đổi nào để lưu.')
       return
     }
 

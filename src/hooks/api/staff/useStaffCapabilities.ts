@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../../../contexts/AuthContext'
 import { getMyStaffCapabilitiesApi } from '../../../api/staffCapabilities.api'
 import type {
-  ApiStaffCapabilitiesResponse,
+  ApiStaffCapabilityContext,
   StaffCapabilityKey,
 } from '../../../types/api/staffCapabilities'
 import { staffQueryKeys } from './queryKeys'
@@ -22,7 +22,8 @@ import { staffQueryKeys } from './queryKeys'
 export function useStaffCapabilityContext() {
   const { session } = useAuth()
   const isStaff =
-    Boolean(session) && (session?.user?.role === 'STAFF' || !session?.user?.role)
+    Boolean(session) &&
+    (session?.user?.role === 'STAFF' || !session?.user?.role)
 
   const query = useQuery({
     queryKey: staffQueryKeys.capabilities,
@@ -57,7 +58,7 @@ export function useCanStaffCapability() {
     error: query.error,
     can: (key: StaffCapabilityKey) => capabilities.includes(key),
     refresh: query.refetch,
-    data: query.data as ApiStaffCapabilitiesResponse | undefined,
+    data: query.data as ApiStaffCapabilityContext | undefined,
   }
 }
 

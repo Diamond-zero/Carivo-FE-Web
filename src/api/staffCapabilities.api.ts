@@ -1,5 +1,5 @@
 import type { ApiResponse } from '../types/api'
-import type { ApiStaffCapabilitiesResponse } from '../types/api/staffCapabilities'
+import type { ApiStaffCapabilityContext } from '../types/api/staffCapabilities'
 import { apiClient } from './client'
 
 /**
@@ -10,7 +10,7 @@ import { apiClient } from './client'
  * booking detail, service workflow, customer case, v.v.
  */
 export async function getMyStaffCapabilitiesApi() {
-  const { data } = await apiClient.get<ApiResponse<ApiStaffCapabilitiesResponse>>(
+  const { data } = await apiClient.get<ApiResponse<ApiStaffCapabilityContext>>(
     '/staff-profiles/me/capabilities',
   )
   return data.data

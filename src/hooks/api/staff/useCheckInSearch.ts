@@ -5,7 +5,7 @@ import { mapApiBooking } from '../../../lib/mappers/staffMappers'
 
 export function useCheckInSearch() {
   const { session } = useAuth()
-  const garageId = session?.staffProfile.garage_id
+  const garageId = session?.staffProfile.garage_id ?? undefined
 
   return useMutation({
     mutationFn: async (query: string) => {

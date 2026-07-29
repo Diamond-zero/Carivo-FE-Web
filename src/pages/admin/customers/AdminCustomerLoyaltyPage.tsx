@@ -49,11 +49,13 @@ export function AdminCustomerLoyaltyPage() {
     <div className="space-y-6">
       <PageHeader
         title={`Loyalty của ${customer?.full_name ?? 'khách hàng'}`}
-        subtitle="Xem điểm thưởng, hạng thành viên và lịch sử giao dịch điểm của khách."
+        description="Xem điểm thưởng, hạng thành viên và lịch sử giao dịch điểm của khách."
         action={
-          <Button variant="secondary" as={Link} to={`/admin/users/customers/${customerId}`}>
-            <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại
-          </Button>
+          <Link to={`/admin/users/customers/${customerId}`}>
+            <Button variant="secondary">
+              <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại
+            </Button>
+          </Link>
         }
       />
 
@@ -136,8 +138,8 @@ export function AdminCustomerLoyaltyPage() {
               <h2 className="text-lg font-semibold text-slate-900">
                 Lịch sử giao dịch điểm
               </h2>
-              <Badge tone="neutral">
-                {meta?.total_items ?? transactions.length} bản ghi
+              <Badge>
+                {meta?.total ?? transactions.length} bản ghi
               </Badge>
             </div>
             <div className="overflow-x-auto">

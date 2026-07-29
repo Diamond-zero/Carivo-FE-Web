@@ -11,6 +11,7 @@ import { StatCard } from '../../../components/ui/StatCard'
 import { useToast } from '../../../contexts/ToastContext'
 import { exportBookingsToCsv } from '../../../utils/adminBookingExport'
 import {
+  ADMIN_BOOKING_PAGE_SIZE,
   useAdminBookingList,
   useAdminBookingStats,
 } from '../../../hooks/api/admin/useAdminBookings'
@@ -26,12 +27,20 @@ export function AdminBookingListPage() {
   const [filters, setFilters] = useState<AdminBookingFilters>(
     DEFAULT_ADMIN_BOOKING_FILTERS,
   )
+  const [page, setPage] = useState(1)
 
-  const listQuery = useAdminBookingList(filters)
+  const listQuery = useAdminBookingList(
+    filters,
+    page,
+    ADMIN_BOOKING_PAGE_SIZE,
+  )
   const statsQuery = useAdminBookingStats()
-  const { allGarages } = useAdminGarages()
+  const garageQuery = useAdminGarages()
+  const { allGarages } = garageQuery
 
   const bookings = listQuery.data?.bookings ?? []
+  const meta = listQuery.data?.meta
+  const totalPages = Math.max(meta?.total_pages ?? 1, 1)
 
   const garageNameById = useMemo(() => {
     const map: Record<string, string> = {}
@@ -44,11 +53,71 @@ export function AdminBookingListPage() {
   const hasActiveFilter = hasActiveAdminBookingFilters(filters)
   const isLoading = listQuery.isLoading || statsQuery.isLoading
 
+  const handleFilterChange = (nextFilters: AdminBookingFilters) => {
+    setPage(1)
+    setFilters(nextFilters)
+  }
+
+  const handleResetFilters = () => {
+    setPage(1)
+    setFilters(DEFAULT_ADMIN_BOOKING_FILTERS)
+  }
+
   useEffect(() => {
     if (listQuery.isError) {
       showToast(getApiErrorMessage(listQuery.error, 'Không tải được danh sách booking.'), 'error')
     }
   }, [listQuery.isError, listQuery.error, showToast])
+
+  useEffect(() => {
+    if (statsQuery.isError) {
+      showToast(
+        getApiErrorMessage(
+          statsQuery.error,
+          'Không tải được thống kê booking toàn hệ thống.',
+        ),
+        'error',
+      )
+    }
+  }, [showToast, statsQuery.error, statsQuery.isError])
+
+  useEffect(() => {
+    if (garageQuery.isError) {
+      showToast(
+        getApiErrorMessage(
+          garageQuery.error,
+          'Không tải được danh sách garage.',
+        ),
+        'error',
+      )
+    }
+  }, [garageQuery.isError, garageQuery.error, showToast])
+
+  useEffect(() => {
+    if (
+      garageQuery.isLoading ||
+      garageQuery.isError ||
+      filters.garageId === 'ALL'
+    ) {
+      return
+    }
+
+    if (!allGarages.some((garage) => garage.id === filters.garageId)) {
+      setPage(1)
+      setFilters((current) => ({ ...current, garageId: 'ALL' }))
+    }
+  }, [
+    allGarages,
+    filters.garageId,
+    garageQuery.isError,
+    garageQuery.isLoading,
+  ])
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages)
+    }
+  }, [page, totalPages])
 
   return (
     <div>
@@ -70,7 +139,10 @@ export function AdminBookingListPage() {
                     return
                   }
                   exportBookingsToCsv(bookings)
-                  showToast(`Đã xuất ${bookings.length} booking ra CSV.`, 'success')
+                  showToast(
+                    `Đã xuất ${bookings.length} booking trên trang ${page} ra CSV.`,
+                    'success',
+                  )
                 }}
               >
                 <Download className="h-4 w-4" />
@@ -109,16 +181,20 @@ export function AdminBookingListPage() {
           <div className="mb-6">
             <AdminBookingListFilters
               filters={filters}
-              onChange={setFilters}
-              onReset={() => setFilters(DEFAULT_ADMIN_BOOKING_FILTERS)}
+              garages={allGarages}
+              isGarageLoading={garageQuery.isLoading}
+              isGarageError={garageQuery.isError}
+              onChange={handleFilterChange}
+              onReset={handleResetFilters}
             />
           </div>
 
           <Card>
             <CardHeader>
               <CardTitle className="text-base">
-                {bookings.length} booking
+                {meta?.total ?? bookings.length} booking
                 {hasActiveFilter ? ' (đã lọc)' : ''}
+                {meta ? ` · Trang ${meta.page}/${totalPages}` : ''}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0 pb-2">
@@ -128,6 +204,37 @@ export function AdminBookingListPage() {
                 garageNameById={garageNameById}
               />
             </CardContent>
+            {meta && totalPages > 1 ? (
+              <div className="flex items-center justify-between border-t border-slate-100 px-6 py-3 text-sm text-slate-600">
+                <span>
+                  Trang {meta.page} / {totalPages} · {meta.total} booking
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                      setPage((current) => Math.max(1, current - 1))
+                    }
+                    disabled={page <= 1 || listQuery.isFetching}
+                  >
+                    Trước
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                      setPage((current) =>
+                        Math.min(totalPages, current + 1),
+                      )
+                    }
+                    disabled={page >= totalPages || listQuery.isFetching}
+                  >
+                    Sau
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </Card>
         </>
       )}

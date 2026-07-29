@@ -1,7 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, Plus, X } from 'lucide-react'
 import { useEffect } from 'react'
-import { Controller, useFieldArray, useForm } from 'react-hook-form'
+import {
+  Controller,
+  useFieldArray,
+  useForm,
+  type UseFormReturn,
+} from 'react-hook-form'
 import { z } from 'zod'
 import type { ApiSurvey, ApiSurveyQuestion } from '../../../types/api/admin'
 import { Button } from '../../ui/Button'
@@ -30,28 +35,15 @@ const questionSchema = z.object({
   id: z.string().optional(),
   text: z.string().min(3, 'Câu hỏi tối thiểu 3 ký tự'),
   type: z.enum(questionTypes, { message: 'Chọn loại câu hỏi' }),
-  is_required: z.boolean().default(true),
-  options: z.array(z.string().min(1)).default([]),
-  order: z.number().int().min(0).default(0),
+  is_required: z.boolean(),
+  options: z.array(z.string().min(1)),
+  order: z.number().int().min(0),
 })
 
 const surveySchema = z.object({
   title: z.string().min(3, 'Tiêu đề tối thiểu 3 ký tự'),
   description: z.string().nullable().optional(),
-  response_window_days: z
-    .preprocess(
-      (value) => {
-        if (value === '' || value === null || value === undefined) {
-          return 7
-        }
-        if (typeof value === 'string') {
-          const parsed = Number(value)
-          return Number.isFinite(parsed) && parsed > 0 ? parsed : 7
-        }
-        return value
-      },
-      z.number().int().min(1).max(365),
-    ),
+  response_window_days: z.number().int().min(1).max(365),
   questions: z.array(questionSchema).min(1, 'Khảo sát cần ít nhất 1 câu hỏi'),
 })
 
@@ -349,15 +341,12 @@ export function AdminSurveyFormModal({
 }
 
 interface OptionEditorProps {
-  form: ReturnType<typeof useForm<SurveyFormValues>>
+  form: UseFormReturn<SurveyFormValues>
   questionIndex: number
 }
 
 function OptionEditor({ form, questionIndex }: OptionEditorProps) {
-  const optionsField = useFieldArray({
-    control: form.control,
-    name: `questions.${questionIndex}.options` as const,
-  })
+  const options = form.watch(`questions.${questionIndex}.options`)
 
   return (
     <div className="space-y-2">
@@ -365,8 +354,8 @@ function OptionEditor({ form, questionIndex }: OptionEditorProps) {
         Lựa chọn
       </p>
       <div className="space-y-2">
-        {optionsField.fields.map((option, optionIndex) => (
-          <div key={option.id} className="flex items-center gap-2">
+        {options.map((_, optionIndex) => (
+          <div key={optionIndex} className="flex items-center gap-2">
             <Input
               placeholder={`Lựa chọn ${optionIndex + 1}`}
               {...form.register(
@@ -376,7 +365,13 @@ function OptionEditor({ form, questionIndex }: OptionEditorProps) {
             <button
               type="button"
               className="text-slate-400 hover:text-red-500"
-              onClick={() => optionsField.remove(optionIndex)}
+              onClick={() =>
+                form.setValue(
+                  `questions.${questionIndex}.options`,
+                  options.filter((_, index) => index !== optionIndex),
+                  { shouldValidate: true },
+                )
+              }
               aria-label="Xóa lựa chọn"
             >
               <X className="h-4 w-4" />
@@ -388,7 +383,13 @@ function OptionEditor({ form, questionIndex }: OptionEditorProps) {
         type="button"
         size="sm"
         variant="ghost"
-        onClick={() => optionsField.append('')}
+        onClick={() =>
+          form.setValue(
+            `questions.${questionIndex}.options`,
+            [...options, ''],
+            { shouldValidate: true },
+          )
+        }
       >
         <Plus className="h-4 w-4" />
         Thêm lựa chọn

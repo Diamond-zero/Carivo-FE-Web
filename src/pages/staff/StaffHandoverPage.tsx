@@ -132,6 +132,7 @@ export function StaffHandoverPage() {
   const { showToast } = useToast()
   const [staffNotes, setStaffNotes] = useState('')
   const [walkInNote, setWalkInNote] = useState('')
+  const [paymentAction, setPaymentAction] = useState<'cash' | 'payos' | null>(null)
   // Ref chống double-submit cho handleWalkInAccept (mutation.isPending reset
   // ngay khi server trả về nên không đủ dùng làm guard trong cùng frame).
   const walkInSubmittingRef = useRef(false)
@@ -211,8 +212,7 @@ export function StaffHandoverPage() {
     readyMutation.isPending ||
     walkInAcceptMutation.isPending ||
     releaseMutation.isPending ||
-    markBookingPaid.isPending ||
-    createPayosPayment.isPending
+    paymentAction !== null
 
   // ---------------------------------------------------------------------------
   // Handlers
@@ -285,25 +285,37 @@ export function StaffHandoverPage() {
 
   const handleCollectCash = async () => {
     if (!bookingId) return
-    const result = await markBookingPaid(bookingId)
-    if (result.success) {
-      showToast(result.message, 'success')
-    } else {
-      showToast(result.message, 'error')
+    setPaymentAction('cash')
+    try {
+      const result = await markBookingPaid(bookingId)
+      if (result.success) {
+        showToast(result.message, 'success')
+        await detailQuery.refetch()
+      } else {
+        showToast(result.message, 'error')
+      }
+    } finally {
+      setPaymentAction(null)
     }
   }
 
   const handleCreatePayos = async () => {
     if (!bookingId) return
-    const result = await createPayosPayment(bookingId)
-    if (result.success && result.checkoutUrl) {
-      window.open(result.checkoutUrl, '_blank', 'noopener,noreferrer')
-      showToast(
-        'Đã tạo link PayOS — đưa khách quét QR trên cửa sổ mới.',
-        'success',
-      )
-    } else if (!result.success) {
-      showToast(result.message, 'error')
+    setPaymentAction('payos')
+    try {
+      const result = await createPayosPayment(bookingId)
+      if (result.success && result.checkoutUrl) {
+        window.open(result.checkoutUrl, '_blank', 'noopener,noreferrer')
+        showToast(
+          'Đã tạo link PayOS — đưa khách quét QR trên cửa sổ mới.',
+          'success',
+        )
+        await detailQuery.refetch()
+      } else if (!result.success) {
+        showToast(result.message, 'error')
+      }
+    } finally {
+      setPaymentAction(null)
     }
   }
 
@@ -336,7 +348,6 @@ export function StaffHandoverPage() {
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
-  const stateBadge = handover?.state ?? 'PENDING'
   const stateLabel = handover
     ? HANDOVER_STATE_LABELS[handover.state] ?? handover.state
     : 'Chưa bắt đầu'
@@ -648,7 +659,7 @@ export function StaffHandoverPage() {
                   onClick={() => void handleCollectCash()}
                   disabled={!canCollectCash || isProcessing}
                 >
-                  {markBookingPaid.isPending ? (
+                  {paymentAction === 'cash' ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <Banknote className="h-4 w-4" />
@@ -660,7 +671,7 @@ export function StaffHandoverPage() {
                   onClick={() => void handleCreatePayos()}
                   disabled={!canCreatePayos || isProcessing}
                 >
-                  {createPayosPayment.isPending ? (
+                  {paymentAction === 'payos' ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <CreditCard className="h-4 w-4" />
