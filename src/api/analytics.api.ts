@@ -10,6 +10,21 @@ export interface ApiAnalyticsParams {
   group_by?: 'DAY' | 'WEEK' | 'MONTH'
 }
 
+export type StaffAnalyticsParams = Pick<
+  ApiAnalyticsParams,
+  'from' | 'to' | 'group_by'
+>
+
+export async function getStaffAnalyticsOverviewApi(
+  params?: StaffAnalyticsParams,
+) {
+  const { data } = await apiClient.get<ApiResponse<Record<string, unknown>>>(
+    '/staff/analytics/overview',
+    { params },
+  )
+  return data.data
+}
+
 export async function getAnalyticsOverviewApi(params?: ApiAnalyticsParams) {
   const { data } = await apiClient.get<ApiResponse<Record<string, unknown>>>(
     '/admin/analytics/overview',

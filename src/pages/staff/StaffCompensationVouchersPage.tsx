@@ -102,7 +102,7 @@ export function StaffCompensationVouchersPage() {
               label="Đã phát hành (trang này)"
               value={issuedCount}
               icon={Ticket}
-              accent="green"
+      accent="emerald"
             />
             <StatCard
               label="Chờ duyệt (trang này)"

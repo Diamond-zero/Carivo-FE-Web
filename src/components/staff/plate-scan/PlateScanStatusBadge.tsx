@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   Clock,
   EyeOff,
-  HelpCircle,
   Loader2,
   ScanLine,
   ShieldX,

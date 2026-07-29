@@ -30,7 +30,7 @@ export const vehicleBaseFormSchema = z
       .nullable()
       .optional(),
     car_body_type: z.enum(carBodyTypes).nullable().optional(),
-    seat_count: z.coerce.number().int('Số chỗ phải là số nguyên').min(2).max(50).nullable().optional(),
+    seat_count: z.number().int('Số chỗ phải là số nguyên').min(2).max(50).nullable().optional(),
     brand: z.string().max(80).optional(),
     model: z.string().max(80).optional(),
     color: z.string().max(40).optional(),

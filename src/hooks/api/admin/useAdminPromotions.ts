@@ -13,7 +13,11 @@ import {
 } from '../../../api/promotion.api'
 import { useAdminAuth } from '../../../contexts/AdminAuthContext'
 import { mapApiPromotion } from '../../../lib/mappers/adminMappers'
-import type { Promotion, PromotionAudience } from '../../../types/promotion'
+import type {
+  DiscountType,
+  Promotion,
+  PromotionAudience,
+} from '../../../types/promotion'
 import { adminQueryKeys } from './queryKeys'
 
 const DEFAULT_PAGE_SIZE = 20
@@ -23,6 +27,7 @@ export type AdminPromotionStatusFilter = 'ALL' | 'ACTIVE' | 'INACTIVE'
 export interface AdminPromotionListFilters extends Partial<PromotionListParams> {
   statusFilter?: AdminPromotionStatusFilter
   query?: string
+  discount_type?: DiscountType
 }
 
 function toAdminPromotionParams(

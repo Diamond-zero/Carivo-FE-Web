@@ -1,11 +1,11 @@
 import { RotateCcw, Search } from 'lucide-react'
 import { BOOKING_STATUS_LABELS } from '../../../constants/bookingStatus'
 import { VEHICLE_TYPE_LABELS } from '../../../constants/washBayStatus'
-import { getAdminGaragesFromStore } from '../../../mocks/admin/adminGarageStore'
-import type { BookingStatus, PaymentStatus } from '../../../types/booking'
+import type { BookingStatus } from '../../../types/booking'
 import type { VehicleType } from '../../../types/washBay'
 import {
   DEFAULT_ADMIN_BOOKING_FILTERS,
+  type AdminBookingPaymentStatus,
   type AdminBookingFilters,
 } from '../../../utils/adminBookingLookup'
 import { Button } from '../../ui/Button'
@@ -15,25 +15,28 @@ import { Select } from '../../ui/Select'
 
 interface AdminBookingListFiltersProps {
   filters: AdminBookingFilters
+  garages: Array<{ id: string; name: string }>
+  isGarageLoading: boolean
+  isGarageError: boolean
   onChange: (filters: AdminBookingFilters) => void
   onReset: () => void
 }
 
-const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+const PAYMENT_STATUS_LABELS: Record<AdminBookingPaymentStatus, string> = {
   UNPAID: 'Chưa thanh toán',
   PENDING: 'Đang chờ',
   PAID: 'Đã thanh toán',
-  PARTIAL: 'Thanh toán một phần',
-  REFUNDED: 'Đã hoàn tiền',
+  WAIVED: 'Được miễn thanh toán',
 }
 
 export function AdminBookingListFilters({
   filters,
+  garages,
+  isGarageLoading,
+  isGarageError,
   onChange,
   onReset,
 }: AdminBookingListFiltersProps) {
-  const garages = getAdminGaragesFromStore()
-
   const update = (patch: Partial<AdminBookingFilters>) => {
     onChange({ ...filters, ...patch })
   }
@@ -60,9 +63,24 @@ export function AdminBookingListFilters({
           <Select
             id="admin-booking-garage"
             value={filters.garageId}
-            onChange={(event) => update({ garageId: event.target.value })}
+            disabled={isGarageLoading || isGarageError}
+            onChange={(event) => {
+              const garageId = event.target.value
+              if (
+                garageId === 'ALL' ||
+                garages.some((garage) => garage.id === garageId)
+              ) {
+                update({ garageId })
+              }
+            }}
           >
-            <option value="ALL">Tất cả garage</option>
+            <option value="ALL">
+              {isGarageLoading
+                ? 'Đang tải garage...'
+                : isGarageError
+                  ? 'Không tải được garage'
+                  : 'Tất cả garage'}
+            </option>
             {garages.map((garage) => (
               <option key={garage.id} value={garage.id}>
                 {garage.name}
@@ -112,11 +130,17 @@ export function AdminBookingListFilters({
             id="admin-booking-payment"
             value={filters.paymentStatus}
             onChange={(event) =>
-              update({ paymentStatus: event.target.value as PaymentStatus | 'ALL' })
+              update({
+                paymentStatus: event.target.value as
+                  | AdminBookingPaymentStatus
+                  | 'ALL',
+              })
             }
           >
             <option value="ALL">Tất cả trạng thái TT</option>
-            {(Object.entries(PAYMENT_STATUS_LABELS) as Array<[PaymentStatus, string]>).map(
+            {(Object.entries(PAYMENT_STATUS_LABELS) as Array<
+              [AdminBookingPaymentStatus, string]
+            >).map(
               ([value, label]) => (
                 <option key={value} value={value}>
                   {label}

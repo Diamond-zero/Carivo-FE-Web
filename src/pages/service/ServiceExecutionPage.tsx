@@ -37,6 +37,8 @@ import {
   bookingRequiresWashBay,
 } from '../../utils/washBay'
 import { formatTime } from '../../utils/format'
+import type { ApiBookingItem } from '../../types/api/staff'
+import type { BookingServiceStep } from '../../types/serviceStep'
 
 export function ServiceExecutionPage() {
   const navigate = useNavigate()
@@ -118,7 +120,7 @@ export function ServiceExecutionPage() {
   // Derive `BookingServiceStep[]` (shape cũ) từ workflow.service_items để
   // `getCompleteServiceGuard` vẫn dùng được. Khi workflow chưa sẵn sàng
   // (vd booking vừa start) → mảng rỗng → guard sẽ từ chối (đúng hành vi).
-  const steps = useMemo(() => {
+  const steps = useMemo<BookingServiceStep[]>(() => {
     if (!workflow) return []
     return workflow.service_items.map((item) => ({
       id: item.item_key,
@@ -151,7 +153,7 @@ export function ServiceExecutionPage() {
   const canCompleteServiceViaWorkflow =
     availableActions.includes('booking.service.complete')
 
-  const staffGarageId = session?.staffProfile.garage_id
+  const staffGarageId = session?.staffProfile.garage_id ?? undefined
 
   const assignWashBayGuard = booking
     ? getAssignWashBayGuard(booking, staffGarageId)
@@ -467,7 +469,7 @@ export function ServiceExecutionPage() {
                     bookingId={selectedBookingId}
                     workflow={workflow}
                     bookingItems={
-                      (booking?.raw as { booking_items?: typeof import('../../types/api/staff').ApiBookingItem } | undefined)
+                      (booking?.raw as { booking_items?: ApiBookingItem[] } | undefined)
                         ?.booking_items ?? []
                     }
                     washBays={availableWashBays}

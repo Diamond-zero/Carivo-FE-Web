@@ -27,6 +27,8 @@ export const staffQueryKeys = {
   servicePackages: ['staff', 'service-packages'] as const,
   washHistories: (garageId?: string) => ['staff', 'wash-histories', garageId] as const,
   washBays: (garageId?: string) => ['staff', 'wash-bays', garageId] as const,
+  dashboardOverview: (garageId?: string, date?: string) =>
+    ['staff', 'dashboard', garageId, date] as const,
   availableWashBays: (garageId?: string, vehicleType?: string) =>
     ['staff', 'wash-bays', garageId, 'available', vehicleType] as const,
   bookingDetail: (bookingId: string) => ['staff', 'bookings', 'detail', bookingId] as const,

@@ -141,7 +141,7 @@ export function AdminPromotionForm({
         { shouldValidate: true },
       )
     }
-  }, [discountType, setValue, watch, initialPromotion])
+  }, [discountType, isPercentage, setValue, watch, initialPromotion])
 
   useEffect(() => {
     if (selectedPackageIds.length === 0) return

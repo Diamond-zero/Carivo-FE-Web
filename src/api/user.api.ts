@@ -1,4 +1,5 @@
-import type { ApiListResponse, ApiResponse, ApiUser } from '../types/api'
+import type { ApiResponse, ApiUser } from '../types/api'
+import type { ApiListResponse } from '../types/api/admin'
 import { apiClient } from './client'
 
 export interface UpdateProfilePayload {

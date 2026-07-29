@@ -417,9 +417,9 @@ export function SettingsPage() {
 
             <dl className="grid gap-0 sm:grid-cols-2 sm:gap-x-8">
 
-              <SettingsInfoRow label="Tên garage" value={garage.name} />
+              <SettingsInfoRow label="Tên garage" value={garage?.name ?? 'Chưa phân garage'} />
 
-              <SettingsInfoRow label="Mã garage" value={garage.garage_code} />
+              <SettingsInfoRow label="Mã garage" value={garage?.garage_code ?? '—'} />
 
               <SettingsInfoRow
 
@@ -431,7 +431,7 @@ export function SettingsPage() {
 
                     <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
 
-                    {garage.address}, {garage.city}
+                    {garage ? `${garage.address}, ${garage.city}` : 'Chưa có thông tin'}
 
                   </span>
 
@@ -449,7 +449,7 @@ export function SettingsPage() {
 
                     <Phone className="h-4 w-4 text-slate-400" />
 
-                    {garage.phone}
+                    {garage?.phone ?? '—'}
 
                   </span>
 
@@ -467,7 +467,7 @@ export function SettingsPage() {
 
                     <Clock className="h-4 w-4 text-slate-400" />
 
-                    {garage.opening_time} – {garage.closing_time}
+                    {garage ? `${garage.opening_time} – ${garage.closing_time}` : '—'}
 
                   </span>
 
@@ -479,7 +479,7 @@ export function SettingsPage() {
 
                 label="Khoảng slot"
 
-                value={`${garage.slot_interval_minutes} phút`}
+                value={garage ? `${garage.slot_interval_minutes} phút` : '—'}
 
               />
 

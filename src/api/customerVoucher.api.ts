@@ -24,7 +24,15 @@ export async function getCustomerVouchersApi(
     '/admin/customer-vouchers',
     { params },
   )
-  return { vouchers: data.data, meta: data.meta }
+  return {
+    vouchers: data.data,
+    meta: data.meta ?? {
+      page: params?.page ?? 1,
+      limit: params?.limit ?? data.data.length,
+      total: data.data.length,
+      total_pages: 1,
+    },
+  }
 }
 
 export async function approveCustomerVoucherApi(

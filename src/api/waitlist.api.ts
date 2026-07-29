@@ -27,7 +27,15 @@ export async function getAdminWaitlistsApi(
     '/admin/waitlists',
     { params },
   )
-  return { waitlists: data.data, meta: data.meta }
+  return {
+    waitlists: data.data,
+    meta: data.meta ?? {
+      page: params?.page ?? 1,
+      limit: params?.limit ?? data.data.length,
+      total: data.data.length,
+      total_pages: 1,
+    },
+  }
 }
 
 export async function cancelAdminWaitlistApi(waitlistId: string, reason?: string) {

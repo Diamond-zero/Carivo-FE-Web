@@ -10,7 +10,7 @@ import { staffQueryKeys } from './queryKeys'
 export function useStaffCustomers(search: string) {
   const { session, isAuthenticated } = useAuth()
   const { bookings } = useBookings()
-  const garageId = session?.staffProfile.garage_id
+  const garageId = session?.staffProfile.garage_id ?? undefined
   const trimmedSearch = search.trim()
 
   const fallbackCustomers = useMemo(

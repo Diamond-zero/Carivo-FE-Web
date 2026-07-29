@@ -96,7 +96,7 @@ export function AdminPlateScansPage() {
 
   const query = useAdminPlateScans(apiParams)
   const rawData = query.data as unknown as { data?: ApiPlateScan[]; meta?: { total_pages: number } } | undefined
-  const allScans = rawData?.data ?? []
+  const allScans = useMemo(() => rawData?.data ?? [], [rawData?.data])
   const totalPages = rawData?.meta?.total_pages ?? 1
 
   const filteredScans = useMemo(() => {

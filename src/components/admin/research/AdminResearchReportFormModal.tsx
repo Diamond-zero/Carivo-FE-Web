@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import {
   adminResearchReportFormSchema,
@@ -32,7 +32,10 @@ export function AdminResearchReportFormModal({
   isSubmitting = false,
 }: AdminResearchReportFormModalProps) {
   const { data: surveysData } = useAdminSurveys({ limit: 100 })
-  const surveys = surveysData?.surveys ?? []
+  const surveys = useMemo(
+    () => surveysData?.surveys ?? [],
+    [surveysData?.surveys],
+  )
 
   const form = useForm<AdminResearchReportFormValues>({
     resolver: zodResolver(adminResearchReportFormSchema),

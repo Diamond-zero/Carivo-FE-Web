@@ -11,11 +11,6 @@ import { useStaffCustomerDetail } from '../../hooks/api/staff/useStaffCustomerDe
 
 export function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
-
-  if (!id) {
-    return <Navigate to="/customers" replace />
-  }
-
   const {
     profile,
     garageBookings,
@@ -23,6 +18,10 @@ export function CustomerDetailPage() {
     atGarage,
     isLoading,
   } = useStaffCustomerDetail(id)
+
+  if (!id) {
+    return <Navigate to="/customers" replace />
+  }
 
   const user = profile?.user
 

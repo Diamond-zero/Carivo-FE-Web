@@ -123,7 +123,8 @@ export function AdminBookingDetailPage() {
 
   const VehicleIcon = booking?.vehicle_type === 'CAR' ? Car : Bike
 
-  const handleUpdateStatus = async (_status: BookingStatus) => {
+  const handleUpdateStatus = async (status: BookingStatus) => {
+    void status
     return {
       ok: false,
       message: 'Cập nhật trạng thái thủ công chưa được hỗ trợ qua API.',

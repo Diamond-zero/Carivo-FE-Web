@@ -7,22 +7,29 @@ import {
   reopenBookingServiceApi,
   type BookingListParams,
 } from '../../../api/booking.api'
+import { getAnalyticsBookingsApi } from '../../../api/analytics.api'
 import {
   createPayosPaymentApi,
   markBookingPaidWithCashApi,
 } from '../../../api/payment.api'
 import { useAdminAuth } from '../../../contexts/AdminAuthContext'
+import {
+  mapBookingAnalyticsOverview,
+  mapBookingStatusStats,
+} from '../../../lib/mappers/adminAnalyticsMappers'
 import { mapApiBooking } from '../../../lib/mappers/staffMappers'
 import type { AdminBookingFilters } from '../../../utils/adminBookingLookup'
 import { toApiDateTimeString } from '../../../utils/walkIn'
 import { adminQueryKeys } from './queryKeys'
 
-function toAdminBookingListParams(filters?: AdminBookingFilters): BookingListParams {
-  const params: BookingListParams = { limit: 100 }
+export const ADMIN_BOOKING_PAGE_SIZE = 20
 
-  if (!filters) {
-    return params
-  }
+function toAdminBookingListParams(
+  filters: AdminBookingFilters,
+  page: number,
+  limit: number,
+): BookingListParams {
+  const params: BookingListParams = { page, limit }
 
   if (filters.garageId !== 'ALL') {
     params.garage_id = filters.garageId
@@ -34,6 +41,10 @@ function toAdminBookingListParams(filters?: AdminBookingFilters): BookingListPar
 
   if (filters.vehicleType !== 'ALL') {
     params.vehicle_type = filters.vehicleType
+  }
+
+  if (filters.paymentStatus !== 'ALL') {
+    params.payment_status = filters.paymentStatus
   }
 
   if (filters.dateFrom) {
@@ -51,9 +62,16 @@ function toAdminBookingListParams(filters?: AdminBookingFilters): BookingListPar
   return params
 }
 
-export function useAdminBookingList(filters: AdminBookingFilters) {
+export function useAdminBookingList(
+  filters: AdminBookingFilters,
+  page = 1,
+  limit = ADMIN_BOOKING_PAGE_SIZE,
+) {
   const { isAuthenticated } = useAdminAuth()
-  const apiParams = useMemo(() => toAdminBookingListParams(filters), [filters])
+  const apiParams = useMemo(
+    () => toAdminBookingListParams(filters, page, limit),
+    [filters, limit, page],
+  )
 
   return useQuery({
     queryKey: adminQueryKeys.bookings(apiParams),
@@ -67,6 +85,7 @@ export function useAdminBookingList(filters: AdminBookingFilters) {
     enabled: isAuthenticated,
     staleTime: 0,
     refetchOnMount: 'always',
+    placeholderData: (previousData) => previousData,
   })
 }
 
@@ -76,16 +95,20 @@ export function useAdminBookingStats() {
   return useQuery({
     queryKey: adminQueryKeys.bookings({ stats: true }),
     queryFn: async () => {
-      const result = await getStaffBookingsApi({ limit: 100 })
-      const bookings = result.bookings.map(mapApiBooking)
+      const data = await getAnalyticsBookingsApi()
+      const overview = mapBookingAnalyticsOverview(data)
+      const statusStats = mapBookingStatusStats(data)
+      const countByStatus = new Map(
+        statusStats.map((item) => [item.status, item.count]),
+      )
+
       return {
-        total: result.meta?.total ?? bookings.length,
-        inProgress: bookings.filter((booking) => booking.status === 'IN_PROGRESS').length,
-        completed: bookings.filter((booking) => booking.status === 'COMPLETED').length,
-        canceled: bookings.filter((booking) =>
-          ['CANCELED', 'NO_SHOW'].includes(booking.status),
-        ).length,
-        bookings,
+        total: overview.total_bookings,
+        inProgress: countByStatus.get('IN_PROGRESS') ?? 0,
+        completed: countByStatus.get('COMPLETED') ?? 0,
+        canceled:
+          (countByStatus.get('CANCELED') ?? 0) +
+          (countByStatus.get('NO_SHOW') ?? 0),
       }
     },
     enabled: isAuthenticated,

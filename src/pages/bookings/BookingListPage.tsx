@@ -69,7 +69,7 @@ export function BookingListPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { session } = useAuth()
-  const garageId = session?.staffProfile.garage_id
+  const garageId = session?.staffProfile.garage_id ?? undefined
   const { markBookingPaid, createPayosPayment } = useBookings()
   const { showToast } = useToast()
   const staffCapabilities = useMyCapabilities()
@@ -472,7 +472,11 @@ export function BookingListPage() {
                           >
                             <td className="px-4 py-3">
                               <Link
-                                to={`/bookings/${booking.id}`}
+                                to={
+                                  useAdminSource
+                                    ? `/bookings/${booking.id}`
+                                    : `/bookings/workspace/${booking.id}`
+                                }
                                 className="text-sm font-semibold text-brand-700 hover:underline"
                               >
                                 #{booking.id.slice(0, 8)}
@@ -557,7 +561,7 @@ export function BookingListPage() {
                             <td className="px-4 py-3 text-right">
                               <BookingTableAction
                                 booking={booking}
-                                staffGarageId={session?.staffProfile.garage_id}
+                                staffGarageId={session?.staffProfile.garage_id ?? undefined}
                                 staffCapabilities={staffCapabilities}
                                 onMarkPaid={setMarkPaidBooking}
                                 onClaim={setClaimBooking}

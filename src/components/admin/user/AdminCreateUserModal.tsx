@@ -27,10 +27,14 @@ interface AdminCreateUserModalProps {
   open: boolean
   onClose: () => void
   onCreated?: (user: User) => void
-  defaultRole?: UserRole
+  defaultRole?: Extract<UserRole, 'CUSTOMER' | 'STAFF'>
 }
 
-const ROLE_OPTIONS: Array<{ value: UserRole; label: string; description: string }> = [
+const ROLE_OPTIONS: Array<{
+  value: Extract<UserRole, 'CUSTOMER' | 'STAFF'>
+  label: string
+  description: string
+}> = [
   {
     value: 'CUSTOMER',
     label: 'Khách hàng',

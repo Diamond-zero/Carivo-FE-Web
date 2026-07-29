@@ -37,6 +37,8 @@ import {
   AdminServicePackageStepsPage,
   AdminServicePriceRulesPage,
   AdminSettingsPage,
+  AdminCustomerCaseDetailPage,
+  AdminCustomerCasesPage,
   AdminCustomerVouchersPage,
   AdminStaffFormPage,
   AdminStaffListPage,
@@ -458,6 +460,22 @@ function App() {
                   }
                 />
                 <Route
+                  path="/admin/customer-cases"
+                  element={
+                    <LazyPage>
+                      <AdminCustomerCasesPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/customer-cases/:caseId"
+                  element={
+                    <LazyPage>
+                      <AdminCustomerCaseDetailPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
                   path="/admin/research/export"
                   element={
                     <LazyPage>
@@ -568,14 +586,16 @@ function App() {
                     }
                   />
                 </Route>
-                <Route
-                  path="/bookings/:id"
-                  element={
-                    <LazyPage>
-                      <BookingDetailPage />
-                    </LazyPage>
-                  }
-                />
+                <Route element={<CapabilityRoute capability="booking.read_garage" />}>
+                  <Route
+                    path="/bookings/:id"
+                    element={
+                      <LazyPage>
+                        <BookingDetailPage />
+                      </LazyPage>
+                    }
+                  />
+                </Route>
                 <Route
                   element={
                     <CapabilityRoute
@@ -618,6 +638,12 @@ function App() {
                       </LazyPage>
                     }
                   />
+                </Route>
+                <Route
+                  element={
+                    <CapabilityRoute capability="booking.workflow.read_garage" />
+                  }
+                >
                   <Route
                     path="/bookings/workspace/:id"
                     element={
@@ -687,6 +713,16 @@ function App() {
                     }
                   />
                 </Route>
+                <Route element={<CapabilityRoute capability="customer_case.technical_assess_assigned" />}>
+                  <Route
+                    path="/staff/cases/:caseId/technical-assessment"
+                    element={
+                      <LazyPage>
+                        <StaffTechnicalAssessmentPage />
+                      </LazyPage>
+                    }
+                  />
+                </Route>
                 <Route element={<CapabilityRoute capability="customer_case.read_garage" />}>
                   <Route
                     path="/staff/cases"
@@ -712,16 +748,6 @@ function App() {
                       element={
                         <LazyPage>
                           <StaffWalkInCaseCreatePage />
-                        </LazyPage>
-                      }
-                    />
-                  </Route>
-                  <Route element={<CapabilityRoute capability="customer_case.technical_assess_assigned" />}>
-                    <Route
-                      path="/staff/cases/:caseId/technical-assessment"
-                      element={
-                        <LazyPage>
-                          <StaffTechnicalAssessmentPage />
                         </LazyPage>
                       }
                     />

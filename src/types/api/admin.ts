@@ -348,8 +348,6 @@ export interface ApiPointTransaction {
   updated_at?: string
 }
 
-export interface ApiSurveyResponse { /* moved up - see ApiSurveyResponse export below */ }
-
 export type ApiVehicleEngineType = 'GASOLINE' | 'ELECTRIC'
 export type ApiMotorbikeCcGroup = 'UNDER_175CC' | 'OVER_175CC'
 export type ApiCarBodyType =

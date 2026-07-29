@@ -62,7 +62,7 @@ export function AdminWashHistoryPage() {
     limit: ADMIN_WASH_HISTORY_PAGE_SIZE,
   })
 
-  const histories = data?.histories ?? []
+  const histories = useMemo(() => data?.histories ?? [], [data?.histories])
   const meta = data?.meta
   const totalPages = meta?.total_pages ?? 1
   const total = meta?.total ?? histories.length

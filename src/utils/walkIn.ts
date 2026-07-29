@@ -37,18 +37,18 @@ export type WalkInTimeSlotOption = 'now' | 'plus30' | 'plus60' | 'custom'
 /** Garage slot grid — BE requires :00 / :30 alignment for scheduled walk-in. */
 export const GARAGE_SLOT_INTERVAL_MINUTES = 30
 
-type GarageResolvableSession =
-  | {
-      staffProfile: { garage_id: string }
-      garage: { id: string }
-    }
-  | null
+type GarageResolvableSession =
+  | {
+      staffProfile: { garage_id: string | null }
+      garage: { id: string } | null
+    }
+  | null
   | undefined
 
 /** Garage ID from staff session — required by POST /admin/bookings/walk-in. */
 export function getStaffGarageId(session: GarageResolvableSession): string | null {
   if (!session) return null
-  return session.staffProfile.garage_id || session.garage.id || null
+  return session.staffProfile.garage_id || session.garage?.id || null
 }
 
 /** Round up to the next garage slot and ensure the result is in the future. */

@@ -227,6 +227,16 @@ export const AdminCustomerVouchersPage = lazyNamed(
   'AdminCustomerVouchersPage',
 )
 
+export const AdminCustomerCasesPage = lazyNamed(
+  () => import('../pages/admin/customerCases/AdminCustomerCasesPage'),
+  'AdminCustomerCasesPage',
+)
+
+export const AdminCustomerCaseDetailPage = lazyNamed(
+  () => import('../pages/admin/customerCases/AdminCustomerCaseDetailPage'),
+  'AdminCustomerCaseDetailPage',
+)
+
 export const AdminPaymentsListPage = lazyNamed(
   () => import('../pages/admin/payments/AdminPaymentsListPage'),
   'AdminPaymentsListPage',

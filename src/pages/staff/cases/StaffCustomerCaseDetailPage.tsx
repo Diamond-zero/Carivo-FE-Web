@@ -1,7 +1,15 @@
-import { ArrowLeft, Loader2, MessageCircle, ShieldCheck } from 'lucide-react'
+import {
+  ArrowLeft,
+  ClipboardList,
+  Loader2,
+  MessageCircle,
+  ShieldCheck,
+  Upload,
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getApiErrorMessage } from '../../../api/client'
+import { uploadFileApi } from '../../../api/upload.api'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Badge } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
@@ -14,9 +22,10 @@ import {
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { Label } from '../../../components/ui/Label'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
-import { Select } from '../../../components/ui/Select'
+import { useAuth } from '../../../contexts/AuthContext'
 import { useToast } from '../../../contexts/ToastContext'
 import {
+  CASE_CATEGORY_LABELS,
   CASE_PRIORITY_LABELS,
   CASE_PRIORITY_VARIANT,
   CASE_STATUS_LABELS,
@@ -24,9 +33,11 @@ import {
   useAcknowledgeCustomerCaseMutation,
   useAddCustomerCaseEvidenceMutation,
   useAssignCustomerCaseMutation,
+  useAssignTechnicalAssessmentMutation,
   useSendCustomerCaseMessageMutation,
   useStaffCustomerCaseDetail,
 } from '../../../hooks/api/staff/useStaffCustomerCases'
+import { useMyCapabilities } from '../../../hooks/api/staff/useStaffCapabilities'
 import type {
   ApiCustomerCase,
   ApiCustomerCaseMessage,
@@ -34,35 +45,65 @@ import type {
 } from '../../../types/api/customerCase'
 import { formatDateTime } from '../../../utils/format'
 
+const EVENT_LABELS: Record<string, string> = {
+  SUBMITTED: 'Khách gửi hồ sơ',
+  EVIDENCE_ADDED: 'Đã thêm bằng chứng',
+  ASSIGNED: 'Đã phân công xử lý',
+  ACKNOWLEDGED: 'Đã tiếp nhận',
+  MESSAGE_SENT: 'Đã gửi tin nhắn',
+  CONCLUDED: 'Đã kết luận',
+  CLOSED: 'Đã đóng hồ sơ',
+  TECHNICAL_ASSESSMENT_ASSIGNED: 'Đã phân công đánh giá kỹ thuật',
+  TECHNICAL_ASSESSMENT_STARTED: 'Đã bắt đầu đánh giá kỹ thuật',
+  TECHNICAL_ASSESSMENT_SUBMITTED: 'Đã nộp đánh giá kỹ thuật',
+  RESOLUTION_PROPOSED: 'Đã đề xuất phương án giải quyết',
+  RESOLUTION_ACCEPTED: 'Khách đã chấp nhận phương án',
+  RESOLUTION_REJECTED: 'Khách đã từ chối phương án',
+  RESOLUTION_APPLIED: 'Đã áp dụng phương án',
+  SLA_ESCALATED: 'Hồ sơ bị nâng mức SLA',
+  REOPENED: 'Đã mở lại hồ sơ',
+}
+
 export function StaffCustomerCaseDetailPage() {
   const { caseId } = useParams()
+  const { session } = useAuth()
   const { showToast } = useToast()
+  const capabilities = useMyCapabilities()
 
   const detailQuery = useStaffCustomerCaseDetail(caseId)
   const acknowledgeMutation = useAcknowledgeCustomerCaseMutation(caseId ?? '')
   const assignMutation = useAssignCustomerCaseMutation(caseId ?? '')
   const evidenceMutation = useAddCustomerCaseEvidenceMutation(caseId ?? '')
   const messageMutation = useSendCustomerCaseMessageMutation(caseId ?? '')
-
-  const [assignStaffId, setAssignStaffId] = useState('')
-  const [evidenceUrl, setEvidenceUrl] = useState('')
-  const [evidenceType, setEvidenceType] = useState<'IMAGE' | 'VIDEO' | 'DOCUMENT'>('IMAGE')
-  const [messageBody, setMessageBody] = useState('')
-  const [messageVisibility, setMessageVisibility] = useState<'CUSTOMER_VISIBLE' | 'INTERNAL'>(
-    'CUSTOMER_VISIBLE',
+  const technicalAssignMutation = useAssignTechnicalAssessmentMutation(
+    caseId ?? '',
   )
+
+  const [assignStaffProfileId, setAssignStaffProfileId] = useState('')
+  const [technicalInspectorProfileId, setTechnicalInspectorProfileId] =
+    useState('')
+  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([])
+  const [evidenceInputKey, setEvidenceInputKey] = useState(0)
+  const [messageBody, setMessageBody] = useState('')
+  const [isUploadingEvidence, setIsUploadingEvidence] = useState(false)
 
   useEffect(() => {
     if (detailQuery.isError) {
-      showToast(getApiErrorMessage(detailQuery.error, 'Không tải được hồ sơ.'), 'error')
+      showToast(
+        getApiErrorMessage(detailQuery.error, 'Không tải được hồ sơ.'),
+        'error',
+      )
     }
   }, [detailQuery.isError, detailQuery.error, showToast])
 
   if (detailQuery.isLoading) return <DashboardPageSkeleton />
+
   if (!detailQuery.data) {
     return (
       <div className="flex min-h-[40vh] flex-col items-center justify-center text-center">
-        <h1 className="text-xl font-semibold text-slate-900">Không tìm thấy hồ sơ</h1>
+        <h1 className="text-xl font-semibold text-slate-900">
+          Không tìm thấy hồ sơ
+        </h1>
         <Link to="/staff/cases" className="mt-4">
           <Button variant="secondary">
             <ArrowLeft className="h-4 w-4" />
@@ -73,76 +114,122 @@ export function StaffCustomerCaseDetailPage() {
     )
   }
 
-  const c = detailQuery.data
+  const detail = detailQuery.data
+  const c = detail.case
   const statusLabel = CASE_STATUS_LABELS[c.status] ?? c.status
   const priorityLabel = CASE_PRIORITY_LABELS[c.priority] ?? c.priority
+  const canAcknowledge =
+    c.status === 'SUBMITTED' &&
+    capabilities.includes('customer_case.acknowledge')
+  const isOpenCase = ['SUBMITTED', 'ACKNOWLEDGED', 'INVESTIGATING'].includes(
+    c.status,
+  )
+  const canAssign =
+    isOpenCase && capabilities.includes('customer_case.assign_garage')
+  const canCommunicate =
+    capabilities.includes('customer_case.communicate_assigned') &&
+    c.assigned_to_id === session?.user.id
+  const canAddEvidence = isOpenCase && canCommunicate
+  const canOpenTechnicalAssessment =
+    capabilities.includes('customer_case.technical_assess_assigned') &&
+    detail.technical_assessment?.inspector_user_id === session?.user.id
+  const isMutating =
+    acknowledgeMutation.isPending ||
+    assignMutation.isPending ||
+    evidenceMutation.isPending ||
+    messageMutation.isPending ||
+    technicalAssignMutation.isPending ||
+    isUploadingEvidence
 
-  const handleAcknowledge = async (selfAssign: boolean) => {
+  const handleAcknowledge = async () => {
     try {
-      await acknowledgeMutation.mutateAsync({ self_assign: selfAssign })
-      showToast('Đã tiếp nhận hồ sơ.', 'success')
+      await acknowledgeMutation.mutateAsync({})
+      showToast('Đã tiếp nhận và nhận xử lý hồ sơ.', 'success')
     } catch (error) {
       showToast(getApiErrorMessage(error, 'Không thể tiếp nhận.'), 'error')
     }
   }
 
   const handleAssign = async () => {
-    if (!assignStaffId.trim()) {
-      showToast('Vui lòng nhập ID nhân viên xử lý.', 'error')
+    const staffProfileId = assignStaffProfileId.trim()
+    if (!staffProfileId) {
+      showToast('Vui lòng nhập ID hồ sơ nhân viên xử lý.', 'error')
       return
     }
     try {
-      await assignMutation.mutateAsync({
-        assigned_staff_id: assignStaffId.trim(),
-      })
+      await assignMutation.mutateAsync({ staff_profile_id: staffProfileId })
       showToast('Đã phân công nhân viên xử lý.', 'success')
-      setAssignStaffId('')
+      setAssignStaffProfileId('')
     } catch (error) {
       showToast(getApiErrorMessage(error, 'Không thể phân công.'), 'error')
     }
   }
 
-  const handleAddEvidence = async () => {
-    if (!evidenceUrl.trim()) {
-      showToast('Vui lòng nhập URL ảnh/tài liệu.', 'error')
+  const handleAssignTechnicalAssessment = async () => {
+    const staffProfileId = technicalInspectorProfileId.trim()
+    if (!staffProfileId) {
+      showToast('Vui lòng nhập ID hồ sơ nhân viên kiểm tra xe.', 'error')
       return
     }
     try {
-      await evidenceMutation.mutateAsync({
-        type: evidenceType,
-        url: evidenceUrl.trim(),
+      await technicalAssignMutation.mutateAsync({
+        staff_profile_id: staffProfileId,
       })
-      showToast('Đã thêm bằng chứng.', 'success')
-      setEvidenceUrl('')
+      showToast('Đã phân công đánh giá kỹ thuật.', 'success')
+      setTechnicalInspectorProfileId('')
     } catch (error) {
-      showToast(getApiErrorMessage(error, 'Không thể thêm bằng chứng.'), 'error')
+      showToast(
+        getApiErrorMessage(error, 'Không thể phân công đánh giá kỹ thuật.'),
+        'error',
+      )
+    }
+  }
+
+  const handleAddEvidence = async () => {
+    if (!caseId || evidenceFiles.length === 0) {
+      showToast('Vui lòng chọn ít nhất một hình ảnh.', 'error')
+      return
+    }
+
+    setIsUploadingEvidence(true)
+    try {
+      const uploadIds: string[] = []
+      for (const file of evidenceFiles) {
+        const upload = await uploadFileApi(file, {
+          purpose: 'CUSTOMER_CASE_EVIDENCE',
+          related_type: 'CUSTOMER_CASE',
+          related_id: caseId,
+        })
+        uploadIds.push(upload.id)
+      }
+      await evidenceMutation.mutateAsync({ upload_ids: uploadIds })
+      showToast(`Đã thêm ${uploadIds.length} hình ảnh bằng chứng.`, 'success')
+      setEvidenceFiles([])
+      setEvidenceInputKey((value) => value + 1)
+    } catch (error) {
+      showToast(
+        getApiErrorMessage(error, 'Không thể thêm bằng chứng.'),
+        'error',
+      )
+    } finally {
+      setIsUploadingEvidence(false)
     }
   }
 
   const handleSendMessage = async () => {
-    if (!messageBody.trim()) {
+    const message = messageBody.trim()
+    if (!message) {
       showToast('Vui lòng nhập nội dung tin nhắn.', 'error')
       return
     }
     try {
-      await messageMutation.mutateAsync({
-        body: messageBody.trim(),
-        visibility: messageVisibility,
-      })
-      showToast('Đã gửi tin nhắn.', 'success')
+      await messageMutation.mutateAsync({ message })
+      showToast('Đã gửi tin nhắn cho khách.', 'success')
       setMessageBody('')
     } catch (error) {
       showToast(getApiErrorMessage(error, 'Không thể gửi tin nhắn.'), 'error')
     }
   }
-
-  const isMutating =
-    acknowledgeMutation.isPending ||
-    assignMutation.isPending ||
-    evidenceMutation.isPending ||
-    messageMutation.isPending
-
-  const canAcknowledge = c.status === 'OPEN'
 
   return (
     <div>
@@ -158,11 +245,13 @@ export function StaffCustomerCaseDetailPage() {
 
       <PageHeader
         eyebrow="Carivo Staff"
-        title={c.subject}
-        description={`Mã hồ sơ: ${c.case_code ?? c.id.replace('case-', '#')}`}
+        title={CASE_CATEGORY_LABELS[c.category] ?? c.category}
+        description={`Mã hồ sơ: ${c.case_code ?? c.id}`}
         action={
           <div className="flex flex-wrap gap-2">
-            <Badge variant={CASE_STATUS_VARIANT[c.status] ?? 'default'}>{statusLabel}</Badge>
+            <Badge variant={CASE_STATUS_VARIANT[c.status] ?? 'default'}>
+              {statusLabel}
+            </Badge>
             <Badge variant={CASE_PRIORITY_VARIANT[c.priority] ?? 'default'}>
               {priorityLabel}
             </Badge>
@@ -176,18 +265,46 @@ export function StaffCustomerCaseDetailPage() {
             <CardTitle className="text-base">Thông tin chung</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            <Row label="Khách hàng" value={c.customer?.full_name ?? '—'} />
-            <Row label="Số điện thoại" value={c.customer?.phone ?? '—'} />
-            <Row label="Phân loại" value={c.category} />
+            <Row
+              label="Khách hàng"
+              value={c.customer?.full_name ?? c.reporter_name ?? '—'}
+            />
+            <Row
+              label="Số điện thoại"
+              value={c.reporter_phone ?? c.customer?.phone ?? '—'}
+            />
+            <Row
+              label="Phân loại"
+              value={CASE_CATEGORY_LABELS[c.category] ?? c.category}
+            />
             <Row label="Booking liên quan" value={c.booking_id ?? '—'} />
-            <Row label="Nhân viên xử lý" value={c.assigned_staff_name ?? c.assigned_staff_id ?? 'Chưa phân công'} />
-            <Row label="Mở lúc" value={c.opened_at ? formatDateTime(c.opened_at) : '—'} />
-            <Row label="SLA đến hạn" value={c.sla_due_at ? formatDateTime(c.sla_due_at) : '—'} />
-            {c.description ? (
-              <div className="rounded-xl bg-slate-50 p-3 text-slate-700">
-                {c.description}
-              </div>
-            ) : null}
+            <Row
+              label="Nhân viên xử lý"
+              value={
+                c.assigned_to?.full_name ?? c.assigned_to_id ?? 'Chưa phân công'
+              }
+            />
+            <Row
+              label="Mở lúc"
+              value={c.created_at ? formatDateTime(c.created_at) : '—'}
+            />
+            <Row
+              label="Hạn phản hồi đầu"
+              value={
+                c.first_response_due_at
+                  ? formatDateTime(c.first_response_due_at)
+                  : '—'
+              }
+            />
+            <Row
+              label="Hạn giải quyết"
+              value={
+                c.resolution_due_at ? formatDateTime(c.resolution_due_at) : '—'
+              }
+            />
+            <div className="rounded-xl bg-slate-50 p-3 text-slate-700">
+              {c.description}
+            </div>
           </CardContent>
         </Card>
 
@@ -196,7 +313,7 @@ export function StaffCustomerCaseDetailPage() {
             <CardTitle className="text-base">Timeline</CardTitle>
           </CardHeader>
           <CardContent>
-            <CaseTimeline events={c.timeline ?? []} />
+            <CaseTimeline events={detail.timeline} />
           </CardContent>
         </Card>
 
@@ -206,38 +323,43 @@ export function StaffCustomerCaseDetailPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <CaseEvidence items={c.evidence ?? []} />
-            <div className="space-y-2 border-t border-slate-100 pt-3">
-              <div>
-                <Label htmlFor="evidence-type">Loại</Label>
-                <Select
-                  id="evidence-type"
-                  value={evidenceType}
-                  onChange={(event) =>
-                    setEvidenceType(event.target.value as 'IMAGE' | 'VIDEO' | 'DOCUMENT')
-                  }
+            {canAddEvidence ? (
+              <div className="space-y-2 border-t border-slate-100 pt-3">
+                <div>
+                  <Label htmlFor="case-evidence-files">Hình ảnh mới</Label>
+                  <input
+                    key={evidenceInputKey}
+                    id="case-evidence-files"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    multiple
+                    className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:font-medium file:text-brand-700"
+                    onChange={(event) =>
+                      setEvidenceFiles(
+                        Array.from(event.target.files ?? []).slice(0, 10),
+                      )
+                    }
+                  />
+                  {evidenceFiles.length > 0 ? (
+                    <p className="mt-1 text-xs text-slate-500">
+                      Đã chọn {evidenceFiles.length} ảnh.
+                    </p>
+                  ) : null}
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleAddEvidence}
+                  disabled={isMutating}
                 >
-                  <option value="IMAGE">Hình ảnh</option>
-                  <option value="VIDEO">Video</option>
-                  <option value="DOCUMENT">Tài liệu</option>
-                </Select>
+                  {isUploadingEvidence || evidenceMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  Tải bằng chứng lên
+                </Button>
               </div>
-              <div>
-                <Label htmlFor="evidence-url">URL bằng chứng</Label>
-                <input
-                  id="evidence-url"
-                  className="h-11 w-full rounded-xl border border-slate-200/90 bg-white px-4 text-sm shadow-[var(--shadow-carivo-sm)] outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15"
-                  placeholder="https://…"
-                  value={evidenceUrl}
-                  onChange={(event) => setEvidenceUrl(event.target.value)}
-                />
-              </div>
-              <Button size="sm" onClick={handleAddEvidence} disabled={isMutating}>
-                {evidenceMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : null}
-                Thêm bằng chứng
-              </Button>
-            </div>
+            ) : null}
           </CardContent>
         </Card>
 
@@ -246,90 +368,118 @@ export function StaffCustomerCaseDetailPage() {
             <CardTitle className="text-base">Tin nhắn với khách</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <CaseMessages items={c.messages ?? []} />
-            <div className="space-y-2 border-t border-slate-100 pt-3">
-              <div>
-                <Label htmlFor="msg-visibility">Phạm vi hiển thị</Label>
-                <Select
-                  id="msg-visibility"
-                  value={messageVisibility}
-                  onChange={(event) =>
-                    setMessageVisibility(
-                      event.target.value as 'CUSTOMER_VISIBLE' | 'INTERNAL',
-                    )
-                  }
+            <CaseMessages items={detail.messages} />
+            {canCommunicate ? (
+              <div className="space-y-2 border-t border-slate-100 pt-3">
+                <div>
+                  <Label htmlFor="case-message">Nội dung</Label>
+                  <textarea
+                    id="case-message"
+                    rows={3}
+                    className="min-h-[80px] w-full rounded-xl border border-slate-200/90 bg-white px-4 py-2.5 text-sm shadow-[var(--shadow-carivo-sm)] outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15"
+                    placeholder="Nhập nội dung trao đổi với khách…"
+                    value={messageBody}
+                    onChange={(event) => setMessageBody(event.target.value)}
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleSendMessage}
+                  disabled={isMutating}
                 >
-                  <option value="CUSTOMER_VISIBLE">Khách hàng thấy</option>
-                  <option value="INTERNAL">Nội bộ</option>
-                </Select>
+                  {messageMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <MessageCircle className="h-4 w-4" />
+                  )}
+                  Gửi tin nhắn
+                </Button>
               </div>
-              <div>
-                <Label htmlFor="msg-body">Nội dung</Label>
-                <textarea
-                  id="msg-body"
-                  rows={3}
-                  className="min-h-[80px] w-full rounded-xl border border-slate-200/90 bg-white px-4 py-2.5 text-sm shadow-[var(--shadow-carivo-sm)] outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15"
-                  placeholder="Nhập nội dung tin nhắn…"
-                  value={messageBody}
-                  onChange={(event) => setMessageBody(event.target.value)}
-                />
-              </div>
-              <Button size="sm" onClick={handleSendMessage} disabled={isMutating}>
-                {messageMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <MessageCircle className="h-4 w-4" />
-                )}
-                Gửi tin nhắn
-              </Button>
-            </div>
+            ) : null}
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle className="text-base">Hành động</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {canAcknowledge ? (
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={() => handleAcknowledge(false)} disabled={isMutating}>
+        {canAcknowledge || canAssign || canOpenTechnicalAssessment ? (
+          <Card className="lg:col-span-3">
+            <CardHeader>
+              <CardTitle className="text-base">Hành động</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {canAcknowledge ? (
+                <Button onClick={handleAcknowledge} disabled={isMutating}>
                   <ShieldCheck className="h-4 w-4" />
-                  Tiếp nhận
+                  Tiếp nhận và nhận xử lý
                 </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => handleAcknowledge(true)}
-                  disabled={isMutating}
-                >
-                  Tiếp nhận & nhận xử lý
-                </Button>
+              ) : null}
+
+              {canAssign ? (
+                <div className="grid gap-3 lg:grid-cols-2">
+                  <div className="flex flex-wrap items-end gap-2">
+                    <div className="min-w-[240px] flex-1">
+                      <Label htmlFor="assign-case-staff">
+                        ID hồ sơ nhân viên chăm sóc khách hàng
+                      </Label>
+                      <input
+                        id="assign-case-staff"
+                        className="h-11 w-full rounded-xl border border-slate-200/90 bg-white px-4 text-sm shadow-[var(--shadow-carivo-sm)] outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15"
+                        placeholder="ObjectId staff profile"
+                        value={assignStaffProfileId}
+                        onChange={(event) =>
+                          setAssignStaffProfileId(event.target.value)
+                        }
+                      />
+                    </div>
+                    <Button onClick={handleAssign} disabled={isMutating}>
+                      Phân công xử lý
+                    </Button>
+                  </div>
+
+                  <div className="flex flex-wrap items-end gap-2">
+                    <div className="min-w-[240px] flex-1">
+                      <Label htmlFor="assign-case-inspector">
+                        ID hồ sơ nhân viên kiểm tra xe
+                      </Label>
+                      <input
+                        id="assign-case-inspector"
+                        className="h-11 w-full rounded-xl border border-slate-200/90 bg-white px-4 text-sm shadow-[var(--shadow-carivo-sm)] outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15"
+                        placeholder="ObjectId staff profile"
+                        value={technicalInspectorProfileId}
+                        onChange={(event) =>
+                          setTechnicalInspectorProfileId(event.target.value)
+                        }
+                      />
+                    </div>
+                    <Button
+                      variant="secondary"
+                      onClick={handleAssignTechnicalAssessment}
+                      disabled={isMutating}
+                    >
+                      Phân công đánh giá
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="flex flex-wrap gap-2">
+                {canOpenTechnicalAssessment ? (
+                  <Link to={`/staff/cases/${c.id}/technical-assessment`}>
+                    <Button variant="secondary" size="sm">
+                      <ClipboardList className="h-4 w-4" />
+                      Mở đánh giá kỹ thuật
+                    </Button>
+                  </Link>
+                ) : null}
+                {c.booking_id ? (
+                  <Link to={`/bookings/${c.booking_id}`}>
+                    <Button variant="secondary" size="sm">
+                      Mở booking liên quan
+                    </Button>
+                  </Link>
+                ) : null}
               </div>
-            ) : null}
-            <div className="flex flex-wrap items-end gap-2">
-              <div className="flex-1 min-w-[200px]">
-                <Label htmlFor="assign-staff">Phân công nhân viên</Label>
-                <input
-                  id="assign-staff"
-                  className="h-11 w-full rounded-xl border border-slate-200/90 bg-white px-4 text-sm shadow-[var(--shadow-carivo-sm)] outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15"
-                  placeholder="ID nhân viên"
-                  value={assignStaffId}
-                  onChange={(event) => setAssignStaffId(event.target.value)}
-                />
-              </div>
-              <Button onClick={handleAssign} disabled={isMutating}>
-                Phân công
-              </Button>
-            </div>
-            {c.booking_id ? (
-              <Link to={`/bookings/${c.booking_id}`}>
-                <Button variant="secondary" size="sm">
-                  Mở booking liên quan
-                </Button>
-              </Link>
-            ) : null}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
     </div>
   )
@@ -339,7 +489,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-2">
       <dt className="text-slate-500">{label}</dt>
-      <dd className="font-medium text-slate-900 text-right">{value}</dd>
+      <dd className="text-right font-medium text-slate-900">{value}</dd>
     </div>
   )
 }
@@ -354,6 +504,7 @@ function CaseTimeline({ events }: { events: ApiCustomerCaseTimelineEvent[] }) {
       />
     )
   }
+
   return (
     <ul className="space-y-3">
       {events.map((event) => (
@@ -361,13 +512,20 @@ function CaseTimeline({ events }: { events: ApiCustomerCaseTimelineEvent[] }) {
           key={event.id}
           className="flex flex-wrap items-start gap-3 border-l-2 border-brand-200 pl-4"
         >
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-slate-900">{event.type}</p>
-            {event.description ? (
-              <p className="text-sm text-slate-600">{event.description}</p>
+          <div className="min-w-0 flex-1">
+            <p className="font-medium text-slate-900">
+              {EVENT_LABELS[event.event_type] ?? event.event_type}
+            </p>
+            {event.from_status && event.to_status ? (
+              <p className="text-sm text-slate-600">
+                {CASE_STATUS_LABELS[event.from_status] ?? event.from_status} →{' '}
+                {CASE_STATUS_LABELS[event.to_status] ?? event.to_status}
+              </p>
             ) : null}
-            {event.actor_name ? (
-              <p className="text-xs text-slate-500">bởi {event.actor_name}</p>
+            {event.actor?.full_name ? (
+              <p className="text-xs text-slate-500">
+                bởi {event.actor.full_name}
+              </p>
             ) : null}
           </div>
           <span className="text-xs text-slate-500">
@@ -387,23 +545,32 @@ function CaseEvidence({
   if (items.length === 0) {
     return <p className="text-sm text-slate-500">Chưa có bằng chứng.</p>
   }
+
   return (
     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-      {items.map((evidence) => (
-        <a
-          key={evidence.id}
-          href={evidence.url}
-          target="_blank"
-          rel="noreferrer"
-          className="block rounded-xl border border-slate-200 p-3 text-sm hover:bg-slate-50"
-        >
-          <div className="font-medium text-slate-900">{evidence.type}</div>
-          <div className="truncate text-slate-500">{evidence.url}</div>
-          {evidence.caption ? (
-            <div className="mt-1 text-xs text-slate-500">{evidence.caption}</div>
-          ) : null}
-        </a>
-      ))}
+      {items.map((evidence) =>
+        evidence.url ? (
+          <a
+            key={evidence.id}
+            href={evidence.url}
+            target="_blank"
+            rel="noreferrer"
+            className="block rounded-xl border border-slate-200 p-3 text-sm hover:bg-slate-50"
+          >
+            <div className="font-medium text-slate-900">
+              {evidence.mime_type ?? 'Hình ảnh'}
+            </div>
+            <div className="truncate text-slate-500">{evidence.url}</div>
+          </a>
+        ) : (
+          <div
+            key={evidence.id}
+            className="rounded-xl border border-slate-200 p-3 text-sm text-slate-500"
+          >
+            {evidence.id}
+          </div>
+        ),
+      )}
     </div>
   )
 }
@@ -412,6 +579,7 @@ function CaseMessages({ items }: { items: ApiCustomerCaseMessage[] }) {
   if (items.length === 0) {
     return <p className="text-sm text-slate-500">Chưa có tin nhắn nào.</p>
   }
+
   return (
     <ul className="space-y-3">
       {items.map((message) => (
@@ -421,20 +589,15 @@ function CaseMessages({ items }: { items: ApiCustomerCaseMessage[] }) {
         >
           <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
             <span className="font-medium text-slate-900">
-              {message.sender_name ?? message.sender_type}
+              {message.sender?.full_name ?? message.sender_role}
             </span>
-            <div className="flex items-center gap-2">
-              {message.visibility === 'INTERNAL' ? (
-                <Badge variant="warning">Nội bộ</Badge>
-              ) : (
-                <Badge variant="info">Khách thấy</Badge>
-              )}
-              <span className="text-xs text-slate-500">
-                {message.created_at ? formatDateTime(message.created_at) : ''}
-              </span>
-            </div>
+            <span className="text-xs text-slate-500">
+              {message.created_at ? formatDateTime(message.created_at) : ''}
+            </span>
           </div>
-          <p className="whitespace-pre-wrap text-slate-700">{message.body}</p>
+          <p className="whitespace-pre-wrap text-slate-700">
+            {message.message}
+          </p>
         </li>
       ))}
     </ul>

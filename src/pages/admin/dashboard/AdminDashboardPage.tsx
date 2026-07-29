@@ -1,6 +1,6 @@
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import {
   CalendarCheck,
   CircleDollarSign,
@@ -28,6 +28,7 @@ import { getApiErrorMessage } from '../../../api/client'
 import { useToast } from '../../../contexts/ToastContext'
 import { useAdminAnalyticsBookings, useAdminAnalyticsOverview } from '../../../hooks/api/admin/useAdminAnalytics'
 import { useAdminRecentBookings } from '../../../hooks/api/admin/useAdminBookings'
+import { useAdminGarages } from '../../../hooks/api/admin/useAdminGarages'
 import { LOYALTY_TIER_LABELS } from '../../../constants/loyaltyTier'
 import { formatCurrency } from '../../../lib/utils'
 import { getAdminBookingCustomerName } from '../../../utils/adminBooking'
@@ -39,6 +40,11 @@ export function AdminDashboardPage() {
   const overviewQuery = useAdminAnalyticsOverview()
   const bookingTrendQuery = useAdminAnalyticsBookings({ group_by: 'DAY' })
   const recentBookingsQuery = useAdminRecentBookings(5)
+  const { allGarages } = useAdminGarages()
+  const garageNameById = useMemo(
+    () => new Map(allGarages.map((garage) => [garage.id, garage.name])),
+    [allGarages],
+  )
 
   const isLoading =
     overviewQuery.isLoading ||
@@ -235,7 +241,9 @@ export function AdminDashboardPage() {
                   <td className="px-6 py-4 text-slate-700">
                     {getAdminBookingCustomerName(booking)}
                   </td>
-                  <td className="px-6 py-4 text-slate-600">{booking.garage_id}</td>
+                  <td className="px-6 py-4 text-slate-600">
+                    {garageNameById.get(booking.garage_id) ?? booking.garage_id}
+                  </td>
                   <td className="px-6 py-4">
                     <Badge variant="info">{booking.status}</Badge>
                   </td>

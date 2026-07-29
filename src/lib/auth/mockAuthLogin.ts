@@ -37,7 +37,8 @@ export function mockAuthLogin(phone: string, password: string): AuthLoginResult 
   }
 
   if (account.role === 'ADMIN') {
-    const { password: _password, ...user } = account
+    const { password, ...user } = account
+    void password
     return { type: 'admin', session: { user } }
   }
 

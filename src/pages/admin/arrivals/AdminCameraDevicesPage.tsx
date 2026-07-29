@@ -74,7 +74,10 @@ export function AdminCameraDevicesPage() {
   }, [garageFilter, statusFilter])
 
   const camerasQuery = useAdminCameraDevices(params)
-  const devices = (camerasQuery.data?.data ?? []) as ApiCameraDevice[]
+  const devices = useMemo(
+    () => (camerasQuery.data?.data ?? []) as ApiCameraDevice[],
+    [camerasQuery.data?.data],
+  )
 
   const summary = useMemo(() => {
     const total = devices.length

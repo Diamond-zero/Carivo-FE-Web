@@ -47,7 +47,8 @@ export const mockAdminStaffProfiles: StaffProfile[] = [
 ]
 
 function toUserRecord(user: (typeof mockStaffUsers)[number]) {
-  const { password: _password, ...rest } = user
+  const { password, ...rest } = user
+  void password
   return rest
 }
 
@@ -58,7 +59,7 @@ export const mockAdminStaffRecords: AdminStaffRecord[] = [
     return {
       user: toUserRecord(user),
       profile,
-      garage: getAdminGarageById(profile.garage_id)!,
+      garage: getAdminGarageById(profile.garage_id ?? '')!,
     }
   }),
   ...mockAdminExtendedUsers
@@ -68,7 +69,7 @@ export const mockAdminStaffRecords: AdminStaffRecord[] = [
       return {
         user: toUserRecord(user),
         profile,
-        garage: getAdminGarageById(profile.garage_id)!,
+        garage: getAdminGarageById(profile.garage_id ?? '')!,
       }
     }),
 ]

@@ -5,12 +5,12 @@ import { getApiErrorMessage } from '../../../api/client'
 import { AdminStaffTypeChangeRequestListTable } from '../../../components/admin/staffTypeChange/AdminStaffTypeChangeRequestListTable'
 import {
   AdminStaffTypeChangeRequestFiltersPanel,
-  type AdminStaffTypeChangeRequestFilters,
 } from '../../../components/admin/staffTypeChange/AdminStaffTypeChangeRequestFiltersPanel'
 import {
   DEFAULT_ADMIN_STAFF_TYPE_CHANGE_REQUEST_FILTERS,
   filterAdminStaffTypeChangeRequests,
   hasActiveAdminStaffTypeChangeRequestFilters,
+  type AdminStaffTypeChangeRequestFilters,
 } from '../../../components/admin/staffTypeChange/AdminStaffTypeChangeRequestFilters.helpers'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Button } from '../../../components/ui/Button'
@@ -27,7 +27,7 @@ export function AdminStaffTypeChangeRequestsPage() {
   )
 
   const query = useAdminStaffTypeChangeRequests({})
-  const allRequests = query.data?.data ?? []
+  const allRequests = useMemo(() => query.data?.data ?? [], [query.data?.data])
 
   useEffect(() => {
     if (query.isError) {

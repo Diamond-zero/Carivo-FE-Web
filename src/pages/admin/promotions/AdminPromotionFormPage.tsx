@@ -64,7 +64,7 @@ export function AdminPromotionFormPage() {
   }
 
   const handleSubmit = async (values: AdminPromotionFormValues) => {
-    const base: Record<string, unknown> = {
+    const base: PromotionCreatePayload = {
       code: values.code,
       name: values.name,
       description: values.description?.trim() || null,
@@ -104,7 +104,7 @@ export function AdminPromotionFormPage() {
     }
 
     if (isCreate) {
-      createMutation.mutate(base as PromotionCreatePayload, {
+      createMutation.mutate(base, {
         onSuccess: (created) => {
           showToast(`Đã tạo mã ${created.code}.`, 'success')
           navigate('/admin/promotions')

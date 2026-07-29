@@ -28,6 +28,11 @@ import {
   CardTitle,
 } from '../../components/ui/Card'
 import { formatDateTime, formatPrice, formatTime } from '../../utils/format'
+import {
+  getApiErrorCode,
+  getApiErrorMessage,
+  getApiStatusCode,
+} from '../../api/client'
 import { useWorkspaceWorkflow } from '../../hooks/api/staff/useWorkspaceBookings'
 import { useWorkspaceBookings } from '../../hooks/api/staff/useWorkspaceBookings'
 import { WORKFLOW_PHASE_COLORS } from '../../components/service/WorkflowPhaseBanner'
@@ -115,18 +120,30 @@ export function WorkspaceBookingDetailPage() {
   }
 
   if (workflowQuery.isError) {
+    const status = getApiStatusCode(workflowQuery.error)
+    const code = getApiErrorCode(workflowQuery.error)
+    const isForbidden = status === 403
+    const isNotFound = status === 404 || code === 'BOOKING_NOT_FOUND'
+
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center text-center">
         <h1 className="text-xl font-semibold text-red-600">
-          Không thể tải chi tiết booking
+          {isForbidden
+            ? 'Bạn không có quyền xem booking này'
+            : isNotFound
+              ? 'Không tìm thấy booking'
+              : 'Không thể tải chi tiết booking'}
         </h1>
         <p className="mt-2 text-sm text-slate-500">
-          {workflowQuery.error?.message || 'Đã xảy ra lỗi khi tải dữ liệu.'}
+          {getApiErrorMessage(
+            workflowQuery.error,
+            'Đã xảy ra lỗi khi tải dữ liệu workflow.',
+          )}
         </p>
-        <Link to="/bookings/inspection-queue" className="mt-6">
+        <Link to="/bookings" className="mt-6">
           <Button variant="secondary">
             <ArrowLeft className="h-4 w-4" />
-            Quay lại hàng chờ kiểm tra
+            Quay lại danh sách
           </Button>
         </Link>
       </div>
@@ -142,10 +159,10 @@ export function WorkspaceBookingDetailPage() {
         <p className="mt-2 text-sm text-slate-500">
           Booking này không tồn tại hoặc không thuộc garage của bạn.
         </p>
-        <Link to="/bookings/inspection-queue" className="mt-6">
+        <Link to="/bookings" className="mt-6">
           <Button variant="secondary">
             <ArrowLeft className="h-4 w-4" />
-            Quay lại hàng chờ kiểm tra
+            Quay lại danh sách
           </Button>
         </Link>
       </div>
@@ -169,11 +186,11 @@ export function WorkspaceBookingDetailPage() {
     <div>
       <div className="mb-4">
         <Link
-          to="/bookings/inspection-queue"
+          to="/bookings"
           className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800"
         >
           <ArrowLeft className="h-4 w-4" />
-          Quay lại hàng chờ kiểm tra
+          Quay lại danh sách
         </Link>
       </div>
 

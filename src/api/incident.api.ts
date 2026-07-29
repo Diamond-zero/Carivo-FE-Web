@@ -24,10 +24,6 @@ import { apiClient } from './client'
 // 409 BOOKING_INCIDENT_DECISION_REQUIRED — FE phải disable các nút service.
 // ============================================================================
 
-interface IncidentResponse<T> {
-  data: T
-}
-
 export async function reportBookingIncidentApi(
   bookingId: string,
   payload: ApiReportBookingIncidentPayload,

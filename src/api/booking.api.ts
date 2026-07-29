@@ -23,6 +23,7 @@ export interface BookingListParams {
    * thành một param — vì vậy FE giữ kiểu union.
    */
   status?: string | string[]
+  payment_status?: string
   search?: string
   garage_id?: string
   customer_id?: string
@@ -39,7 +40,7 @@ export interface BookingListParams {
 export async function getStaffBookingsApi(params?: BookingListParams) {
   const { data } = await apiClient.get<
     ApiResponse<ApiBooking[]> & { meta?: ApiPaginatedBookings['meta'] }
-  >('/admin/bookings', { params: { limit: 100, ...params } })
+  >('/admin/bookings', { params })
   return {
     bookings: data.data,
     meta: data.meta,

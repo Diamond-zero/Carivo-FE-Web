@@ -35,7 +35,8 @@ export const mockAdminCustomerLoyalty: CustomerLoyalty[] = [
 ]
 
 function toUserRecord(user: (typeof mockCustomerUsers)[number]) {
-  const { password: _password, ...rest } = user
+  const { password, ...rest } = user
+  void password
   return rest
 }
 

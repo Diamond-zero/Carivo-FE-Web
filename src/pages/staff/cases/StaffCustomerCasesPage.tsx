@@ -5,7 +5,12 @@ import { getApiErrorMessage } from '../../../api/client'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Badge } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '../../../components/ui/Card'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { Label } from '../../../components/ui/Label'
 import { Select } from '../../../components/ui/Select'
@@ -15,50 +20,73 @@ import { useToast } from '../../../contexts/ToastContext'
 import {
   CASE_PRIORITY_LABELS,
   CASE_PRIORITY_VARIANT,
+  CASE_CATEGORY_LABELS,
   CASE_STATUS_LABELS,
   CASE_STATUS_VARIANT,
   useStaffCustomerCaseSlaDashboard,
   useStaffCustomerCases,
 } from '../../../hooks/api/staff/useStaffCustomerCases'
-import type { ApiCustomerCase } from '../../../types/api/customerCase'
+import { useMyCapabilities } from '../../../hooks/api/staff/useStaffCapabilities'
+import type {
+  ApiCustomerCase,
+  ApiCustomerCaseListParams,
+  CustomerCasePriority,
+  CustomerCaseStatus,
+} from '../../../types/api/customerCase'
 import { formatDateTime } from '../../../utils/format'
 
 const PAGE_SIZE = 20
 
 const STATUS_OPTIONS = [
   { value: 'ALL', label: 'Tất cả trạng thái' },
-  ...Object.entries(CASE_STATUS_LABELS).map(([value, label]) => ({ value, label })),
+  ...Object.entries(CASE_STATUS_LABELS).map(([value, label]) => ({
+    value,
+    label,
+  })),
 ]
 
 const PRIORITY_OPTIONS = [
   { value: 'ALL', label: 'Tất cả mức độ' },
-  ...Object.entries(CASE_PRIORITY_LABELS).map(([value, label]) => ({ value, label })),
+  ...Object.entries(CASE_PRIORITY_LABELS).map(([value, label]) => ({
+    value,
+    label,
+  })),
 ]
 
 export function StaffCustomerCasesPage() {
   const { showToast } = useToast()
-  const [statusFilter, setStatusFilter] = useState('ALL')
-  const [priorityFilter, setPriorityFilter] = useState('ALL')
+  const capabilities = useMyCapabilities()
+  const canReadSla = capabilities.includes('customer_case.sla.read_garage')
+  const canCreateWalkIn = capabilities.includes('customer_case.create_walk_in')
+  const [statusFilter, setStatusFilter] = useState<CustomerCaseStatus | 'ALL'>(
+    'ALL',
+  )
+  const [priorityFilter, setPriorityFilter] = useState<
+    CustomerCasePriority | 'ALL'
+  >('ALL')
   const [page, setPage] = useState(1)
 
   const params = useMemo(
-    () => ({
+    (): ApiCustomerCaseListParams => ({
       page,
       limit: PAGE_SIZE,
-      status: statusFilter === 'ALL' ? undefined : statusFilter,
-      priority: priorityFilter === 'ALL' ? undefined : priorityFilter,
+      ...(statusFilter === 'ALL' ? {} : { status: statusFilter }),
+      ...(priorityFilter === 'ALL' ? {} : { priority: priorityFilter }),
     }),
     [page, statusFilter, priorityFilter],
   )
 
   const casesQuery = useStaffCustomerCases(params)
-  const slaQuery = useStaffCustomerCaseSlaDashboard()
+  const slaQuery = useStaffCustomerCaseSlaDashboard(canReadSla)
 
   const cases: ApiCustomerCase[] = casesQuery.data?.data ?? []
   const meta = casesQuery.data?.meta
   const totalPages = meta?.total_pages ?? 1
   const total = meta?.total ?? cases.length
-  const sla = slaQuery.data
+  const slaSummary = slaQuery.data?.summary
+  const overdueCount =
+    (slaSummary?.by_sla_state.FIRST_RESPONSE_OVERDUE ?? 0) +
+    (slaSummary?.by_sla_state.RESOLUTION_OVERDUE ?? 0)
 
   useEffect(() => {
     if (casesQuery.isError) {
@@ -69,10 +97,6 @@ export function StaffCustomerCasesPage() {
     }
   }, [casesQuery.isError, casesQuery.error, showToast])
 
-  useEffect(() => {
-    setPage(1)
-  }, [statusFilter, priorityFilter])
-
   return (
     <div>
       <PageHeader
@@ -81,45 +105,49 @@ export function StaffCustomerCasesPage() {
         description="Danh sách hồ sơ khiếu nại của khách hàng tại chi nhánh của bạn. Nhấn vào hồ sơ để xem chi tiết timeline và xử lý."
         action={
           <div className="flex flex-wrap gap-2">
-            <Link to="/staff/cases/sla">
-              <Button variant="secondary" size="sm">
-                <ShieldCheck className="h-4 w-4" />
-                SLA dashboard
-              </Button>
-            </Link>
-            <Link to="/staff/cases/walk-in">
-              <Button size="sm">
-                <AlertTriangle className="h-4 w-4" />
-                Tạo case walk-in
-              </Button>
-            </Link>
+            {canReadSla ? (
+              <Link to="/staff/cases/sla">
+                <Button variant="secondary" size="sm">
+                  <ShieldCheck className="h-4 w-4" />
+                  SLA dashboard
+                </Button>
+              </Link>
+            ) : null}
+            {canCreateWalkIn ? (
+              <Link to="/staff/cases/walk-in">
+                <Button size="sm">
+                  <AlertTriangle className="h-4 w-4" />
+                  Tạo case walk-in
+                </Button>
+              </Link>
+            ) : null}
           </div>
         }
       />
 
-      {sla ? (
+      {slaSummary && canReadSla ? (
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
-            label="Tổng case đang mở"
-            value={sla.total_open}
+            label="Tổng hồ sơ"
+            value={slaSummary.total}
             icon={Clock}
             accent="brand"
           />
           <StatCard
             label="Đúng hạn"
-            value={sla.on_track}
+            value={slaSummary.by_sla_state.ON_TRACK ?? 0}
             icon={ShieldCheck}
-            accent="green"
+            accent="emerald"
           />
           <StatCard
-            label="Sắp trễ hạn"
-            value={sla.at_risk}
+            label="Quá hạn xử lý"
+            value={overdueCount}
             icon={Clock}
             accent="amber"
           />
           <StatCard
-            label="Đã trễ hạn"
-            value={sla.breached}
+            label="Vi phạm SLA"
+            value={slaSummary.by_sla_state.BREACHED ?? 0}
             icon={AlertTriangle}
             accent="red"
           />
@@ -132,7 +160,10 @@ export function StaffCustomerCasesPage() {
           <Select
             id="case-status"
             value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
+            onChange={(event) => {
+              setStatusFilter(event.target.value as CustomerCaseStatus | 'ALL')
+              setPage(1)
+            }}
           >
             {STATUS_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -146,7 +177,12 @@ export function StaffCustomerCasesPage() {
           <Select
             id="case-priority"
             value={priorityFilter}
-            onChange={(event) => setPriorityFilter(event.target.value)}
+            onChange={(event) => {
+              setPriorityFilter(
+                event.target.value as CustomerCasePriority | 'ALL',
+              )
+              setPage(1)
+            }}
           >
             {PRIORITY_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -194,24 +230,36 @@ export function StaffCustomerCasesPage() {
                         {c.case_code ?? c.id.replace('case-', '#')}
                       </td>
                       <td className="px-6 py-4 text-slate-700">
-                        {c.customer?.full_name ?? '—'}
+                        {c.customer?.full_name ?? c.reporter_name ?? '—'}
                       </td>
                       <td className="px-6 py-4">
-                        <p className="font-medium text-slate-900">{c.subject}</p>
-                        <p className="text-xs text-slate-500">{c.category}</p>
+                        <p className="max-w-sm truncate font-medium text-slate-900">
+                          {c.description}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {CASE_CATEGORY_LABELS[c.category] ?? c.category}
+                        </p>
                       </td>
                       <td className="px-6 py-4">
-                        <Badge variant={CASE_PRIORITY_VARIANT[c.priority] ?? 'default'}>
+                        <Badge
+                          variant={
+                            CASE_PRIORITY_VARIANT[c.priority] ?? 'default'
+                          }
+                        >
                           {CASE_PRIORITY_LABELS[c.priority] ?? c.priority}
                         </Badge>
                       </td>
                       <td className="px-6 py-4">
-                        <Badge variant={CASE_STATUS_VARIANT[c.status] ?? 'default'}>
+                        <Badge
+                          variant={CASE_STATUS_VARIANT[c.status] ?? 'default'}
+                        >
                           {CASE_STATUS_LABELS[c.status] ?? c.status}
                         </Badge>
                       </td>
                       <td className="px-6 py-4 text-xs text-slate-500">
-                        {c.sla_due_at ? formatDateTime(c.sla_due_at) : '—'}
+                        {c.resolution_due_at
+                          ? formatDateTime(c.resolution_due_at)
+                          : '—'}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <Link to={`/staff/cases/${c.id}`}>
@@ -245,7 +293,9 @@ export function StaffCustomerCasesPage() {
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            onClick={() =>
+              setPage((current) => Math.min(totalPages, current + 1))
+            }
             disabled={page >= totalPages}
           >
             Trang sau

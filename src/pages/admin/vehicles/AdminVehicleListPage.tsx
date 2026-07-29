@@ -85,7 +85,7 @@ export function AdminVehicleListPage() {
   const customerNameById = useMemo(() => {
     const map: Record<string, string> = {}
     for (const customer of allCustomers) {
-      map[customer.user.id] = `${customer.user.full_name} (${customer.user.phone})`
+      map[customer.id] = `${customer.full_name} (${customer.phone})`
     }
     return map
   }, [allCustomers])

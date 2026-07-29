@@ -5,6 +5,8 @@ function clonePromotions(items: Promotion[]): Promotion[] {
   return items.map((promo) => ({
     ...promo,
     applicable_tiers: [...promo.applicable_tiers],
+    applicable_vehicle_types: [...promo.applicable_vehicle_types],
+    applicable_service_package_ids: [...promo.applicable_service_package_ids],
   }))
 }
 
@@ -44,6 +46,7 @@ export function createAdminPromotion(input: AdminPromotionInput) {
   }
 
   const promo: Promotion = {
+    ...input,
     id: `promo-${slugify(input.code) || 'new'}-${Date.now()}`,
     code: input.code.trim().toUpperCase(),
     name: input.name.trim(),
@@ -53,6 +56,8 @@ export function createAdminPromotion(input: AdminPromotionInput) {
     max_discount_amount: input.max_discount_amount,
     min_order_amount: input.min_order_amount,
     applicable_tiers: [...input.applicable_tiers],
+    applicable_vehicle_types: [...input.applicable_vehicle_types],
+    applicable_service_package_ids: [...input.applicable_service_package_ids],
     usage_limit: input.usage_limit,
     used_count: 0,
     start_at: input.start_at,

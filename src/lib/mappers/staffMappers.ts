@@ -344,36 +344,3 @@ export function mapApiStaffCustomer(
     }),
   }
 }
-
-export function deriveWashBaysFromBookings(
-  bookings: ApiBooking[],
-  garageId: string,
-): WashBay[] {
-  const bayMap = new Map<string, WashBay>()
-
-  for (const booking of bookings) {
-    if (!booking.wash_bay || booking.garage_id !== garageId) continue
-
-    bayMap.set(booking.wash_bay.id, {
-      id: booking.wash_bay.id,
-      garage_id: garageId,
-      name: booking.wash_bay.name,
-      bay_code: booking.wash_bay.bay_code,
-      vehicle_type: booking.wash_bay.vehicle_type,
-      status: booking.wash_bay.status as WashBayStatus,
-      current_booking_id: null,
-      is_active: booking.wash_bay.is_active,
-    })
-  }
-
-  for (const booking of bookings) {
-    if (booking.status !== 'IN_PROGRESS' || !booking.wash_bay_id) continue
-    const bay = bayMap.get(booking.wash_bay_id)
-    if (bay) {
-      bay.status = 'OCCUPIED'
-      bay.current_booking_id = booking.id
-    }
-  }
-
-  return Array.from(bayMap.values())
-}

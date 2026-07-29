@@ -11,7 +11,7 @@ import { staffQueryKeys } from './queryKeys'
 
 export function useStaffBookingList(filters: BookingFilters) {
   const { session, isAuthenticated } = useAuth()
-  const garageId = session?.staffProfile.garage_id
+  const garageId = session?.staffProfile.garage_id ?? undefined
   const apiParams = useMemo(
     () => toBookingListApiParams(filters, garageId),
     [filters, garageId],

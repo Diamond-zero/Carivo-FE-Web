@@ -107,12 +107,7 @@ async function fetchAdminStaffRecords(): Promise<AdminStaffRecord[]> {
 export function useAdminStaff(filters: AdminStaffListFilters = {}) {
   const { isAuthenticated } = useAdminAuth()
 
-  const listParams = useMemo(() => buildStaffListParams(filters), [
-    filters.query,
-    filters.garageFilter,
-    filters.staffTypeFilter,
-    filters.isActiveFilter,
-  ])
+  const listParams = useMemo(() => buildStaffListParams(filters), [filters])
 
   const query = useQuery({
     queryKey: [...adminQueryKeys.staff(), listParams],
@@ -122,10 +117,10 @@ export function useAdminStaff(filters: AdminStaffListFilters = {}) {
     placeholderData: (previousData) => previousData,
   })
 
-  const allStaff = query.data ?? []
+  const allStaff = useMemo(() => query.data ?? [], [query.data])
   const staff = useMemo(
     () => filterStaffRecords(allStaff, filters),
-    [allStaff, filters.query, filters.garageFilter, filters.staffTypeFilter],
+    [allStaff, filters],
   )
 
   return {
@@ -331,7 +326,7 @@ export function useDeleteAdminStaff() {
         queryClient.setQueryData(key, data)
       })
     },
-    onSettled: (_data, profileId) => {
+    onSettled: (_data, _error, profileId) => {
       void queryClient.invalidateQueries({ queryKey: ['admin', 'staff'] })
       void queryClient.removeQueries({ queryKey: adminQueryKeys.staffProfile(profileId) })
     },

@@ -1,9 +1,7 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import {
-  type StaffCapability,
-} from '../../constants/staffCapabilities'
-import { useCan } from '../../hooks/useCan'
+import { type StaffCapability } from '../../constants/staffCapabilities'
+import { useCanStaffCapability } from '../../hooks/api/staff/useStaffCapabilities'
 
 interface CapabilityRouteProps {
   /**
@@ -27,9 +25,13 @@ export function CapabilityRoute({
   redirectTo = '/dashboard',
 }: CapabilityRouteProps) {
   const { isAuthenticated, isInitializing } = useAuth()
-  const allowed = useCan(capability)
+  const { capabilities, isLoading: isLoadingCapabilities } =
+    useCanStaffCapability()
+  const allowed = Array.isArray(capability)
+    ? capability.some((key) => capabilities.includes(key))
+    : capabilities.includes(capability)
 
-  if (isInitializing) {
+  if (isInitializing || isLoadingCapabilities) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />

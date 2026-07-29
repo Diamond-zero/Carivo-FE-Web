@@ -97,13 +97,7 @@ export function useAdminWashBays(filters: AdminWashBayListFilters = {}) {
   )
   const washBays = useMemo(
     () => filterWashBaySummaries(allWashBays, filters),
-    [
-      allWashBays,
-      filters.query,
-      filters.garageFilter,
-      filters.vehicleTypeFilter,
-      filters.statusFilter,
-    ],
+    [allWashBays, filters],
   )
 
   return {

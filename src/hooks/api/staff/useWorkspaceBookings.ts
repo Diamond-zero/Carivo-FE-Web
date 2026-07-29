@@ -30,7 +30,7 @@ export function useWorkspaceBookings(
   options?: { refetchInterval?: number; enabled?: boolean },
 ) {
   const { session, isAuthenticated } = useAuth()
-  const garageId = session?.staffProfile.garage_id
+  const garageId = session?.staffProfile.garage_id ?? undefined
 
   const apiParams = useMemo(() => {
     const params: {
@@ -100,7 +100,7 @@ export function useClaimInspection() {
   const queryClient = useQueryClient()
   const { session } = useAuth()
   const currentUserId = session?.user.id
-  const garageId = session?.staffProfile.garage_id
+  const garageId = session?.staffProfile.garage_id ?? undefined
 
   return useMutation({
     mutationFn: async (bookingId: string) => {
