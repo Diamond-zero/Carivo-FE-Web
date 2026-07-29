@@ -26,6 +26,11 @@ export const RegisterPage = lazyNamed(
   'RegisterPage',
 )
 
+export const PayosReturnPage = lazyNamed(
+  () => import('../pages/payments/PayosReturnPage'),
+  'PayosReturnPage',
+)
+
 export const AdminLayout = lazyNamed(
   () => import('../components/layout/admin/AdminLayout'),
   'AdminLayout',

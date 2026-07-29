@@ -1,4 +1,3 @@
-import axios from 'axios'
 import type { ApiResponse } from '../types/api'
 import type {
   ApiBooking,
@@ -6,7 +5,7 @@ import type {
   ApiPaymentTransaction,
 } from '../types/api/staff'
 import { markBookingPaidApi } from './booking.api'
-import { apiClient, getApiErrorCode } from './client'
+import { apiClient } from './client'
 
 export interface CreatePayosPaymentPayload {
   return_url?: string
@@ -46,27 +45,8 @@ export async function markBookingPaidWithCashApi(
   bookingId: string,
   note?: string,
 ) {
-  try {
-    const result = await markBookingPaidApi(bookingId, note)
-    return result.booking
-  } catch (error) {
-    if (
-      !axios.isAxiosError(error) ||
-      getApiErrorCode(error) !== 'BOOKING_PENDING_PAYOS_PAYMENT'
-    ) {
-      throw error
-    }
-
-    // BE payment workflow docs: khi staff muốn thu tiền mặt, BE đang giữ
-    // payment PayOS pending — staff hủy payment đó trước rồi mới mark-paid.
-    // Xem docs BE "Payment transaction lock" + payment.api.ts:44-58 (cũ).
-    const { payment } = await createPayosPaymentApi(bookingId)
-    await cancelPaymentApi(payment.id, {
-      reason: note?.trim() || 'Staff confirmed cash payment',
-    })
-    const result = await markBookingPaidApi(bookingId, note)
-    return result.booking
-  }
+  const result = await markBookingPaidApi(bookingId, note)
+  return result.booking
 }
 
 export async function getPaymentApi(paymentId: string) {

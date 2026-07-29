@@ -473,11 +473,13 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   })
 
   const payosMutation = useMutation({
-    mutationFn: (bookingId: string) =>
-      createPayosPaymentApi(bookingId, {
-        return_url: `${window.location.origin}/bookings/${bookingId}`,
-        cancel_url: `${window.location.origin}/bookings/${bookingId}`,
-      }),
+    mutationFn: (bookingId: string) => {
+      const returnUrl = `${window.location.origin}/payment/payos/return`
+      return createPayosPaymentApi(bookingId, {
+        return_url: `${returnUrl}?result=returned`,
+        cancel_url: `${returnUrl}?result=cancelled`,
+      })
+    },
     onSuccess: () => void invalidateBookings(),
   })
 

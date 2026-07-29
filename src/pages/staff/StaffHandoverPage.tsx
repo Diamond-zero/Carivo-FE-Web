@@ -191,7 +191,9 @@ export function StaffHandoverPage() {
   const canReady = bookingCompleted && !handover
   const canShowPayment = bookingCompleted && customerAccepted && !handoverReleased
   const canCollectCash =
-    canShowPayment && booking.payment_status === 'UNPAID'
+    canShowPayment &&
+    (booking.payment_status === 'UNPAID' ||
+      booking.payment_status === 'PENDING')
   const canCreatePayos =
     canShowPayment &&
     (booking.payment_status === 'UNPAID' ||
@@ -285,6 +287,14 @@ export function StaffHandoverPage() {
 
   const handleCollectCash = async () => {
     if (!bookingId) return
+    if (
+      booking.payment_status === 'PENDING' &&
+      !window.confirm(
+        'Booking đang có QR PayOS chờ thanh toán. Tiếp tục sẽ hủy QR hiện tại và xác nhận đã thu đủ tiền mặt.',
+      )
+    ) {
+      return
+    }
     setPaymentAction('cash')
     try {
       const result = await markBookingPaid(bookingId)
@@ -648,7 +658,7 @@ export function StaffHandoverPage() {
             ) : booking.payment_status === 'PENDING' ? (
               <p className="text-sm text-amber-700">
                 Đã tạo link PayOS — chờ khách quét QR. Nếu khách walk-in muốn
-                đổi sang tiền mặt, vẫn có thể bấm "Thu tiền mặt" bên dưới (BE
+                đổi sang tiền mặt, vẫn có thể bấm "Hủy QR và thu tiền mặt" bên dưới (BE
                 sẽ huỷ giao dịch PayOS đang pending).
               </p>
             ) : null}
@@ -664,7 +674,9 @@ export function StaffHandoverPage() {
                   ) : (
                     <Banknote className="h-4 w-4" />
                   )}
-                  Thu tiền mặt
+                  {booking.payment_status === 'PENDING'
+                    ? 'Hủy QR và thu tiền mặt'
+                    : 'Thu tiền mặt'}
                 </Button>
                 <Button
                   variant="secondary"

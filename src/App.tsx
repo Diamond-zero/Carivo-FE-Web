@@ -66,6 +66,7 @@ import {
   DashboardPage,
   InspectionPage,
   LoginPage,
+  PayosReturnPage,
   PublicHomePage,
   RegisterPage,
   ServiceExecutionPage,
@@ -119,6 +120,14 @@ function App() {
               element={
                 <LazyPage>
                   <RegisterPage />
+                </LazyPage>
+              }
+            />
+            <Route
+              path="/payment/payos/return"
+              element={
+                <LazyPage>
+                  <PayosReturnPage />
                 </LazyPage>
               }
             />
