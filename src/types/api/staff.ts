@@ -47,11 +47,32 @@ export interface ApiBookingWashBay {
   is_active: boolean
 }
 
+export interface ApiBookingStaffUser {
+  id: string
+  full_name: string
+  email?: string | null
+  phone?: string | null
+  avatar_url?: string | null
+  role?: string
+  is_active?: boolean
+}
+
+export interface ApiBookingStaffProfile {
+  id: string
+  user_id?: string | null
+  user?: ApiBookingStaffUser | null
+  staff_code?: string | null
+  staff_type?: string | null
+  staff_group?: string | null
+  garage_id?: string | null
+  is_active?: boolean
+}
+
 export interface ApiBookingAssignedCareStaff {
   staff_profile_id?: string
-  staff_profile?: Record<string, unknown>
+  staff_profile?: ApiBookingStaffProfile | null
   user_id?: string
-  user?: Record<string, unknown>
+  user?: ApiBookingStaffUser | null
   assigned_at?: string
   released_at?: string | null
 }
@@ -82,6 +103,7 @@ export interface ApiBookingItem {
   care_staff_work_end_time?: string | null
   care_staff_reserved_until?: string | null
   assigned_care_staff?: ApiBookingAssignedCareStaff[]
+  assigned_execution_staff?: ApiBookingAssignedCareStaff[]
   status: string
 }
 
@@ -164,7 +186,7 @@ export interface ApiBooking {
   care_staff_work_end_time?: string | null
   care_staff_reserved_until?: string | null
   assigned_care_staff_ids?: string[]
-  assigned_care_staff?: ApiBookingAssignedCareStaff[]
+  assigned_care_staff?: ApiBookingStaffProfile[]
   original_price: number
   promotion_discount_amount?: number
   points_discount_amount?: number

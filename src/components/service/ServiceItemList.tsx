@@ -8,11 +8,14 @@ import {
   FastForward,
   Loader2,
   Pause,
+  Phone,
   Play,
   ShieldAlert,
+  Users,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Button } from '../ui/Button'
+import { CopyValueButton } from '../ui/CopyValueButton'
 import { cn } from '../../lib/utils'
 import { PauseServiceItemModal } from './PauseServiceItemModal'
 import { ReportIncidentStaffModal } from './ReportIncidentStaffModal'
@@ -407,6 +410,7 @@ function ServiceItemCard({
   const isSkipped = item.status === 'SKIPPED'
   const isWaitingResource = item.status === 'WAITING_RESOURCE'
   const isPending = item.status === 'PENDING'
+  const assignedStaff = item.assigned_staff ?? []
 
   const { icon: StatusIcon, badge, cardBorder } = describeStatus(item.status)
 
@@ -643,7 +647,58 @@ function ServiceItemCard({
         </div>
       ) : null}
 
-      {/* Optional: chi tiết nhỏ */}
+      {assignedStaff.length > 0 ? (
+        <div className="mt-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-800">
+            <Users className="h-4 w-4 text-brand-600" />
+            Nhân sự phụ trách
+          </div>
+          <div className="grid gap-2 md:grid-cols-2">
+            {assignedStaff.map((staff) => (
+              <div
+                key={`${staff.responsibility}-${staff.staff_profile_id ?? staff.user_id}`}
+                className="rounded-lg bg-slate-50 px-3 py-2"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-900">
+                      {staff.full_name || 'Chưa cập nhật tên'}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {ASSIGNMENT_RESPONSIBILITY_LABELS[staff.responsibility]}
+                      {staff.staff_code ? ` · ${staff.staff_code}` : ''}
+                    </p>
+                  </div>
+                  {staff.phone ? (
+                    <CopyValueButton
+                      value={staff.phone}
+                      label={`số điện thoại ${staff.full_name || 'nhân viên'}`}
+                    />
+                  ) : null}
+                </div>
+                {staff.phone ? (
+                  <a
+                    href={`tel:${staff.phone}`}
+                    className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-brand-700 hover:text-brand-800"
+                  >
+                    <Phone className="h-3.5 w-3.5" />
+                    {staff.phone}
+                  </a>
+                ) : (
+                  <p className="mt-1 text-xs text-slate-400">
+                    Chưa cập nhật số điện thoại
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-700">
+          Chưa có nhân viên đang được phân công cho hạng mục này.
+        </div>
+      )}
+
       <button
         type="button"
         onClick={() => setExpanded((current) => !current)}
@@ -695,6 +750,11 @@ function ServiceItemCard({
     </li>
   )
 }
+
+const ASSIGNMENT_RESPONSIBILITY_LABELS = {
+  WASH_OPERATION: 'Vận hành rửa',
+  VEHICLE_CARE: 'Chăm sóc xe',
+} as const
 
 const STATUS_LABELS: Record<ApiServiceItem['status'], string> = {
   PENDING: 'Chờ tới lượt',

@@ -96,6 +96,18 @@ export interface ApiInspectionMilestone {
   image_count: number
 }
 
+export interface ApiAssignedServiceStaff {
+  staff_profile_id: string | null
+  user_id: string | null
+  full_name: string | null
+  phone: string | null
+  avatar_url: string | null
+  staff_code: string | null
+  staff_type: string | null
+  responsibility: 'WASH_OPERATION' | 'VEHICLE_CARE'
+  assigned_at: string | null
+}
+
 /** Service item trong workflow detail (BE `StaffBookingWorkflowServiceItem`) */
 export interface ApiServiceItem {
   item_key: string
@@ -118,6 +130,7 @@ export interface ApiServiceItem {
   requires_wash_bay: boolean
   requires_care_staff: boolean
   assigned_to_current_user: boolean
+  assigned_staff?: ApiAssignedServiceStaff[]
 }
 
 /** Service step trong workflow detail */

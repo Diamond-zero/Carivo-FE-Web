@@ -21,6 +21,7 @@ import { PaymentStatusBadge } from '../../components/booking/PaymentStatusBadge'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { AssignWashBayModal } from '../../components/wash-bay/AssignWashBayModal'
 import { Button } from '../../components/ui/Button'
+import { CopyValueButton } from '../../components/ui/CopyValueButton'
 import {
   Card,
   CardContent,
@@ -157,6 +158,35 @@ export function BookingDetailPage() {
   const needsWashBayAssignment = assignWashBayGuard.allowed
   const availableWashBays = id ? getAvailableWashBaysForBooking(id) : []
   const VehicleIcon = booking.vehicle_type === 'CAR' ? Car : Bike
+  const itemStaffAssignments = (booking.raw?.booking_items ?? []).flatMap((item) => [
+    ...(item.assigned_execution_staff ?? []).map((assignment) => ({
+      assignment,
+      responsibility: 'Vận hành rửa',
+      itemName: item.name_snapshot,
+      itemStatus: item.status,
+    })),
+    ...(item.assigned_care_staff ?? []).map((assignment) => ({
+      assignment,
+      responsibility: 'Chăm sóc xe',
+      itemName: item.name_snapshot,
+      itemStatus: item.status,
+    })),
+  ])
+  const activeStaffAssignments = itemStaffAssignments
+    .filter(({ assignment }) => !assignment.released_at)
+    .map(({ assignment, ...context }) => ({
+      ...context,
+      key: `${context.itemName}-${context.responsibility}-${assignment.staff_profile_id ?? assignment.user_id}`,
+      fullName:
+        assignment.user?.full_name ??
+        assignment.staff_profile?.user?.full_name ??
+        'Chưa cập nhật tên',
+      phone:
+        assignment.user?.phone ??
+        assignment.staff_profile?.user?.phone ??
+        null,
+      staffCode: assignment.staff_profile?.staff_code ?? null,
+    }))
 
   const handleAssignWashBay = async (washBayId: string) => {
     if (!id) {
@@ -447,44 +477,76 @@ export function BookingDetailPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Users className="h-5 w-5 text-slate-500" />
-            Phân công nhân viên care
+            Nhân sự phụ trách dịch vụ
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {!booking.requires_care_staff ? (
-            <p className="text-sm text-slate-500">
-              Gói dịch vụ này không yêu cầu nhân viên care.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2 text-sm">
-                <span className="text-slate-600">Yêu cầu:</span>
-                <span className="font-medium text-slate-900">
-                  {booking.care_staff_required_count ?? 1} nhân viên
-                </span>
-                <span className="text-slate-400">·</span>
-                <span className="text-slate-600">Đã phân công:</span>
-                <span className="font-medium text-slate-900">
-                  {booking.assigned_care_staff_ids?.length ?? 0}
-                </span>
-              </div>
-              {booking.assigned_care_staff_ids &&
-              booking.assigned_care_staff_ids.length > 0 ? (
-                <ul className="space-y-1 text-sm text-slate-700">
-                  {booking.assigned_care_staff_ids.map((id) => (
-                    <li key={id} className="font-mono">
-                      · {id}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-700">
-                  Chưa có nhân viên nào được phân công. Khi nhấn "Hoàn thành dịch vụ"
-                  BE sẽ từ chối với thông báo "You do not have the required staff
-                  capability" — liên hệ admin/manager để được gán vào danh sách.
-                </p>
-              )}
+          {activeStaffAssignments.length > 0 ? (
+            <div className="grid gap-3 md:grid-cols-2">
+              {activeStaffAssignments.map((staff) => (
+                <div
+                  key={staff.key}
+                  className="rounded-xl border border-slate-200 bg-slate-50 p-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-slate-900">
+                        {staff.fullName}
+                      </p>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {staff.responsibility}
+                        {staff.staffCode ? ` · ${staff.staffCode}` : ''}
+                      </p>
+                    </div>
+                    {[
+                      'IN_PROGRESS',
+                      'PAUSED',
+                      'AWAITING_CONFIRMATION',
+                      'WAITING_RESOURCE',
+                    ].includes(staff.itemStatus) ? (
+                      <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-semibold text-emerald-700">
+                        Đang thực hiện
+                      </span>
+                    ) : (
+                      <span className="shrink-0 rounded-full bg-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-600">
+                        Đã phân công
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-2 text-xs text-slate-600">
+                    Hạng mục: {staff.itemName}
+                  </p>
+                  {staff.responsibility === 'Vận hành rửa' && washBay ? (
+                    <p className="mt-1 text-xs text-slate-600">
+                      Buồng rửa: {washBay.name} · {washBay.bay_code}
+                    </p>
+                  ) : null}
+                  {staff.phone ? (
+                    <div className="mt-2 flex items-center gap-1">
+                      <a
+                        href={`tel:${staff.phone}`}
+                        className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:text-brand-800"
+                      >
+                        <Phone className="h-4 w-4" />
+                        {staff.phone}
+                      </a>
+                      <CopyValueButton
+                        value={staff.phone}
+                        label={`số điện thoại ${staff.fullName}`}
+                      />
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-xs text-slate-400">
+                      Chưa cập nhật số điện thoại
+                    </p>
+                  )}
+                </div>
+              ))}
             </div>
+          ) : (
+            <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-700">
+              Chưa có nhân viên đang được phân công cho các hạng mục của booking này.
+            </p>
           )}
         </CardContent>
       </Card>
