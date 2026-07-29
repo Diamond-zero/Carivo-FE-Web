@@ -270,6 +270,7 @@ export interface ApiBookingIncident {
 export interface ApiCustomerVoucher {
   id: string
   code: string
+  source_type?: 'INCIDENT' | 'CUSTOMER_CASE' | 'ADMIN_GIFT' | string | null
   voucher_type: 'FIXED_AMOUNT' | 'PERCENTAGE' | 'FREE_SERVICE' | string
   value: number
   max_discount_amount?: number | null
@@ -279,14 +280,35 @@ export interface ApiCustomerVoucher {
     | 'PENDING_APPROVAL'
     | 'ISSUED'
     | 'RESERVED'
-    | 'REDEEMED'
+    | 'USED'
     | 'EXPIRED'
     | 'REVOKED'
     | string
   expires_at?: string | null
   source_customer_case_id?: string | null
+  source_incident_id?: string | null
   source_booking_incident_id?: string | null
+  source_booking_id?: string | null
   customer_id?: string | null
+  garage_id?: string | null
+  customer?: {
+    id: string
+    full_name?: string | null
+    email?: string | null
+    phone?: string | null
+  } | null
+  garage?: {
+    id: string
+    name?: string | null
+    garage_code?: string | null
+  } | null
+  service_package?: {
+    id: string
+    name?: string | null
+    service_type?: string | null
+    vehicle_type?: string | null
+    base_price?: number | null
+  } | null
   note?: string | null
   created_at?: string
   updated_at?: string

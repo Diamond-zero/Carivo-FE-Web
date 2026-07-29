@@ -4,14 +4,17 @@ import {
   RotateCcw,
   Ticket,
   CheckCircle2,
+  Gift,
   XCircle,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { getApiErrorMessage } from '../../../api/client'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Badge } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
+import { CopyValueButton } from '../../../components/ui/CopyValueButton'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { Label } from '../../../components/ui/Label'
 import { Modal } from '../../../components/ui/Modal'
@@ -58,14 +61,21 @@ function formatVoucherValue(voucher: ApiCustomerVoucher): string {
 }
 
 function describeSource(voucher: ApiCustomerVoucher): string {
-  if (voucher.source_booking_incident_id) return 'Bồi thường sự cố'
-  if (voucher.source_customer_case_id) return 'Hồ sơ khiếu nại'
+  if (voucher.source_type) {
+    return ADMIN_CUSTOMER_VOUCHER_SOURCE_LABELS[voucher.source_type] ?? voucher.source_type
+  }
+  if (voucher.source_incident_id || voucher.source_booking_incident_id) {
+    return 'Bồi thường sự cố'
+  }
+  if (voucher.source_customer_case_id) {
+    return 'Hồ sơ khiếu nại'
+  }
   return '—'
 }
 
 export function AdminCustomerVouchersPage() {
   const { showToast } = useToast()
-  const [statusFilter, setStatusFilter] = useState<string>('PENDING_APPROVAL')
+  const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [sourceFilter, setSourceFilter] = useState<string>('ALL')
   const [page, setPage] = useState(1)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
@@ -153,8 +163,16 @@ export function AdminCustomerVouchersPage() {
     <div>
       <PageHeader
         eyebrow="Carivo Quản trị"
-        title="Voucher bồi thường"
-        description="Duyệt các voucher bồi thường đang chờ và thu hồi voucher chưa sử dụng trên toàn hệ thống."
+        title="Voucher customer"
+        description="Quản lý voucher bồi thường và voucher admin tặng riêng cho từng customer."
+        action={
+          <Link to="/admin/users/customers">
+            <Button>
+              <Gift className="h-4 w-4" />
+              Chọn customer để tặng
+            </Button>
+          </Link>
+        }
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -229,10 +247,12 @@ export function AdminCustomerVouchersPage() {
               description="Thử chuyển bộ lọc trạng thái về 'Tất cả trạng thái' để xem toàn bộ voucher."
             />
           ) : (
-            <table className="w-full min-w-[960px] text-left text-sm">
+            <table className="w-full min-w-[1240px] text-left text-sm">
               <thead className="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="px-6 py-3">Mã voucher</th>
+                  <th className="px-6 py-3">Customer</th>
+                  <th className="px-6 py-3">Chi nhánh</th>
                   <th className="px-6 py-3">Loại</th>
                   <th className="px-6 py-3">Giá trị</th>
                   <th className="px-6 py-3">Nguồn</th>
@@ -244,8 +264,35 @@ export function AdminCustomerVouchersPage() {
               <tbody className="divide-y divide-slate-100">
                 {vouchers.map((voucher) => (
                   <tr key={voucher.id} className="hover:bg-slate-50/50">
-                    <td className="px-6 py-4 font-mono text-slate-900">
-                      {voucher.code}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1 font-mono text-slate-900">
+                        {voucher.code}
+                        <CopyValueButton
+                          value={voucher.code}
+                          label="mã voucher"
+                          className="text-slate-500"
+                        />
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {voucher.customer_id ? (
+                        <Link
+                          to={`/admin/users/customers/${voucher.customer_id}`}
+                          className="carivo-link"
+                        >
+                          {voucher.customer?.full_name ?? voucher.customer_id}
+                        </Link>
+                      ) : (
+                        '—'
+                      )}
+                      {voucher.customer?.phone ? (
+                        <p className="mt-1 text-xs text-slate-500">
+                          {voucher.customer.phone}
+                        </p>
+                      ) : null}
+                    </td>
+                    <td className="px-6 py-4 text-slate-700">
+                      {voucher.garage?.name ?? voucher.garage_id ?? '—'}
                     </td>
                     <td className="px-6 py-4 text-slate-700">
                       {ADMIN_CUSTOMER_VOUCHER_TYPE_LABELS[voucher.voucher_type] ??
@@ -285,7 +332,8 @@ export function AdminCustomerVouchersPage() {
                             Duyệt
                           </Button>
                         ) : null}
-                        {voucher.status === 'ISSUED' || voucher.status === 'RESERVED' ? (
+                        {voucher.status === 'PENDING_APPROVAL' ||
+                        voucher.status === 'ISSUED' ? (
                           <Button
                             size="sm"
                             variant="danger"

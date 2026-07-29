@@ -1,6 +1,7 @@
 import {
   ArrowLeft,
   Car,
+  Gift,
   Lock,
   Mail,
   Pencil,
@@ -16,6 +17,7 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import { getApiErrorMessage } from '../../../api/client'
 import type { AdminUpdateUserPayload } from '../../../api/user.api'
 import { AdminCustomerBookingsTable } from '../../../components/admin/customer/AdminCustomerBookingsTable'
+import { AdminGiftVoucherModal } from '../../../components/admin/customer/AdminGiftVoucherModal'
 import { CustomerLoyaltyCard } from '../../../components/customer/CustomerLoyaltyCard'
 import { CustomerVehicleList } from '../../../components/customer/CustomerVehicleList'
 import { LoyaltyPointHistoryList } from '../../../components/customer/LoyaltyPointHistoryList'
@@ -29,6 +31,7 @@ import {
   CardHeader,
   CardTitle,
 } from '../../../components/ui/Card'
+import { CopyValueButton } from '../../../components/ui/CopyValueButton'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { Input } from '../../../components/ui/Input'
 import { Label } from '../../../components/ui/Label'
@@ -59,6 +62,7 @@ export function AdminCustomerDetailPage() {
   const [editOpen, setEditOpen] = useState(false)
   const [roleOpen, setRoleOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [giftVoucherOpen, setGiftVoucherOpen] = useState(false)
 
   const [editFullName, setEditFullName] = useState('')
   const [editEmail, setEditEmail] = useState('')
@@ -250,6 +254,21 @@ export function AdminCustomerDetailPage() {
                     Loyalty
                   </Button>
                 </Link>
+                {user.role === 'CUSTOMER' ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => setGiftVoucherOpen(true)}
+                    disabled={!isActive}
+                    title={
+                      isActive
+                        ? 'Tặng voucher riêng cho customer'
+                        : 'Không thể tặng voucher cho tài khoản đã khóa'
+                    }
+                  >
+                    <Gift className="h-4 w-4" />
+                    Tặng voucher
+                  </Button>
+                ) : null}
                 <Button variant="secondary" onClick={openEdit}>
                   <Pencil className="h-4 w-4" />
                   Sửa hồ sơ
@@ -325,7 +344,14 @@ export function AdminCustomerDetailPage() {
                       {user.email}
                     </div>
                   ) : null}
-                  <p className="text-xs text-slate-500">Mã người dùng: {user.id}</p>
+                  <div className="flex items-center gap-1 text-xs text-slate-500">
+                    <span className="break-all font-mono">Mã người dùng: {user.id}</span>
+                    <CopyValueButton
+                      value={user.id}
+                      label="ID customer"
+                      className="text-slate-500"
+                    />
+                  </div>
                   <span
                     className={cn(
                       'inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium',
@@ -406,7 +432,14 @@ export function AdminCustomerDetailPage() {
             </Card>
           </div>
 
-<Modal
+      <AdminGiftVoucherModal
+        open={giftVoucherOpen}
+        customerId={user.id}
+        customerName={user.full_name}
+        onClose={() => setGiftVoucherOpen(false)}
+      />
+
+      <Modal
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         title={isActive ? 'Khóa tài khoản khách hàng?' : 'Mở khóa tài khoản khách hàng?'}

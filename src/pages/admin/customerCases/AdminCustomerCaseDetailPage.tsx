@@ -60,7 +60,7 @@ import {
 } from '../../../hooks/api/admin/useAdminCustomerCases'
 import { useAdminGarages } from '../../../hooks/api/admin/useAdminGarages'
 import { useAdminServicePackages } from '../../../hooks/api/admin/useAdminServicePackages'
-import { useAdminStaff } from '../../../hooks/api/admin/useAdminStaff'
+import { useAllAdminStaff } from '../../../hooks/api/admin/useAdminStaff'
 import type {
   ApiCustomerCaseEvidence,
   ApiCustomerCaseMessage,
@@ -236,7 +236,7 @@ export function AdminCustomerCaseDetailPage() {
   const detail = detailQuery.data
   const customerCase = detail?.case
   const { allGarages: garages } = useAdminGarages()
-  const { allStaff, isLoading: isLoadingStaff } = useAdminStaff()
+  const { allStaff, isLoading: isLoadingStaff } = useAllAdminStaff()
   const { packages: servicePackages } = useAdminServicePackages({
     statusFilter: 'ACTIVE',
   })

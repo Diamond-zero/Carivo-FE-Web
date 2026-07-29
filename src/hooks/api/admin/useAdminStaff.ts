@@ -4,6 +4,7 @@ import { getAdminGaragesApi } from '../../../api/garage.api'
 import {
   createStaffProfileApi,
   deleteStaffProfileApi,
+  getAllStaffProfilesApi,
   getStaffProfileByIdApi,
   getStaffProfilesApi,
   toggleStaffProfileStatusApi,
@@ -12,13 +13,12 @@ import {
   type StaffProfileListParams,
   type StaffProfileUpdatePayload,
 } from '../../../api/staffProfile.api'
-import { getAdminUsersApi } from '../../../api/user.api'
+import { getAllAdminUsersApi } from '../../../api/user.api'
 import { useAdminAuth } from '../../../contexts/AdminAuthContext'
 import { mapApiStaffRecord } from '../../../lib/mappers/adminMappers'
 import { mapApiUser } from '../../../lib/auth/mapApiTypes'
 import type { AdminStaffRecord } from '../../../types/admin'
 import type { StaffType } from '../../../types/staffProfile'
-import { normalizeSearchText } from '../../../utils/booking'
 import { adminQueryKeys } from './queryKeys'
 
 export interface AdminStaffListFilters {
@@ -28,12 +28,10 @@ export interface AdminStaffListFilters {
   isActiveFilter?: boolean | 'ALL'
 }
 
-function buildStaffListParams(
+function buildStaffFilters(
   filters: AdminStaffListFilters,
-): StaffProfileListParams {
-  const params: StaffProfileListParams = {
-    limit: 100,
-  }
+): Omit<StaffProfileListParams, 'page' | 'limit'> {
+  const params: Omit<StaffProfileListParams, 'page' | 'limit'> = {}
   const trimmedSearch = filters.query?.trim()
   if (trimmedSearch) {
     params.search = trimmedSearch
@@ -50,50 +48,42 @@ function buildStaffListParams(
   return params
 }
 
-function filterStaffRecords(
-  records: AdminStaffRecord[],
+function buildStaffListParams(
   filters: AdminStaffListFilters,
-): AdminStaffRecord[] {
-  const normalizedQuery = normalizeSearchText((filters.query ?? '').trim())
-  if (!normalizedQuery && filters.staffTypeFilter === 'ALL' && filters.garageFilter === 'ALL') {
-    return records
+  page: number,
+  limit: number,
+): StaffProfileListParams {
+  return {
+    ...buildStaffFilters(filters),
+    page,
+    limit,
   }
-
-  let result = records
-
-  if (filters.garageFilter && filters.garageFilter !== 'ALL') {
-    result = result.filter((record) => record.profile.garage_id === filters.garageFilter)
-  }
-
-  if (filters.staffTypeFilter && filters.staffTypeFilter !== 'ALL') {
-    result = result.filter(
-      (record) => record.profile.staff_type === filters.staffTypeFilter,
-    )
-  }
-
-  if (!normalizedQuery) return result
-
-  return result.filter((record) => {
-    const name = normalizeSearchText(record.user.full_name)
-    const phone = normalizeSearchText(record.user.phone)
-    const code = normalizeSearchText(record.profile.staff_code)
-    const garage = normalizeSearchText(record.garage.name)
-
-    return (
-      name.includes(normalizedQuery) ||
-      phone.includes(normalizedQuery) ||
-      code.includes(normalizedQuery) ||
-      garage.includes(normalizedQuery)
-    )
-  })
 }
 
-async function fetchAdminStaffRecords(): Promise<AdminStaffRecord[]> {
-  const [{ profiles }, { garages }] = await Promise.all([
-    getStaffProfilesApi(),
+async function fetchAdminStaffRecords(params: StaffProfileListParams) {
+  const [{ profiles, meta }, { garages }] = await Promise.all([
+    getStaffProfilesApi(params),
     getAdminGaragesApi(),
   ])
 
+  const garageById = new Map(garages.map((garage) => [garage.id, garage]))
+
+  const staff = profiles
+    .map((profile) =>
+      mapApiStaffRecord(profile, garageById.get(profile.garage_id ?? '') ?? null),
+    )
+    .filter((record): record is AdminStaffRecord => record !== null)
+
+  return { staff, meta }
+}
+
+async function fetchAllAdminStaffRecords(
+  params: Omit<StaffProfileListParams, 'page' | 'limit'>,
+) {
+  const [profiles, { garages }] = await Promise.all([
+    getAllStaffProfilesApi(params),
+    getAdminGaragesApi(),
+  ])
   const garageById = new Map(garages.map((garage) => [garage.id, garage]))
 
   return profiles
@@ -101,34 +91,84 @@ async function fetchAdminStaffRecords(): Promise<AdminStaffRecord[]> {
       mapApiStaffRecord(profile, garageById.get(profile.garage_id ?? '') ?? null),
     )
     .filter((record): record is AdminStaffRecord => record !== null)
-    .sort((a, b) => a.user.full_name.localeCompare(b.user.full_name, 'vi'))
 }
 
-export function useAdminStaff(filters: AdminStaffListFilters = {}) {
+export function useAllAdminStaff(filters: AdminStaffListFilters = {}) {
   const { isAuthenticated } = useAdminAuth()
-
-  const listParams = useMemo(() => buildStaffListParams(filters), [filters])
+  const listParams = useMemo(() => buildStaffFilters(filters), [filters])
 
   const query = useQuery({
-    queryKey: [...adminQueryKeys.staff(), listParams],
-    queryFn: fetchAdminStaffRecords,
+    queryKey: adminQueryKeys.staff({ scope: 'all', ...listParams }),
+    queryFn: () => fetchAllAdminStaffRecords(listParams),
+    enabled: isAuthenticated,
+    staleTime: 30_000,
+  })
+
+  return {
+    allStaff: query.data ?? [],
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  }
+}
+
+export function useAdminStaff(
+  filters: AdminStaffListFilters = {},
+  page = 1,
+  limit = 20,
+) {
+  const { isAuthenticated } = useAdminAuth()
+
+  const listParams = useMemo(
+    () => buildStaffListParams(filters, page, limit),
+    [filters, page, limit],
+  )
+
+  const summaryQuery = useQuery({
+    queryKey: [...adminQueryKeys.all, 'staff', 'summary'],
+    queryFn: async () => {
+      const [allResult, activeResult] = await Promise.all([
+        getStaffProfilesApi({ limit: 1 }),
+        getStaffProfilesApi({ is_active: true, limit: 1 }),
+      ])
+      const total = allResult.meta?.total ?? allResult.profiles.length
+      const active = activeResult.meta?.total ?? activeResult.profiles.length
+
+      return {
+        total,
+        active,
+        inactive: Math.max(total - active, 0),
+      }
+    },
+    enabled: isAuthenticated,
+    staleTime: 30_000,
+  })
+
+  const query = useQuery({
+    queryKey: adminQueryKeys.staff(listParams),
+    queryFn: () => fetchAdminStaffRecords(listParams),
     enabled: isAuthenticated,
     staleTime: 30_000,
     placeholderData: (previousData) => previousData,
   })
 
-  const allStaff = useMemo(() => query.data ?? [], [query.data])
-  const staff = useMemo(
-    () => filterStaffRecords(allStaff, filters),
-    [allStaff, filters],
-  )
+  const staff = query.data?.staff ?? []
 
   return {
     staff,
-    allStaff,
-    isLoading: query.isLoading,
-    isError: query.isError,
-    error: query.error,
+    meta: query.data?.meta,
+    totalStaff: summaryQuery.data?.total ?? staff.length,
+    activeStaffCount:
+      summaryQuery.data?.active ??
+      staff.filter((record) => record.profile.is_active).length,
+    inactiveStaffCount:
+      summaryQuery.data?.inactive ??
+      staff.filter((record) => !record.profile.is_active).length,
+    isLoading: query.isLoading || summaryQuery.isLoading,
+    isFetching: query.isFetching,
+    isError: query.isError || summaryQuery.isError,
+    error: query.error ?? summaryQuery.error,
     refetch: query.refetch,
   }
 }
@@ -158,9 +198,9 @@ export function useAdminStaffUsersWithoutProfile() {
   return useQuery({
     queryKey: [...['admin', 'staff'], 'users-without-profile'],
     queryFn: async () => {
-      const [{ users }, { profiles }] = await Promise.all([
-        getAdminUsersApi({ role: 'STAFF' }),
-        getStaffProfilesApi(),
+      const [users, profiles] = await Promise.all([
+        getAllAdminUsersApi({ role: 'STAFF' }),
+        getAllStaffProfilesApi(),
       ])
       const profileUserIds = new Set(
         profiles.map((profile) => profile.user_id).filter(Boolean),
@@ -246,42 +286,7 @@ export function useToggleAdminStaffStatus() {
       }
       return record
     },
-    onMutate: async ({ profileId, isActive }) => {
-      await queryClient.cancelQueries({ queryKey: ['admin', 'staff'] })
-      const snapshots = queryClient.getQueriesData<AdminStaffRecord[]>({
-        queryKey: ['admin', 'staff'],
-      })
-
-      const applyPatch = (record: AdminStaffRecord) =>
-        record.profile.id === profileId
-          ? {
-              ...record,
-              profile: { ...record.profile, is_active: isActive },
-            }
-          : record
-
-      queryClient.setQueriesData<AdminStaffRecord[]>(
-        { queryKey: ['admin', 'staff'] },
-        (current) => (current ? current.map(applyPatch) : current),
-      )
-
-      return { snapshots }
-    },
-    onError: (_err, _vars, context) => {
-      context?.snapshots.forEach(([key, data]) => {
-        queryClient.setQueryData(key, data)
-      })
-    },
-    onSuccess: (data, variables) => {
-      queryClient.setQueriesData<AdminStaffRecord[]>(
-        { queryKey: ['admin', 'staff'] },
-        (current) => {
-          if (!current) return current
-          return current.map((record) =>
-            record.profile.id === variables.profileId ? data : record,
-          )
-        },
-      )
+    onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: ['admin', 'staff'] })
       void queryClient.invalidateQueries({
         queryKey: adminQueryKeys.staffProfile(variables.profileId),
@@ -297,34 +302,6 @@ export function useDeleteAdminStaff() {
     mutationFn: async (profileId: string) => {
       await deleteStaffProfileApi(profileId)
       return profileId
-    },
-    onMutate: async (profileId) => {
-      await queryClient.cancelQueries({ queryKey: ['admin', 'staff'] })
-      await queryClient.cancelQueries({
-        queryKey: adminQueryKeys.staffProfile(profileId),
-      })
-      const snapshots = queryClient.getQueriesData<AdminStaffRecord[]>({
-        queryKey: ['admin', 'staff'],
-      })
-
-      const applyPatch = (record: AdminStaffRecord) =>
-        record.profile.id === profileId
-          ? {
-              ...record,
-              profile: { ...record.profile, is_active: false },
-            }
-          : record
-
-      queryClient.setQueriesData<AdminStaffRecord[]>(
-        { queryKey: ['admin', 'staff'] },
-        (current) => (current ? current.map(applyPatch) : current),
-      )
-      return { snapshots }
-    },
-    onError: (_err, _vars, context) => {
-      context?.snapshots.forEach(([key, data]) => {
-        queryClient.setQueryData(key, data)
-      })
     },
     onSettled: (_data, _error, profileId) => {
       void queryClient.invalidateQueries({ queryKey: ['admin', 'staff'] })

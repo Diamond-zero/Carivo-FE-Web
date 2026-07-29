@@ -80,6 +80,21 @@ export async function getAdminUsersApi(params?: UserListParams) {
   return { users: data.data, meta: data.meta }
 }
 
+export async function getAllAdminUsersApi(
+  params: Omit<UserListParams, 'page' | 'limit'> = {},
+) {
+  const firstPage = await getAdminUsersApi({ ...params, page: 1, limit: 100 })
+  const users = [...firstPage.users]
+  const totalPages = firstPage.meta?.total_pages ?? 1
+
+  for (let page = 2; page <= totalPages; page += 1) {
+    const result = await getAdminUsersApi({ ...params, page, limit: 100 })
+    users.push(...result.users)
+  }
+
+  return users
+}
+
 export async function getUserByIdApi(userId: string) {
   const { data } = await apiClient.get<ApiResponse<ApiUser>>(`/users/${userId}`)
   return data.data

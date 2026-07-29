@@ -11,6 +11,9 @@ import type {
   AnalyticsWashBayPerformanceRow,
   AnalyticsRevenueOverview,
   AnalyticsBookingOverview,
+  AnalyticsCustomerActivityRow,
+  AnalyticsCustomerData,
+  AnalyticsCustomerRankingRow,
   AnalyticsRevenueMetrics,
   AnalyticsWashBayMetrics,
   AnalyticsPromotionOverview,
@@ -41,6 +44,16 @@ function readString(data: Record<string, unknown>, ...keys: string[]): string {
     }
   }
   return ''
+}
+
+function readBoolean(data: Record<string, unknown>, ...keys: string[]): boolean {
+  for (const key of keys) {
+    const value = data[key]
+    if (typeof value === 'boolean') {
+      return value
+    }
+  }
+  return false
 }
 
 function readArray(data: Record<string, unknown>, ...keys: string[]): unknown[] {
@@ -193,6 +206,125 @@ export function mapBookingAnalyticsOverview(
       metrics,
       'registered_customer_bookings',
     ),
+  }
+}
+
+function mapCustomerRankingRows(raw: unknown[]): AnalyticsCustomerRankingRow[] {
+  return raw.map((entry) => {
+    const row = (entry ?? {}) as Record<string, unknown>
+    const favoriteService = readRecord(row, 'favorite_service')
+    const lastVisitAt = readString(row, 'last_visit_at')
+
+    return {
+      customer_id: readString(row, 'customer_id'),
+      full_name: readString(row, 'full_name') || 'Khách hàng',
+      is_active: readBoolean(row, 'is_active'),
+      total_visits: readNumber(row, 'total_visits'),
+      total_spent: readNumber(row, 'total_spent'),
+      average_order_value: readNumber(row, 'average_order_value'),
+      distinct_service_count: readNumber(row, 'distinct_service_count'),
+      favorite_service: {
+        id: readString(favoriteService, 'id'),
+        name: readString(favoriteService, 'name') || 'Chưa xác định',
+        usage_count: readNumber(favoriteService, 'usage_count'),
+      },
+      last_visit_at: lastVisitAt || null,
+    }
+  })
+}
+
+export function mapCustomerAnalytics(data: Record<string, unknown>): AnalyticsCustomerData {
+  const account = readRecord(data, 'account_metrics')
+  const funnel = readRecord(data, 'funnel')
+  const bookingMix = readRecord(data, 'booking_mix')
+  const walkIn = readRecord(bookingMix, 'walk_in')
+  const registered = readRecord(bookingMix, 'registered_customer')
+  const value = readRecord(data, 'customer_value_metrics')
+  const topCustomers = readRecord(data, 'top_customers')
+  const activityLabels: Record<string, string> = {
+    ONE_TIME: 'Dùng một lần',
+    REPEAT: 'Quay lại',
+    LOYAL: 'Trung thành',
+  }
+  const activityDistribution: AnalyticsCustomerActivityRow[] = readArray(
+    data,
+    'activity_distribution',
+  ).map((entry) => {
+    const row = (entry ?? {}) as Record<string, unknown>
+    const key = readString(row, 'key')
+    return {
+      key,
+      label: activityLabels[key] ?? key,
+      count: readNumber(row, 'count'),
+    }
+  })
+
+  return {
+    accountMetrics: {
+      total_customers: readNumber(account, 'total_customers'),
+      new_customers: readNumber(account, 'new_customers'),
+      active_accounts: readNumber(account, 'active_accounts'),
+      locked_accounts: readNumber(account, 'locked_accounts'),
+      verified_accounts: readNumber(account, 'verified_accounts'),
+      verification_rate: readNumber(account, 'verification_rate'),
+    },
+    funnel: {
+      registered_customers: readNumber(funnel, 'registered_customers'),
+      activated_customers: readNumber(funnel, 'activated_customers'),
+      registered_without_paid_visit: readNumber(
+        funnel,
+        'registered_without_paid_visit',
+      ),
+      repeat_customers: readNumber(funnel, 'repeat_customers'),
+      activation_rate: readNumber(funnel, 'activation_rate'),
+      repeat_rate: readNumber(funnel, 'repeat_rate'),
+      average_days_to_first_paid_visit: readNumber(
+        funnel,
+        'average_days_to_first_paid_visit',
+      ),
+    },
+    registrationTrend: mapTrend(readArray(data, 'registration_trend')),
+    bookingMix: {
+      total_bookings: readNumber(bookingMix, 'total_bookings'),
+      walk_in: {
+        bookings: readNumber(walkIn, 'bookings'),
+        share: readNumber(walkIn, 'share'),
+        completed_bookings: readNumber(walkIn, 'completed_bookings'),
+        completion_rate: readNumber(walkIn, 'completion_rate'),
+      },
+      registered_customer: {
+        bookings: readNumber(registered, 'bookings'),
+        share: readNumber(registered, 'share'),
+        completed_bookings: readNumber(registered, 'completed_bookings'),
+        completion_rate: readNumber(registered, 'completion_rate'),
+      },
+    },
+    valueMetrics: {
+      unique_paying_customers: readNumber(value, 'unique_paying_customers'),
+      total_paid_visits: readNumber(value, 'total_paid_visits'),
+      total_revenue: readNumber(value, 'total_revenue'),
+      average_order_value: readNumber(value, 'average_order_value'),
+      average_paid_visits_per_customer: readNumber(
+        value,
+        'average_paid_visits_per_customer',
+      ),
+      registered_paid_visits: readNumber(value, 'registered_paid_visits'),
+      walk_in_paid_visits: readNumber(value, 'walk_in_paid_visits'),
+      registered_revenue: readNumber(value, 'registered_revenue'),
+      walk_in_revenue: readNumber(value, 'walk_in_revenue'),
+    },
+    activityDistribution,
+    topCustomers: {
+      by_visits: mapCustomerRankingRows(readArray(topCustomers, 'by_visits')),
+      by_spending: mapCustomerRankingRows(readArray(topCustomers, 'by_spending')),
+      by_service_variety: mapCustomerRankingRows(
+        readArray(topCustomers, 'by_service_variety'),
+      ),
+      single_service_repeat: mapCustomerRankingRows(
+        readArray(topCustomers, 'single_service_repeat'),
+      ),
+    },
+    generatedAt: readString(data, 'generated_at'),
   }
 }
 

@@ -47,6 +47,90 @@ export interface AnalyticsBookingOverview {
   registered_customer_bookings: number
 }
 
+export interface AnalyticsCustomerAccountMetrics {
+  total_customers: number
+  new_customers: number
+  active_accounts: number
+  locked_accounts: number
+  verified_accounts: number
+  verification_rate: number
+}
+
+export interface AnalyticsCustomerFunnel {
+  registered_customers: number
+  activated_customers: number
+  registered_without_paid_visit: number
+  repeat_customers: number
+  activation_rate: number
+  repeat_rate: number
+  average_days_to_first_paid_visit: number
+}
+
+export interface AnalyticsCustomerBookingSegment {
+  bookings: number
+  share: number
+  completed_bookings: number
+  completion_rate: number
+}
+
+export interface AnalyticsCustomerBookingMix {
+  total_bookings: number
+  walk_in: AnalyticsCustomerBookingSegment
+  registered_customer: AnalyticsCustomerBookingSegment
+}
+
+export interface AnalyticsCustomerValueMetrics {
+  unique_paying_customers: number
+  total_paid_visits: number
+  total_revenue: number
+  average_order_value: number
+  average_paid_visits_per_customer: number
+  registered_paid_visits: number
+  walk_in_paid_visits: number
+  registered_revenue: number
+  walk_in_revenue: number
+}
+
+export interface AnalyticsCustomerActivityRow {
+  key: 'ONE_TIME' | 'REPEAT' | 'LOYAL' | string
+  label: string
+  count: number
+}
+
+export interface AnalyticsCustomerRankingRow {
+  customer_id: string
+  full_name: string
+  is_active: boolean
+  total_visits: number
+  total_spent: number
+  average_order_value: number
+  distinct_service_count: number
+  favorite_service: {
+    id: string
+    name: string
+    usage_count: number
+  }
+  last_visit_at: string | null
+}
+
+export interface AnalyticsCustomerTopLists {
+  by_visits: AnalyticsCustomerRankingRow[]
+  by_spending: AnalyticsCustomerRankingRow[]
+  by_service_variety: AnalyticsCustomerRankingRow[]
+  single_service_repeat: AnalyticsCustomerRankingRow[]
+}
+
+export interface AnalyticsCustomerData {
+  accountMetrics: AnalyticsCustomerAccountMetrics
+  funnel: AnalyticsCustomerFunnel
+  registrationTrend: AnalyticsTrendPoint[]
+  bookingMix: AnalyticsCustomerBookingMix
+  valueMetrics: AnalyticsCustomerValueMetrics
+  activityDistribution: AnalyticsCustomerActivityRow[]
+  topCustomers: AnalyticsCustomerTopLists
+  generatedAt: string
+}
+
 export interface AnalyticsRevenueMetrics {
   paid_booking_count: number
   net_revenue: number

@@ -6,6 +6,7 @@ import { getAdminServicePackageName } from '../../../mocks/admin'
 import type { Booking } from '../../../types/booking'
 import { formatDateTime, formatPrice } from '../../../utils/format'
 import { BookingStatusBadge } from '../../booking/BookingStatusBadge'
+import { CopyValueButton } from '../../ui/CopyValueButton'
 import { DataTable } from '../../ui/DataTable'
 
 const columnHelper = createColumnHelper<Booking>()
@@ -41,11 +42,21 @@ export function AdminCustomerBookingsTable({
     () => [
       columnHelper.accessor('id', {
         header: 'Mã',
-        cell: (info) => (
-          <span className="font-mono text-xs text-slate-600">
-            {info.getValue().replace('booking-', 'BK-')}
-          </span>
-        ),
+        cell: (info) => {
+          const bookingId = info.getValue()
+          return (
+            <div className="flex items-center gap-1">
+              <span className="font-mono text-xs text-slate-600">
+                {bookingId.replace('booking-', 'BK-')}
+              </span>
+              <CopyValueButton
+                value={bookingId}
+                label="mã booking"
+                className="text-slate-500"
+              />
+            </div>
+          )
+        },
       }),
       columnHelper.accessor('garage_id', {
         header: 'Chi nhánh',

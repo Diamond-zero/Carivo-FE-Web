@@ -1,7 +1,8 @@
 import { Download, Loader2, Lock, Trash2, Unlock, UserCheck, Users } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getApiErrorMessage } from '../../../api/client'
+import { getAllAdminUsersApi } from '../../../api/user.api'
 import { AdminCustomerListTable } from '../../../components/admin/customer/AdminCustomerListTable'
 import { CustomerSearchPanel } from '../../../components/customer/CustomerSearchPanel'
 import { PageHeader } from '../../../components/layout/PageHeader'
@@ -19,6 +20,7 @@ import { Select } from '../../../components/ui/Select'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { StatCard } from '../../../components/ui/StatCard'
 import { useToast } from '../../../contexts/ToastContext'
+import { mapApiUser } from '../../../lib/auth/mapApiTypes'
 import { exportUsersToCsv } from '../../../utils/adminUserExport'
 import {
   useAdminCustomers,
@@ -32,33 +34,81 @@ const STATUS_OPTIONS: Array<{ value: boolean | 'ALL'; label: string }> = [
   { value: false, label: 'Đã khóa' },
 ]
 
+const PAGE_SIZE = 20
+
 export function AdminCustomerListPage() {
   const { showToast } = useToast()
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<boolean | 'ALL'>('ALL')
   const [confirmToggleId, setConfirmToggleId] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
+  const [page, setPage] = useState(1)
 
-  const { customers, allCustomers, isLoading, isError, error } =
-    useAdminCustomers({
-      query,
-      isActiveFilter: statusFilter,
-    })
+  const {
+    customers,
+    meta,
+    totalCustomers,
+    activeCustomerCount,
+    lockedCustomerCount,
+    isLoading,
+    isFetching,
+    isError,
+    error,
+  } =
+    useAdminCustomers(
+      {
+        query,
+        isActiveFilter: statusFilter,
+      },
+      page,
+      PAGE_SIZE,
+    )
 
   const toggleStatusMutation = useUpdateAdminCustomerStatus()
   const deleteMutation = useDeleteAdminCustomer()
 
-  const activeCount = allCustomers.filter((user) => user.is_active).length
-  const lockedCount = allCustomers.length - activeCount
   const hasActiveFilter =
     query.trim().length > 0 || statusFilter !== 'ALL'
+  const totalPages = Math.max(meta?.total_pages ?? 1, 1)
 
   const pendingUser = confirmToggleId
-    ? allCustomers.find((user) => user.id === confirmToggleId)
+    ? customers.find((user) => user.id === confirmToggleId)
     : undefined
   const deletingUser = deleteId
-    ? allCustomers.find((user) => user.id === deleteId)
+    ? customers.find((user) => user.id === deleteId)
     : undefined
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages)
+    }
+  }, [page, totalPages])
+
+  const handleExport = async () => {
+    setIsExporting(true)
+    try {
+      const apiUsers = await getAllAdminUsersApi({
+        role: 'CUSTOMER',
+        search: query.trim() || undefined,
+        is_active: statusFilter === 'ALL' ? undefined : statusFilter,
+      })
+      const exportCustomers = apiUsers.map(mapApiUser)
+      if (exportCustomers.length === 0) {
+        showToast('Không có khách hàng để xuất.', 'error')
+        return
+      }
+      exportUsersToCsv(exportCustomers, 'customers')
+      showToast(`Đã xuất ${exportCustomers.length} khách hàng ra CSV.`, 'success')
+    } catch (exportError) {
+      showToast(
+        getApiErrorMessage(exportError, 'Không thể xuất danh sách khách hàng.'),
+        'error',
+      )
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   const handleConfirmToggle = () => {
     if (!confirmToggleId || !pendingUser) return
@@ -137,17 +187,15 @@ export function AdminCustomerListPage() {
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => {
-                if (allCustomers.length === 0) {
-                  showToast('Không có khách hàng để xuất.', 'error')
-                  return
-                }
-                exportUsersToCsv(allCustomers, 'customers')
-                showToast(`Đã xuất ${allCustomers.length} khách hàng ra CSV.`, 'success')
-              }}
+              onClick={() => void handleExport()}
+              disabled={isExporting}
             >
-              <Download className="h-4 w-4" />
-              Xuất CSV
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              {isExporting ? 'Đang xuất...' : 'Xuất CSV'}
             </Button>
             <Link to="/admin/users">
               <Button variant="secondary">Xem tất cả người dùng</Button>
@@ -159,19 +207,19 @@ export function AdminCustomerListPage() {
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <StatCard
           label="Tổng khách hàng"
-          value={allCustomers.length}
+          value={totalCustomers}
           icon={Users}
           accent="brand"
         />
         <StatCard
           label="Đang hoạt động"
-          value={activeCount}
+          value={activeCustomerCount}
           icon={UserCheck}
           accent="emerald"
         />
         <StatCard
           label="Đã khóa"
-          value={lockedCount}
+          value={lockedCustomerCount}
           icon={Lock}
           accent="violet"
         />
@@ -180,8 +228,14 @@ export function AdminCustomerListPage() {
       <div className="mb-6 space-y-4">
         <CustomerSearchPanel
           query={query}
-          onChange={setQuery}
-          onReset={() => setQuery('')}
+          onChange={(value) => {
+            setPage(1)
+            setQuery(value)
+          }}
+          onReset={() => {
+            setPage(1)
+            setQuery('')
+          }}
         />
         <div className="carivo-panel max-w-xs p-4">
           <Label htmlFor="status-filter" className="mb-1.5">
@@ -192,6 +246,7 @@ export function AdminCustomerListPage() {
             value={String(statusFilter)}
             onChange={(event) => {
               const value = event.target.value
+              setPage(1)
               if (value === 'ALL') setStatusFilter('ALL')
               else setStatusFilter(value === 'true')
             }}
@@ -208,8 +263,9 @@ export function AdminCustomerListPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4">
           <CardTitle>
-            {customers.length} khách hàng
+            {meta?.total ?? customers.length} khách hàng
             {hasActiveFilter ? ' (đã lọc)' : ''}
+            {meta ? ` · Trang ${meta.page}/${totalPages}` : ''}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0 pb-2">
@@ -220,6 +276,35 @@ export function AdminCustomerListPage() {
             onDelete={setDeleteId}
           />
         </CardContent>
+        {meta && totalPages > 1 ? (
+          <div className="flex items-center justify-between border-t border-slate-100 px-6 py-3 text-sm text-slate-600">
+            <span>
+              Trang {meta.page} / {totalPages} · {meta.total} khách hàng
+            </span>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() =>
+                  setPage((current) => Math.max(1, current - 1))
+                }
+                disabled={page <= 1 || isFetching}
+              >
+                Trước
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() =>
+                  setPage((current) => Math.min(totalPages, current + 1))
+                }
+                disabled={page >= totalPages || isFetching}
+              >
+                Sau
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </Card>
 
       <Modal

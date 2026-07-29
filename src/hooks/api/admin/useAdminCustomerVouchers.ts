@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   approveCustomerVoucherApi,
+  createAdminGiftVoucherApi,
   getCustomerVouchersApi,
   revokeCustomerVoucherApi,
   type CustomerVoucherListParams,
+  type AdminGiftVoucherPayload,
 } from '../../../api/customerVoucher.api'
 import { useAdminAuth } from '../../../contexts/AdminAuthContext'
 import { adminQueryKeys } from './queryKeys'
@@ -48,6 +50,12 @@ export function useAdminCustomerVoucherMutations() {
     onSuccess: () => void invalidate(),
   })
 
+  const createGiftMutation = useMutation({
+    mutationFn: (payload: AdminGiftVoucherPayload) =>
+      createAdminGiftVoucherApi(payload),
+    onSuccess: () => void invalidate(),
+  })
+
   const revokeMutation = useMutation({
     mutationFn: ({
       voucherId,
@@ -59,14 +67,14 @@ export function useAdminCustomerVoucherMutations() {
     onSuccess: () => void invalidate(),
   })
 
-  return { approveMutation, revokeMutation }
+  return { createGiftMutation, approveMutation, revokeMutation }
 }
 
 export const ADMIN_CUSTOMER_VOUCHER_STATUS_LABELS: Record<string, string> = {
   PENDING_APPROVAL: 'Chờ duyệt',
   ISSUED: 'Đã phát hành',
   RESERVED: 'Đã giữ chỗ',
-  REDEEMED: 'Đã sử dụng',
+  USED: 'Đã sử dụng',
   EXPIRED: 'Hết hạn',
   REVOKED: 'Đã thu hồi',
 }
@@ -78,7 +86,7 @@ export const ADMIN_CUSTOMER_VOUCHER_STATUS_VARIANT: Record<
   PENDING_APPROVAL: 'warning',
   ISSUED: 'success',
   RESERVED: 'info',
-  REDEEMED: 'default',
+  USED: 'default',
   EXPIRED: 'danger',
   REVOKED: 'danger',
 }
@@ -91,7 +99,6 @@ export const ADMIN_CUSTOMER_VOUCHER_TYPE_LABELS: Record<string, string> = {
 
 export const ADMIN_CUSTOMER_VOUCHER_SOURCE_LABELS: Record<string, string> = {
   INCIDENT: 'Bồi thường sự cố',
-  CASE: 'Hồ sơ khiếu nại',
-  PROMOTION: 'Khuyến mãi',
-  WALK_IN: 'Walk-in',
+  CUSTOMER_CASE: 'Hồ sơ khiếu nại',
+  ADMIN_GIFT: 'Admin tặng riêng',
 }

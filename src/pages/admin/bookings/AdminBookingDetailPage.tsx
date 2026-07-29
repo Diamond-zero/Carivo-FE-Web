@@ -22,6 +22,7 @@ import { PaymentStatusBadge } from '../../../components/booking/PaymentStatusBad
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
+import { CopyValueButton } from '../../../components/ui/CopyValueButton'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { VEHICLE_TYPE_LABELS } from '../../../constants/washBayStatus'
@@ -215,6 +216,12 @@ export function AdminBookingDetailPage() {
             description={`${booking.service_package_name ?? booking.service_package_id} · ${booking.garage_id}`}
             action={
               <div className="flex flex-wrap gap-2">
+                <CopyValueButton
+                  value={booking.id}
+                  label="mã booking"
+                  showLabel
+                  className="h-11 border border-slate-200 bg-white px-4 text-slate-700 shadow-[var(--shadow-carivo-sm)] hover:border-slate-300 hover:bg-slate-50"
+                />
                 <Button
                   variant="secondary"
                   onClick={() => setIsIncidentReportOpen(true)}
@@ -301,6 +308,18 @@ export function AdminBookingDetailPage() {
                     <p className="text-sm text-slate-500">
                       {booking.is_walk_in ? 'Khách vãng lai' : 'Khách đăng ký'}
                     </p>
+                    {booking.customer_id ? (
+                      <div className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+                        <span className="max-w-48 truncate font-mono">
+                          {booking.customer_id}
+                        </span>
+                        <CopyValueButton
+                          value={booking.customer_id}
+                          label="ID customer"
+                          className="text-slate-500"
+                        />
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 

@@ -30,6 +30,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   UNLOCK: 'Mở khoá',
   ARCHIVE: 'Lưu trữ',
   UNARCHIVE: 'Khôi phục kho',
+  CUSTOMER_VOUCHER_GIFTED: 'Tặng voucher cho customer',
 }
 
 export const AUDIT_RESOURCE_TYPE_LABELS: Record<string, string> = {
@@ -59,6 +60,7 @@ export const AUDIT_RESOURCE_TYPE_LABELS: Record<string, string> = {
   CUSTOMER: 'Khách hàng',
   NOTIFICATION: 'Thông báo',
   VOUCHER: 'Voucher',
+  CUSTOMER_VOUCHER: 'Voucher customer',
   RESEARCH_REPORT: 'Báo cáo nghiên cứu',
   INCIDENT: 'Sự cố',
   CUSTOMER_CASE: 'Hồ sơ hỗ trợ',
@@ -91,7 +93,7 @@ export type AuditActionCategory =
 
 export function categorizeAuditAction(action: string): AuditActionCategory {
   const normalized = action.toUpperCase()
-  if (['CREATE'].includes(normalized)) return 'create'
+  if (['CREATE', 'CUSTOMER_VOUCHER_GIFTED'].includes(normalized)) return 'create'
   if (['UPDATE', 'APPLY', 'SCHEDULE'].includes(normalized)) return 'update'
   if (['DELETE', 'SOFT_DELETE', 'ARCHIVE', 'UNARCHIVE'].includes(normalized)) return 'delete'
   if (['LOGIN', 'LOGOUT', 'LOCK', 'UNLOCK'].includes(normalized)) return 'auth'

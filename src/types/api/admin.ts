@@ -221,6 +221,8 @@ export type ApiNotificationType =
   | 'BOOKING_CONFIRMED'
   | 'BOOKING_REMINDER'
   | 'BOOKING_CANCELED'
+  | 'COMPENSATION_VOUCHER_ISSUED'
+  | 'CUSTOMER_VOUCHER_ISSUED'
   | 'WAITLIST_JOINED'
   | 'WAITLIST_OFFERED'
   | 'WAITLIST_OFFER_ACCEPTED'
@@ -245,6 +247,7 @@ export type ApiNotificationRelatedType =
   | 'WAITLIST'
   | 'LOYALTY'
   | 'PROMOTION'
+  | 'CUSTOMER_VOUCHER'
   | 'SURVEY'
 
 export interface ApiNotification {

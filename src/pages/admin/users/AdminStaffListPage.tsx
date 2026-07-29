@@ -1,5 +1,5 @@
 import { Plus, UserCheck, UserCog, Users } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { getApiErrorMessage } from '../../../api/client'
 import { AdminStaffListTable } from '../../../components/admin/staff/AdminStaffListTable'
@@ -29,6 +29,8 @@ import {
 } from '../../../hooks/api/admin/useAdminStaff'
 import type { StaffType } from '../../../types/staffProfile'
 
+const PAGE_SIZE = 20
+
 export function AdminStaffListPage() {
   const navigate = useNavigate()
   const { showToast } = useToast()
@@ -39,20 +41,33 @@ export function AdminStaffListPage() {
   const [confirmProfileId, setConfirmProfileId] = useState<string | null>(null)
   const [deleteProfileId, setDeleteProfileId] = useState<string | null>(null)
   const [transferProfileId, setTransferProfileId] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
 
   const { allGarages: garages } = useAdminGarages()
-  const { staff, allStaff, isLoading, isError, error } = useAdminStaff({
-    query,
-    garageFilter,
-    staffTypeFilter,
-    isActiveFilter,
-  })
+  const {
+    staff,
+    meta,
+    totalStaff,
+    activeStaffCount,
+    inactiveStaffCount,
+    isLoading,
+    isFetching,
+    isError,
+    error,
+  } = useAdminStaff(
+    {
+      query,
+      garageFilter,
+      staffTypeFilter,
+      isActiveFilter,
+    },
+    page,
+    PAGE_SIZE,
+  )
   const toggleMutation = useToggleAdminStaffStatus()
   const deleteMutation = useDeleteAdminStaff()
 
-  const activeCount = allStaff.filter(
-    (record) => record.profile.is_active && record.user.is_active,
-  ).length
+  const totalPages = Math.max(meta?.total_pages ?? 1, 1)
   const hasActiveFilter =
     query.trim().length > 0 ||
     garageFilter !== 'ALL' ||
@@ -60,14 +75,20 @@ export function AdminStaffListPage() {
     isActiveFilter !== 'ALL'
 
   const pendingRecord = confirmProfileId
-    ? allStaff.find((record) => record.profile.id === confirmProfileId)
+    ? staff.find((record) => record.profile.id === confirmProfileId)
     : undefined
   const deletingRecord = deleteProfileId
-    ? allStaff.find((record) => record.profile.id === deleteProfileId)
+    ? staff.find((record) => record.profile.id === deleteProfileId)
     : undefined
   const transferRecord = transferProfileId
-    ? allStaff.find((record) => record.profile.id === transferProfileId)
+    ? staff.find((record) => record.profile.id === transferProfileId)
     : undefined
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages)
+    }
+  }, [page, totalPages])
 
   const handleConfirmToggle = () => {
     if (!confirmProfileId || !pendingRecord) return
@@ -157,19 +178,19 @@ export function AdminStaffListPage() {
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <StatCard
           label="Tổng nhân viên"
-          value={allStaff.length}
+          value={totalStaff}
           icon={Users}
           accent="brand"
         />
         <StatCard
           label="Đang làm việc"
-          value={activeCount}
+          value={activeStaffCount}
           icon={UserCheck}
           accent="emerald"
         />
         <StatCard
           label="Ngưng làm việc"
-          value={allStaff.length - activeCount}
+          value={inactiveStaffCount}
           icon={UserCog}
           accent="violet"
         />
@@ -178,8 +199,14 @@ export function AdminStaffListPage() {
       <div className="mb-6 space-y-4">
         <CustomerSearchPanel
           query={query}
-          onChange={setQuery}
-          onReset={() => setQuery('')}
+          onChange={(value) => {
+            setPage(1)
+            setQuery(value)
+          }}
+          onReset={() => {
+            setPage(1)
+            setQuery('')
+          }}
         />
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="carivo-panel p-4">
@@ -189,7 +216,10 @@ export function AdminStaffListPage() {
             <Select
               id="garage-filter"
               value={garageFilter}
-              onChange={(event) => setGarageFilter(event.target.value)}
+              onChange={(event) => {
+                setPage(1)
+                setGarageFilter(event.target.value)
+              }}
             >
               <option value="ALL">Tất cả garage</option>
               {garages.map((garage) => (
@@ -206,9 +236,10 @@ export function AdminStaffListPage() {
             <Select
               id="staff-type-filter"
               value={staffTypeFilter}
-              onChange={(event) =>
+              onChange={(event) => {
+                setPage(1)
                 setStaffTypeFilter(event.target.value as StaffType | 'ALL')
-              }
+              }}
             >
               <option value="ALL">Tất cả vai trò</option>
               {STAFF_TYPES.map((type) => (
@@ -227,6 +258,7 @@ export function AdminStaffListPage() {
               value={isActiveFilter === 'ALL' ? 'ALL' : String(isActiveFilter)}
               onChange={(event) => {
                 const value = event.target.value
+                setPage(1)
                 setIsActiveFilter(value === 'ALL' ? 'ALL' : value === 'true')
               }}
             >
@@ -241,8 +273,9 @@ export function AdminStaffListPage() {
       <Card>
         <CardHeader>
           <CardTitle>
-            {staff.length} nhân viên
+            {meta?.total ?? staff.length} nhân viên
             {hasActiveFilter ? ' (đã lọc)' : ''}
+            {meta ? ` · Trang ${meta.page}/${totalPages}` : ''}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0 pb-2">
@@ -254,6 +287,35 @@ export function AdminStaffListPage() {
             onTransfer={setTransferProfileId}
           />
         </CardContent>
+        {meta && totalPages > 1 ? (
+          <div className="flex items-center justify-between border-t border-slate-100 px-6 py-3 text-sm text-slate-600">
+            <span>
+              Trang {meta.page} / {totalPages} · {meta.total} nhân viên
+            </span>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() =>
+                  setPage((current) => Math.max(1, current - 1))
+                }
+                disabled={page <= 1 || isFetching}
+              >
+                Trước
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() =>
+                  setPage((current) => Math.min(totalPages, current + 1))
+                }
+                disabled={page >= totalPages || isFetching}
+              >
+                Sau
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </Card>
 
       <Modal

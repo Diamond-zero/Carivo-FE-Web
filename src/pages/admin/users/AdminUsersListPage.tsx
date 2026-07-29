@@ -1,5 +1,5 @@
 import { Lock, Plus, Unlock, UserCheck, Users, UserX } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getApiErrorMessage } from '../../../api/client'
 import { AdminCreateUserModal } from '../../../components/admin/user/AdminCreateUserModal'
@@ -40,6 +40,8 @@ const STATUS_OPTIONS: Array<{ value: boolean | 'ALL'; label: string }> = [
   { value: false, label: 'Đã khóa' },
 ]
 
+const PAGE_SIZE = 20
+
 export function AdminUsersListPage() {
   const { showToast } = useToast()
   const [query, setQuery] = useState('')
@@ -48,28 +50,48 @@ export function AdminUsersListPage() {
   const [confirmToggleId, setConfirmToggleId] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [page, setPage] = useState(1)
 
-  const { users, allUsers, isLoading, isError, error } = useAdminUsers({
-    query,
-    roleFilter,
-    isActiveFilter: statusFilter,
-  })
+  const {
+    users,
+    meta,
+    totalUsers,
+    activeUserCount,
+    lockedUserCount,
+    adminCount,
+    staffCount,
+    isLoading,
+    isFetching,
+    isError,
+    error,
+  } = useAdminUsers(
+    {
+      query,
+      roleFilter,
+      isActiveFilter: statusFilter,
+    },
+    page,
+    PAGE_SIZE,
+  )
 
   const toggleStatusMutation = useAdminUpdateUserStatus()
   const deleteMutation = useAdminDeleteUser()
 
-  const activeCount = allUsers.filter((user) => user.is_active).length
-  const lockedCount = allUsers.length - activeCount
-  const adminCount = allUsers.filter((user) => user.role === 'ADMIN').length
-  const staffCount = allUsers.filter((user) => user.role === 'STAFF').length
+  const totalPages = Math.max(meta?.total_pages ?? 1, 1)
 
   const hasActiveFilter =
     query.trim().length > 0 || roleFilter !== 'ALL' || statusFilter !== 'ALL'
 
   const pendingUser = confirmToggleId
-    ? allUsers.find((user) => user.id === confirmToggleId)
+    ? users.find((user) => user.id === confirmToggleId)
     : undefined
-  const deletingUser = deleteId ? allUsers.find((user) => user.id === deleteId) : undefined
+  const deletingUser = deleteId ? users.find((user) => user.id === deleteId) : undefined
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages)
+    }
+  }, [page, totalPages])
 
   const handleConfirmToggle = () => {
     if (!confirmToggleId || !pendingUser) return
@@ -162,19 +184,19 @@ export function AdminUsersListPage() {
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Tổng người dùng"
-          value={allUsers.length}
+          value={totalUsers}
           icon={Users}
           accent="brand"
         />
         <StatCard
           label="Đang hoạt động"
-          value={activeCount}
+          value={activeUserCount}
           icon={UserCheck}
           accent="emerald"
         />
         <StatCard
           label="Đã khóa"
-          value={lockedCount}
+          value={lockedUserCount}
           icon={UserX}
           accent="rose"
         />
@@ -189,8 +211,14 @@ export function AdminUsersListPage() {
       <div className="mb-6 space-y-4">
         <CustomerSearchPanel
           query={query}
-          onChange={setQuery}
-          onReset={() => setQuery('')}
+          onChange={(value) => {
+            setPage(1)
+            setQuery(value)
+          }}
+          onReset={() => {
+            setPage(1)
+            setQuery('')
+          }}
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="carivo-panel p-4">
@@ -200,9 +228,10 @@ export function AdminUsersListPage() {
             <Select
               id="role-filter"
               value={roleFilter}
-              onChange={(event) =>
+              onChange={(event) => {
+                setPage(1)
                 setRoleFilter(event.target.value as User['role'] | 'ALL')
-              }
+              }}
             >
               {ROLE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -220,6 +249,7 @@ export function AdminUsersListPage() {
               value={String(statusFilter)}
               onChange={(event) => {
                 const value = event.target.value
+                setPage(1)
                 if (value === 'ALL') setStatusFilter('ALL')
                 else setStatusFilter(value === 'true')
               }}
@@ -237,8 +267,9 @@ export function AdminUsersListPage() {
       <Card>
         <CardHeader>
           <CardTitle>
-            {users.length} người dùng
+            {meta?.total ?? users.length} người dùng
             {hasActiveFilter ? ' (đã lọc)' : ''}
+            {meta ? ` · Trang ${meta.page}/${totalPages}` : ''}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0 pb-2">
@@ -249,6 +280,35 @@ export function AdminUsersListPage() {
             onDelete={setDeleteId}
           />
         </CardContent>
+        {meta && totalPages > 1 ? (
+          <div className="flex items-center justify-between border-t border-slate-100 px-6 py-3 text-sm text-slate-600">
+            <span>
+              Trang {meta.page} / {totalPages} · {meta.total} người dùng
+            </span>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() =>
+                  setPage((current) => Math.max(1, current - 1))
+                }
+                disabled={page <= 1 || isFetching}
+              >
+                Trước
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() =>
+                  setPage((current) => Math.min(totalPages, current + 1))
+                }
+                disabled={page >= totalPages || isFetching}
+              >
+                Sau
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </Card>
 
       <Modal

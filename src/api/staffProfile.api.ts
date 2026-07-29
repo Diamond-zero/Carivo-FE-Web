@@ -47,6 +47,21 @@ export async function getStaffProfilesApi(params?: StaffProfileListParams) {
   return { profiles: data.data, meta: data.meta }
 }
 
+export async function getAllStaffProfilesApi(
+  params: Omit<StaffProfileListParams, 'page' | 'limit'> = {},
+) {
+  const firstPage = await getStaffProfilesApi({ ...params, page: 1, limit: 100 })
+  const profiles = [...firstPage.profiles]
+  const totalPages = firstPage.meta?.total_pages ?? 1
+
+  for (let page = 2; page <= totalPages; page += 1) {
+    const result = await getStaffProfilesApi({ ...params, page, limit: 100 })
+    profiles.push(...result.profiles)
+  }
+
+  return profiles
+}
+
 export async function getStaffProfileByIdApi(profileId: string) {
   const { data } = await apiClient.get<ApiResponse<ApiStaffProfile>>(
     `/staff-profiles/${profileId}`,

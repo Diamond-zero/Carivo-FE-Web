@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import {
   getAnalyticsBookingsApi,
+  getAnalyticsCustomersApi,
   getAnalyticsGaragesApi,
   getAnalyticsOverviewApi,
   getAnalyticsPaymentsApi,
@@ -14,6 +15,7 @@ import { useAdminAuth } from '../../../contexts/AdminAuthContext'
 import {
   mapAnalyticsOverview,
   mapBookingAnalyticsOverview,
+  mapCustomerAnalytics,
   mapBookingStatusStats,
   mapBookingTrend,
   mapGarageDistributionFromBookings,
@@ -70,6 +72,17 @@ export function useAdminAnalyticsBookings(params?: ApiAnalyticsParams) {
         raw: data,
       }
     },
+    enabled: isAuthenticated,
+    staleTime: 60_000,
+  })
+}
+
+export function useAdminAnalyticsCustomers(params?: ApiAnalyticsParams) {
+  const { isAuthenticated } = useAdminAuth()
+
+  return useQuery({
+    queryKey: adminQueryKeys.analyticsCustomers(params),
+    queryFn: async () => mapCustomerAnalytics(await getAnalyticsCustomersApi(params)),
     enabled: isAuthenticated,
     staleTime: 60_000,
   })

@@ -41,6 +41,14 @@ export async function getAnalyticsBookingsApi(params?: ApiAnalyticsParams) {
   return data.data
 }
 
+export async function getAnalyticsCustomersApi(params?: ApiAnalyticsParams) {
+  const { data } = await apiClient.get<ApiResponse<Record<string, unknown>>>(
+    '/admin/analytics/customers',
+    { params },
+  )
+  return data.data
+}
+
 export async function getAnalyticsRevenueApi(params?: ApiAnalyticsParams) {
   const { data } = await apiClient.get<ApiResponse<Record<string, unknown>>>(
     '/admin/analytics/revenue',

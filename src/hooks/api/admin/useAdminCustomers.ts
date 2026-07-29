@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useMemo } from 'react'
 import { getStaffBookingsApi } from '../../../api/booking.api'
 import {
   getAdminLoyaltyCustomerByIdApi,
@@ -9,6 +8,7 @@ import {
   adminDeleteUserApi,
   adminUpdateUserApi,
   adminUpdateUserRoleApi,
+  getAllAdminUsersApi,
   getAdminUsersApi,
   getUserByIdApi,
   updateUserStatusApi,
@@ -24,8 +24,6 @@ import {
   mapApiVehicle,
 } from '../../../lib/mappers/adminMappers'
 import { mapApiBooking } from '../../../lib/mappers/staffMappers'
-import type { User } from '../../../types/user'
-import { normalizeSearchText } from '../../../utils/booking'
 import { adminQueryKeys } from './queryKeys'
 
 export interface AdminCustomerListFilters {
@@ -33,48 +31,17 @@ export interface AdminCustomerListFilters {
   isActiveFilter?: boolean | 'ALL'
 }
 
-function filterUsers(users: User[], filters: AdminCustomerListFilters): User[] {
-  const normalizedQuery = normalizeSearchText((filters.query ?? '').trim())
-  let result = users
-
-  if (filters.isActiveFilter && filters.isActiveFilter !== 'ALL') {
-    result = result.filter((user) => user.is_active === filters.isActiveFilter)
-  }
-
-  if (!normalizedQuery) return result
-
-  return result.filter((user) => {
-    const name = normalizeSearchText(user.full_name)
-    const phone = normalizeSearchText(user.phone ?? '')
-    const email = normalizeSearchText(user.email ?? '')
-
-    return (
-      name.includes(normalizedQuery) ||
-      phone.includes(normalizedQuery) ||
-      email.includes(normalizedQuery)
-    )
-  })
-}
-
-/**
- * Hook lấy danh sách khách hàng cho admin dùng endpoint `/users?role=CUSTOMER`
- * (BE users module — ADMIN only, Bearer JWT).
- *
- * Trả về cả `customers` (sau filter client-side) và `allCustomers` (toàn bộ
- * trên trang hiện tại) để các StatCard dùng tổng mà không bị ảnh hưởng bởi
- * filter.
- */
-export function useAdminCustomers(filters: AdminCustomerListFilters = {}) {
+export function useAllAdminCustomers(filters: AdminCustomerListFilters = {}) {
   const { isAuthenticated } = useAdminAuth()
 
   const query = useQuery({
     queryKey: adminQueryKeys.customers({
-      role: 'CUSTOMER',
+      scope: 'all',
       search: filters.query,
       is_active: filters.isActiveFilter,
     }),
     queryFn: async () => {
-      const { users } = await getAdminUsersApi({
+      const users = await getAllAdminUsersApi({
         role: 'CUSTOMER',
         search: filters.query?.trim() || undefined,
         is_active:
@@ -82,27 +49,93 @@ export function useAdminCustomers(filters: AdminCustomerListFilters = {}) {
             ? filters.isActiveFilter
             : undefined,
       })
-      return users
-        .map(mapApiUser)
-        .sort((a, b) => a.full_name.localeCompare(b.full_name, 'vi'))
+      return users.map(mapApiUser)
+    },
+    enabled: isAuthenticated,
+    staleTime: 30_000,
+  })
+
+  return {
+    allCustomers: query.data ?? [],
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  }
+}
+
+export function useAdminCustomers(
+  filters: AdminCustomerListFilters = {},
+  page = 1,
+  limit = 20,
+) {
+  const { isAuthenticated } = useAdminAuth()
+
+  const summaryQuery = useQuery({
+    queryKey: [...adminQueryKeys.all, 'customer-summary'],
+    queryFn: async () => {
+      const [allResult, activeResult] = await Promise.all([
+        getAdminUsersApi({ role: 'CUSTOMER', limit: 1 }),
+        getAdminUsersApi({ role: 'CUSTOMER', is_active: true, limit: 1 }),
+      ])
+      const total = allResult.meta?.total ?? allResult.users.length
+      const active = activeResult.meta?.total ?? activeResult.users.length
+
+      return {
+        total,
+        active,
+        locked: Math.max(total - active, 0),
+      }
+    },
+    enabled: isAuthenticated,
+    staleTime: 30_000,
+  })
+
+  const query = useQuery({
+    queryKey: adminQueryKeys.customers({
+      role: 'CUSTOMER',
+      search: filters.query,
+      is_active: filters.isActiveFilter,
+      page,
+      limit,
+    }),
+    queryFn: async () => {
+      const result = await getAdminUsersApi({
+        role: 'CUSTOMER',
+        page,
+        limit,
+        search: filters.query?.trim() || undefined,
+        is_active:
+          filters.isActiveFilter && filters.isActiveFilter !== 'ALL'
+            ? filters.isActiveFilter
+            : undefined,
+      })
+      return {
+        users: result.users.map(mapApiUser),
+        meta: result.meta,
+      }
     },
     enabled: isAuthenticated,
     staleTime: 0,
     gcTime: 5 * 60_000,
+    placeholderData: (previousData) => previousData,
   })
 
-  const allCustomers: User[] = useMemo(() => query.data ?? [], [query.data])
-  const customers = useMemo(
-    () => filterUsers(allCustomers, filters),
-    [allCustomers, filters],
-  )
+  const customers = query.data?.users ?? []
 
   return {
     customers,
-    allCustomers,
-    isLoading: query.isLoading,
-    isError: query.isError,
-    error: query.error,
+    meta: query.data?.meta,
+    totalCustomers: summaryQuery.data?.total ?? customers.length,
+    activeCustomerCount:
+      summaryQuery.data?.active ?? customers.filter((user) => user.is_active).length,
+    lockedCustomerCount:
+      summaryQuery.data?.locked ??
+      customers.filter((user) => !user.is_active).length,
+    isLoading: query.isLoading || summaryQuery.isLoading,
+    isFetching: query.isFetching,
+    isError: query.isError || summaryQuery.isError,
+    error: query.error ?? summaryQuery.error,
     refetch: query.refetch,
   }
 }
@@ -250,47 +283,19 @@ export function useUpdateAdminCustomerStatus() {
       userId: string
       isActive: boolean
     }) => updateUserStatusApi(userId, isActive),
-    onMutate: async ({ userId, isActive }) => {
-      await queryClient.cancelQueries({ queryKey: adminQueryKeys.customers() })
-      const previousCustomers = queryClient.getQueriesData<User[]>({
-        queryKey: ['admin', 'customers'],
-      })
-      const previousUsers = queryClient.getQueriesData<User[]>({
-        queryKey: ['admin', 'users'],
-      })
-
-      queryClient.setQueriesData<User[]>(
-        { queryKey: ['admin', 'customers'] },
-        (current) => {
-          if (!current) return current
-          return current.map((user) =>
-            user.id === userId ? { ...user, is_active: isActive } : user,
-          )
-        },
-      )
-      queryClient.setQueriesData<User[]>(
-        { queryKey: ['admin', 'users'] },
-        (current) => {
-          if (!current) return current
-          return current.map((user) =>
-            user.id === userId ? { ...user, is_active: isActive } : user,
-          )
-        },
-      )
-
-      return { previousCustomers, previousUsers }
-    },
-    onError: (_err, _vars, context) => {
-      context?.previousCustomers.forEach(([key, data]) => {
-        queryClient.setQueryData(key, data)
-      })
-      context?.previousUsers.forEach(([key, data]) => {
-        queryClient.setQueryData(key, data)
-      })
-    },
     onSettled: (_data, _err, variables) => {
-      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.users() })
-      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.customers() })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'users'],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'customers'],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'user-summary'],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'customer-summary'],
+      })
       void queryClient.invalidateQueries({
         queryKey: adminQueryKeys.customer(variables.userId),
       })
@@ -309,46 +314,19 @@ export function useUpdateAdminCustomer() {
       userId: string
       payload: AdminUpdateUserPayload
     }) => mapApiUser(await adminUpdateUserApi(userId, payload)),
-    onMutate: async ({ userId, payload }) => {
-      await queryClient.cancelQueries({ queryKey: adminQueryKeys.customers() })
-      const previousCustomers = queryClient.getQueriesData<User[]>({
-        queryKey: ['admin', 'customers'],
-      })
-      const previousUsers = queryClient.getQueriesData<User[]>({
-        queryKey: ['admin', 'users'],
-      })
-
-      const applyPatch = (user: User) =>
-        user.id === userId
-          ? {
-              ...user,
-              full_name: payload.full_name ?? user.full_name,
-              email: payload.email ?? user.email,
-            }
-          : user
-
-      queryClient.setQueriesData<User[]>(
-        { queryKey: ['admin', 'customers'] },
-        (current) => (current ? current.map(applyPatch) : current),
-      )
-      queryClient.setQueriesData<User[]>(
-        { queryKey: ['admin', 'users'] },
-        (current) => (current ? current.map(applyPatch) : current),
-      )
-
-      return { previousCustomers, previousUsers }
-    },
-    onError: (_err, _vars, context) => {
-      context?.previousCustomers.forEach(([key, data]) => {
-        queryClient.setQueryData(key, data)
-      })
-      context?.previousUsers.forEach(([key, data]) => {
-        queryClient.setQueryData(key, data)
-      })
-    },
     onSettled: (_data, _err, variables) => {
-      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.users() })
-      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.customers() })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'users'],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'customers'],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'user-summary'],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'customer-summary'],
+      })
       void queryClient.invalidateQueries({
         queryKey: adminQueryKeys.customer(variables.userId),
       })
@@ -367,40 +345,19 @@ export function useUpdateAdminCustomerRole() {
       userId: string
       payload: UpdateUserRolePayload
     }) => mapApiUser(await adminUpdateUserRoleApi(userId, payload)),
-    onMutate: async ({ userId, payload }) => {
-      await queryClient.cancelQueries({ queryKey: adminQueryKeys.customers() })
-      const previousCustomers = queryClient.getQueriesData<User[]>({
-        queryKey: ['admin', 'customers'],
-      })
-      const previousUsers = queryClient.getQueriesData<User[]>({
-        queryKey: ['admin', 'users'],
-      })
-
-      const applyPatch = (user: User) =>
-        user.id === userId ? { ...user, role: payload.role } : user
-
-      queryClient.setQueriesData<User[]>(
-        { queryKey: ['admin', 'customers'] },
-        (current) => (current ? current.map(applyPatch) : current),
-      )
-      queryClient.setQueriesData<User[]>(
-        { queryKey: ['admin', 'users'] },
-        (current) => (current ? current.map(applyPatch) : current),
-      )
-
-      return { previousCustomers, previousUsers }
-    },
-    onError: (_err, _vars, context) => {
-      context?.previousCustomers.forEach(([key, data]) => {
-        queryClient.setQueryData(key, data)
-      })
-      context?.previousUsers.forEach(([key, data]) => {
-        queryClient.setQueryData(key, data)
-      })
-    },
     onSettled: (_data, _err, variables) => {
-      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.users() })
-      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.customers() })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'users'],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'customers'],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'user-summary'],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'customer-summary'],
+      })
       void queryClient.invalidateQueries({
         queryKey: adminQueryKeys.customer(variables.userId),
       })
@@ -417,57 +374,19 @@ export function useDeleteAdminCustomer() {
       await adminDeleteUserApi(userId)
       return userId
     },
-    onMutate: async (userId) => {
-      await queryClient.cancelQueries({ queryKey: adminQueryKeys.customers() })
-      await queryClient.cancelQueries({
-        queryKey: adminQueryKeys.customer(userId),
-      })
-      const previousCustomers = queryClient.getQueriesData<User[]>({
-        queryKey: ['admin', 'customers'],
-      })
-      const previousUsers = queryClient.getQueriesData<User[]>({
-        queryKey: ['admin', 'users'],
-      })
-      const previousDetail = queryClient.getQueryData<User>(
-        adminQueryKeys.customer(userId),
-      )
-
-      const applyPatch = (user: User) =>
-        user.id === userId ? { ...user, is_active: false } : user
-
-      queryClient.setQueriesData<User[]>(
-        { queryKey: ['admin', 'customers'] },
-        (current) => (current ? current.map(applyPatch) : current),
-      )
-      queryClient.setQueriesData<User[]>(
-        { queryKey: ['admin', 'users'] },
-        (current) => (current ? current.map(applyPatch) : current),
-      )
-      if (previousDetail) {
-        queryClient.setQueryData<User>(adminQueryKeys.customer(userId), {
-          ...previousDetail,
-          is_active: false,
-        })
-      }
-      return { previousCustomers, previousUsers, previousDetail }
-    },
-    onError: (_err, userId, context) => {
-      context?.previousCustomers.forEach(([key, data]) => {
-        queryClient.setQueryData(key, data)
-      })
-      context?.previousUsers.forEach(([key, data]) => {
-        queryClient.setQueryData(key, data)
-      })
-      if (context?.previousDetail) {
-        queryClient.setQueryData(
-          adminQueryKeys.customer(userId),
-          context.previousDetail,
-        )
-      }
-    },
     onSettled: (_data, _error, userId) => {
-      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.users() })
-      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.customers() })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'users'],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'customers'],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'user-summary'],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'customer-summary'],
+      })
       void queryClient.invalidateQueries({
         queryKey: adminQueryKeys.customer(userId),
       })

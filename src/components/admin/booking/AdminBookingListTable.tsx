@@ -9,6 +9,7 @@ import { formatTime, formatPrice } from '../../../utils/format'
 import { ArrivalStatusBadge } from '../../booking/ArrivalStatusBadge'
 import { BookingStatusBadge } from '../../booking/BookingStatusBadge'
 import { PaymentStatusBadge } from '../../booking/PaymentStatusBadge'
+import { CopyValueButton } from '../../ui/CopyValueButton'
 import { DataTable } from '../../ui/DataTable'
 
 const columnHelper = createColumnHelper<Booking>()
@@ -46,14 +47,24 @@ export function AdminBookingListTable({
     () => [
       columnHelper.accessor('id', {
         header: 'Mã',
-        cell: (info) => (
-          <Link
-            to={`/admin/bookings/${info.getValue()}`}
-            className="carivo-link font-mono text-xs"
-          >
-            {info.getValue().replace('booking-', 'BK-')}
-          </Link>
-        ),
+        cell: (info) => {
+          const bookingId = info.getValue()
+          return (
+            <div className="flex items-center gap-1">
+              <Link
+                to={`/admin/bookings/${bookingId}`}
+                className="carivo-link font-mono text-xs"
+              >
+                {bookingId.replace('booking-', 'BK-')}
+              </Link>
+              <CopyValueButton
+                value={bookingId}
+                label="mã booking"
+                className="text-slate-500"
+              />
+            </div>
+          )
+        },
       }),
       columnHelper.accessor('garage_id', {
         header: 'Chi nhánh',

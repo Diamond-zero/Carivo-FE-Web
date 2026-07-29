@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import { cn } from '../../../lib/utils'
 import type { User } from '../../../types/user'
 import { Button } from '../../ui/Button'
+import { CopyValueButton } from '../../ui/CopyValueButton'
 import { DataTable } from '../../ui/DataTable'
 
 const columnHelper = createColumnHelper<User>()
@@ -36,6 +37,19 @@ export function AdminCustomerListTable({
               {row.original.full_name}
             </Link>
             <p className="text-xs text-slate-500">{row.original.phone}</p>
+            <div className="mt-1 flex items-center gap-1 text-xs text-slate-400">
+              <span
+                className="max-w-32 truncate font-mono"
+                title={row.original.id}
+              >
+                {row.original.id}
+              </span>
+              <CopyValueButton
+                value={row.original.id}
+                label="ID customer"
+                className="text-slate-500"
+              />
+            </div>
           </div>
         ),
       }),

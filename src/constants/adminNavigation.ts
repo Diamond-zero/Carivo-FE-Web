@@ -151,6 +151,7 @@ export const adminNavItems: AdminNavItem[] = [
     children: [
       { label: 'Doanh thu', path: '/admin/analytics/revenue' },
       { label: 'Booking', path: '/admin/analytics/bookings' },
+      { label: 'Khách hàng', path: '/admin/analytics/customers' },
       { label: 'Hiệu suất buồng rửa', path: '/admin/analytics/wash-bay' },
       { label: 'Hiệu suất chi nhánh', path: '/admin/analytics/garages' },
       { label: 'Hiệu suất gói dịch vụ', path: '/admin/analytics/services' },

@@ -49,6 +49,19 @@ function formatVoucherValue(voucher: ApiCustomerVoucher): string {
   return `${voucher.value.toLocaleString('vi-VN')} đ`
 }
 
+function describeSource(voucher: ApiCustomerVoucher): string {
+  if (voucher.source_type) {
+    return CUSTOMER_VOUCHER_SOURCE_LABELS[voucher.source_type] ?? voucher.source_type
+  }
+  if (voucher.source_incident_id || voucher.source_booking_incident_id) {
+    return 'Bồi thường sự cố'
+  }
+  if (voucher.source_customer_case_id) {
+    return 'Hồ sơ khiếu nại'
+  }
+  return '—'
+}
+
 export function StaffCompensationVouchersPage() {
   const { showToast } = useToast()
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
@@ -183,11 +196,7 @@ export function StaffCompensationVouchersPage() {
                           {formatVoucherValue(voucher)}
                         </td>
                         <td className="px-6 py-4 text-slate-700">
-                          {voucher.source_booking_incident_id
-                            ? 'Bồi thường sự cố'
-                            : voucher.source_customer_case_id
-                              ? 'Hồ sơ khiếu nại'
-                              : '—'}
+                          {describeSource(voucher)}
                         </td>
                         <td className="px-6 py-4">
                           <Badge

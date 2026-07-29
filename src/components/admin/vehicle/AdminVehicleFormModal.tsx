@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import { useAdminCustomers } from '../../../hooks/api/admin/useAdminCustomers'
+import { useAllAdminCustomers } from '../../../hooks/api/admin/useAdminCustomers'
 import {
   adminVehicleCreateSchema,
   type AdminVehicleCreateValues,
@@ -53,7 +53,7 @@ export function AdminVehicleFormModal({
   onSubmit,
   isSubmitting = false,
 }: AdminVehicleFormModalProps) {
-  const { allCustomers } = useAdminCustomers()
+  const { allCustomers } = useAllAdminCustomers()
 
   const form = useForm<AdminVehicleCreateValues>({
     resolver: zodResolver(adminVehicleCreateSchema),

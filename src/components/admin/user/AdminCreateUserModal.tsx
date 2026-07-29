@@ -7,7 +7,7 @@ import {
   useAdminCreateUser,
   useAdminPromoteUser,
 } from '../../../hooks/api/admin/useAdminCreateUser'
-import { useAdminUsers } from '../../../hooks/api/admin/useAdminUsers'
+import { useAllAdminUsers } from '../../../hooks/api/admin/useAdminUsers'
 import {
   adminCreateUserSchema,
   adminPromoteUserSchema,
@@ -64,7 +64,7 @@ export function AdminCreateUserModal({
   const createMutation = useAdminCreateUser()
   const promoteMutation = useAdminPromoteUser()
 
-  const { allUsers } = useAdminUsers({})
+  const { allUsers } = useAllAdminUsers()
 
   const createForm = useForm<AdminCreateUserValues>({
     resolver: zodResolver(adminCreateUserSchema),

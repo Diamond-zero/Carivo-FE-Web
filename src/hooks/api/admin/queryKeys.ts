@@ -25,6 +25,8 @@ export const adminQueryKeys = {
     [...adminQueryKeys.all, 'analytics-overview', params] as const,
   analyticsBookings: (params?: unknown) =>
     [...adminQueryKeys.all, 'analytics-bookings', params] as const,
+  analyticsCustomers: (params?: unknown) =>
+    [...adminQueryKeys.all, 'analytics-customers', params] as const,
   analyticsRevenue: (params?: unknown) =>
     [...adminQueryKeys.all, 'analytics-revenue', params] as const,
   analyticsWashBays: (params?: unknown) =>

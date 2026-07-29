@@ -182,6 +182,11 @@ export const AdminAnalyticsBookingsPage = lazyNamed(
   'AdminAnalyticsBookingsPage',
 )
 
+export const AdminAnalyticsCustomersPage = lazyNamed(
+  () => import('../pages/admin/analytics/AdminAnalyticsCustomersPage'),
+  'AdminAnalyticsCustomersPage',
+)
+
 export const AdminAnalyticsWashBayPage = lazyNamed(
   () => import('../pages/admin/analytics/AdminAnalyticsWashBayPage'),
   'AdminAnalyticsWashBayPage',

@@ -83,8 +83,18 @@ export function useAdminCreateUser() {
       }
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.users() })
-      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.customers() })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'users'],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'customers'],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'user-summary'],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'customer-summary'],
+      })
     },
   })
 }
@@ -98,8 +108,18 @@ export function useAdminPromoteUser() {
       return mapApiUser(updated)
     },
     onSuccess: (_data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.users() })
-      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.customers() })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'users'],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'customers'],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'user-summary'],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: [...adminQueryKeys.all, 'customer-summary'],
+      })
       void queryClient.invalidateQueries({
         queryKey: adminQueryKeys.customer(variables.user_id),
       })

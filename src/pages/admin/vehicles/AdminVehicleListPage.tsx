@@ -20,7 +20,7 @@ import { Select } from '../../../components/ui/Select'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { StatCard } from '../../../components/ui/StatCard'
 import { useToast } from '../../../contexts/ToastContext'
-import { useAdminCustomers } from '../../../hooks/api/admin/useAdminCustomers'
+import { useAllAdminCustomers } from '../../../hooks/api/admin/useAdminCustomers'
 import {
   useAdminVehicles,
   useCreateAdminVehicle,
@@ -44,7 +44,7 @@ export function AdminVehicleListPage() {
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null)
   const [deleteVehicleId, setDeleteVehicleId] = useState<string | null>(null)
 
-  const { allCustomers } = useAdminCustomers()
+  const { allCustomers } = useAllAdminCustomers()
   const {
     vehicles: allVehiclesData,
     isLoading,

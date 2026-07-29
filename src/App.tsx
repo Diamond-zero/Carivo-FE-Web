@@ -11,6 +11,7 @@ import { ToastProvider } from './contexts/ToastContext'
 import { adminPlaceholderRoutes } from './constants/adminPlaceholderRoutes'
 import {
   AdminAnalyticsBookingsPage,
+  AdminAnalyticsCustomersPage,
   AdminAnalyticsRevenuePage,
   AdminAnalyticsWashBayPage,
   AdminAnalyticsGaragesPage,
@@ -456,6 +457,14 @@ function App() {
                   element={
                     <LazyPage>
                       <AdminCustomerVouchersPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/analytics/customers"
+                  element={
+                    <LazyPage>
+                      <AdminAnalyticsCustomersPage />
                     </LazyPage>
                   }
                 />

@@ -22,7 +22,7 @@ import {
   STAFF_TYPES,
 } from '../../../constants/staffType'
 import { useToast } from '../../../contexts/ToastContext'
-import { useAdminStaff } from '../../../hooks/api/admin/useAdminStaff'
+import { useAllAdminStaff } from '../../../hooks/api/admin/useAdminStaff'
 import { useAdminStaffTypeChangeHistory } from '../../../hooks/api/admin/useAdminStaffTypeChangeRequests'
 
 function formatDateTime(value?: string) {
@@ -46,7 +46,7 @@ export function AdminStaffTypeChangeHistoryPage() {
     null,
   )
 
-  const staffQuery = useAdminStaff({
+  const staffQuery = useAllAdminStaff({
     query,
     staffTypeFilter:
       staffTypeFilter === 'ALL'
