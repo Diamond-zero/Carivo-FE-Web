@@ -96,6 +96,14 @@ const API_ERROR_MESSAGES: Record<string, string> = {
     'Tài khoản không có quyền tạo biên bản kiểm tra.',
   INSPECTION_ASSIGNMENT_REQUIRED:
     'Bạn cần nhận (claim) booking này trước khi tạo biên bản kiểm tra.',
+  REVIEW_NOT_FOUND: 'Không tìm thấy đánh giá này.',
+  REVIEW_REPLY_NOT_FOUND: 'Đánh giá chưa có phản hồi từ garage.',
+  REVIEW_MODERATION_STATUS_UNCHANGED:
+    'Đánh giá đã ở trạng thái kiểm duyệt được chọn.',
+  FEEDBACK_REWARD_BOOKING_LIMIT_EXCEEDED:
+    'Tổng điểm thưởng khảo sát và đánh giá không được vượt quá 100 điểm cho mỗi booking.',
+  STAFF_GARAGE_REQUIRED:
+    'Tài khoản nhân viên chưa được phân công garage.',
 }
 
 export function getApiErrorCode(error: unknown): string | undefined {

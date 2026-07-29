@@ -1,4 +1,4 @@
-import { MapPin, Phone, Star } from 'lucide-react'
+import { Clock, MapPin, Phone } from 'lucide-react'
 import { branches } from '../data/publicHomeData'
 
 export function BranchesSection() {
@@ -27,9 +27,9 @@ export function BranchesSection() {
                   <MapPin className="h-4 w-4 text-brand-600" />
                   {branch}
                 </span>
-                <span className="hidden items-center gap-1 text-xs font-bold text-amber-600 sm:inline-flex">
-                  <Star className="h-3.5 w-3.5 fill-current" />
-                  4.9
+                <span className="hidden items-center gap-1 text-xs font-bold text-slate-500 sm:inline-flex">
+                  <Clock className="h-3.5 w-3.5" />
+                  07:00–20:00
                 </span>
               </div>
             ))}

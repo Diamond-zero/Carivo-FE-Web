@@ -5,6 +5,7 @@ import {
   ClipboardList,
   History,
   LayoutDashboard,
+  MessageSquare,
   ScanSearch,
   Search,
   Settings,
@@ -119,6 +120,13 @@ export const staffNavItems: StaffNavItem[] = [
     icon: AlertTriangle,
     section: 'records',
     requiredCapability: 'customer_case.read_garage',
+  },
+  {
+    label: 'Đánh giá khách hàng',
+    path: '/staff/reviews',
+    icon: MessageSquare,
+    section: 'records',
+    requiredCapability: 'review.read_garage',
   },
   {
     label: 'Voucher bồi thường',

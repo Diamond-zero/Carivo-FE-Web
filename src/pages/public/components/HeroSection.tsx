@@ -1,8 +1,17 @@
 import { BadgeCheck, ChevronRight } from 'lucide-react'
 import { Button } from '../../../components/ui/Button'
+import { usePublicReviewShowcase } from '../../../hooks/api/useReviews'
 import { heroImage, heroStats } from '../data/publicHomeData'
 
 export function HeroSection() {
+  const showcaseQuery = usePublicReviewShowcase()
+  const reviewStat = {
+    value: showcaseQuery.isLoading
+      ? '...'
+      : `${showcaseQuery.data?.rating_average.toFixed(1) ?? '0.0'}/5`,
+    label: `${showcaseQuery.data?.rating_count ?? 0} đánh giá đã xác minh`,
+  }
+
   return (
     <section
       id="top"
@@ -47,7 +56,7 @@ export function HeroSection() {
         </div>
 
         <div className="grid content-end gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-          {heroStats.map((stat) => (
+          {[reviewStat, ...heroStats].map((stat) => (
             <div
               key={stat.label}
               className="rounded-lg border border-white/15 bg-white/10 p-4 backdrop-blur-md"

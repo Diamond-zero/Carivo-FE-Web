@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { getApiErrorMessage } from '../../../api/client'
 import { AdminSurveyFormModal, type SurveyFormValues } from '../../../components/admin/survey/AdminSurveyFormModal'
 import { AdminSurveyListTable } from '../../../components/admin/survey/AdminSurveyListTable'
+import { AdminFeedbackRewardPanel } from '../../../components/admin/survey/AdminFeedbackRewardPanel'
 import { CustomerSearchPanel } from '../../../components/customer/CustomerSearchPanel'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { Badge } from '../../../components/ui/Badge'
@@ -220,6 +221,8 @@ export function AdminSurveysPage() {
             <StatCard label="Nháp" value={draftCount} icon={MessageSquare} accent="amber" />
             <StatCard label="Đã đóng" value={closedCount} icon={MessageSquare} accent="violet" />
           </div>
+
+          <AdminFeedbackRewardPanel />
 
           <div className="mb-6 space-y-4">
             <CustomerSearchPanel query={query} onChange={setQuery} onReset={() => setQuery('')} />

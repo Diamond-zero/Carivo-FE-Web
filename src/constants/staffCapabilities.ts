@@ -67,6 +67,8 @@ export const STAFF_CAPABILITIES = Object.freeze({
   CUSTOMER_CASE_CREATE_WALK_IN: 'customer_case.create_walk_in',
   CUSTOMER_CASE_TECHNICAL_ASSESS_ASSIGNED: 'customer_case.technical_assess_assigned',
   CUSTOMER_CASE_SLA_READ_GARAGE: 'customer_case.sla.read_garage',
+  REVIEW_READ_GARAGE: 'review.read_garage',
+  REVIEW_REPLY_GARAGE: 'review.reply_garage',
 } as const)
 
 /** Tất cả capability keys dưới dạng union type. */
@@ -130,4 +132,6 @@ export const CAPABILITY_LABELS: Record<StaffCapability, string> = {
   'customer_case.create_walk_in': 'Tạo case cho walk-in',
   'customer_case.technical_assess_assigned': 'Đánh giá kỹ thuật case được phân công',
   'customer_case.sla.read_garage': 'Xem dashboard SLA case',
+  'review.read_garage': 'Xem đánh giá của garage',
+  'review.reply_garage': 'Phản hồi đánh giá của garage',
 }

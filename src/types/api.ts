@@ -76,6 +76,8 @@ export interface ApiGarage {
   id: string
   name: string
   garage_code: string
+  rating_average?: number
+  rating_count?: number
   address: string
   ward?: string
   district?: string

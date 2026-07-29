@@ -10,6 +10,7 @@ import {
   Gift,
   LayoutDashboard,
   MessageSquare,
+  MessagesSquare,
   Package,
   ScanLine,
   ScrollText,
@@ -90,6 +91,7 @@ export const adminNavItems: AdminNavItem[] = [
     children: [
       { label: 'Danh sách booking', path: '/admin/bookings' },
       { label: 'Lịch sử rửa', path: '/admin/wash-histories' },
+      { label: 'Điểm vi phạm', path: '/admin/booking-violations' },
     ],
   },
   {
@@ -133,6 +135,12 @@ export const adminNavItems: AdminNavItem[] = [
     label: 'Hồ sơ khiếu nại',
     path: '/admin/customer-cases',
     icon: FolderKanban,
+    section: 'management',
+  },
+  {
+    label: 'Đánh giá khách hàng',
+    path: '/admin/reviews',
+    icon: MessagesSquare,
     section: 'management',
   },
   {
@@ -193,12 +201,14 @@ export const ADMIN_NAV_EXPAND_PREFIXES: Array<{
   { prefix: '/admin/services', groupLabel: 'Gói dịch vụ' },
   { prefix: '/admin/bookings', groupLabel: 'Đặt lịch' },
   { prefix: '/admin/wash-histories', groupLabel: 'Đặt lịch' },
+  { prefix: '/admin/booking-violations', groupLabel: 'Đặt lịch' },
   { prefix: '/admin/loyalty', groupLabel: 'Loyalty' },
   { prefix: '/admin/analytics', groupLabel: 'Phân tích' },
   { prefix: '/admin/staff-type-change-requests', groupLabel: 'Đổi chức năng nhân viên' },
   { prefix: '/admin/staff-type-change-history', groupLabel: 'Đổi chức năng nhân viên' },
   { prefix: '/admin/customer-vouchers', groupLabel: 'Voucher bồi thường' },
   { prefix: '/admin/customer-cases', groupLabel: 'Hồ sơ khiếu nại' },
+  { prefix: '/admin/reviews', groupLabel: 'Đánh giá khách hàng' },
   { prefix: '/admin/arrivals', groupLabel: 'Vận hành cổng' },
   { prefix: '/admin/payments', groupLabel: 'Thanh toán' },
 ]

@@ -142,6 +142,14 @@ export const AdminBookingDetailPage = lazyNamed(
   'AdminBookingDetailPage',
 )
 
+export const AdminBookingViolationsPage = lazyNamed(
+  () =>
+    import(
+      '../pages/admin/bookingViolations/AdminBookingViolationsPage'
+    ),
+  'AdminBookingViolationsPage',
+)
+
 export const AdminTierRulesPage = lazyNamed(
   () => import('../pages/admin/loyalty/AdminTierRulesPage'),
   'AdminTierRulesPage',
@@ -215,6 +223,11 @@ export const AdminAuditLogsPage = lazyNamed(
 export const AdminSurveysPage = lazyNamed(
   () => import('../pages/admin/surveys/AdminSurveysPage'),
   'AdminSurveysPage',
+)
+
+export const AdminReviewsPage = lazyNamed(
+  () => import('../pages/admin/reviews/AdminReviewsPage'),
+  'AdminReviewsPage',
 )
 
 export const AdminResearchExportPage = lazyNamed(
@@ -326,6 +339,11 @@ export const StaffHandoverPage = lazyNamed(
 export const StaffCustomerCasesPage = lazyNamed(
   () => import('../pages/staff/cases/StaffCustomerCasesPage'),
   'StaffCustomerCasesPage',
+)
+
+export const StaffReviewsPage = lazyNamed(
+  () => import('../pages/staff/reviews/StaffReviewsPage'),
+  'StaffReviewsPage',
 )
 
 export const StaffCustomerCaseDetailPage = lazyNamed(

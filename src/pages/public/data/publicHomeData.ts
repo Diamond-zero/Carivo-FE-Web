@@ -11,13 +11,13 @@ export const heroImage =
 
 export const publicNavItems = [
   { label: 'Dịch vụ', href: '#services' },
+  { label: 'Đánh giá', href: '#reviews' },
   { label: 'Đặt lịch', href: '#booking' },
   { label: 'Loyalty', href: '#loyalty' },
   { label: 'Chi nhánh', href: '#branches' },
 ]
 
 export const heroStats = [
-  { value: '4.9/5', label: 'Đánh giá dịch vụ' },
   { value: '12+', label: 'Gói chăm sóc xe' },
   { value: '07:00', label: 'Mở cửa mỗi ngày' },
 ]

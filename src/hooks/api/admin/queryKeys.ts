@@ -41,6 +41,10 @@ export const adminQueryKeys = {
   surveys: (params?: unknown) => [...adminQueryKeys.all, 'surveys', params] as const,
   surveyResponses: (surveyId: string) =>
     [...adminQueryKeys.all, 'survey-responses', surveyId] as const,
+  feedbackRewardRule: () =>
+    [...adminQueryKeys.all, 'feedback-reward-rule'] as const,
+  feedbackRewardAnalytics: (params?: unknown) =>
+    [...adminQueryKeys.all, 'feedback-reward-analytics', params] as const,
   waitlists: (params?: unknown) => [...adminQueryKeys.all, 'waitlists', params] as const,
   washHistories: (params?: unknown) =>
     [...adminQueryKeys.all, 'wash-histories', params] as const,

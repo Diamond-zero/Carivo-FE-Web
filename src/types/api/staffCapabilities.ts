@@ -68,6 +68,8 @@ export type StaffCapabilityKey =
   | 'customer_case.create_walk_in'
   | 'customer_case.technical_assess_assigned'
   | 'customer_case.sla.read_garage'
+  | 'review.read_garage'
+  | 'review.reply_garage'
 
 export interface ApiStaffCapabilityContext {
   /** Admin bypass tất cả capability checks. */

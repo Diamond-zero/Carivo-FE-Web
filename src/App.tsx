@@ -20,6 +20,7 @@ import {
   AdminAuditLogsPage,
   AdminBookingDetailPage,
   AdminBookingListPage,
+  AdminBookingViolationsPage,
   AdminCustomerDetailPage,
   AdminCustomerListPage,
   AdminCustomerLoyaltyPage,
@@ -33,6 +34,7 @@ import {
   AdminPromotionFormPage,
   AdminPromotionListPage,
   AdminResearchExportPage,
+  AdminReviewsPage,
   AdminServicePackageFormPage,
   AdminServicePackageListPage,
   AdminServicePackageStepsPage,
@@ -72,6 +74,7 @@ import {
   StaffCompensationVouchersPage,
   StaffHandoverPage,
   StaffCustomerCasesPage,
+  StaffReviewsPage,
   StaffCustomerCaseDetailPage,
   StaffCustomerCaseSlaDashboardPage,
   StaffWalkInCaseCreatePage,
@@ -453,6 +456,22 @@ function App() {
                   }
                 />
                 <Route
+                  path="/admin/booking-violations"
+                  element={
+                    <LazyPage>
+                      <AdminBookingViolationsPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/reviews"
+                  element={
+                    <LazyPage>
+                      <AdminReviewsPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
                   path="/admin/customer-vouchers"
                   element={
                     <LazyPage>
@@ -766,6 +785,16 @@ function App() {
                     element={
                       <LazyPage>
                         <StaffCustomerCaseDetailPage />
+                      </LazyPage>
+                    }
+                  />
+                </Route>
+                <Route element={<CapabilityRoute capability="review.read_garage" />}>
+                  <Route
+                    path="/staff/reviews"
+                    element={
+                      <LazyPage>
+                        <StaffReviewsPage />
                       </LazyPage>
                     }
                   />

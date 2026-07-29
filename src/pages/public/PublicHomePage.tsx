@@ -4,6 +4,7 @@ import { HeroSection } from './components/HeroSection'
 import { LoyaltySection } from './components/LoyaltySection'
 import { ProcessSection } from './components/ProcessSection'
 import { PublicHeader } from './components/PublicHeader'
+import { ReviewsSection } from './components/ReviewsSection'
 import { ServicesSection } from './components/ServicesSection'
 
 export function PublicHomePage() {
@@ -13,6 +14,7 @@ export function PublicHomePage() {
       <HeroSection />
       <BookingPreviewSection />
       <ServicesSection />
+      <ReviewsSection />
       <ProcessSection />
       <LoyaltySection />
       <BranchesSection />
