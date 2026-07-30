@@ -31,10 +31,12 @@ import {
   Loader2,
   Truck,
 } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getApiErrorCode, getApiErrorMessage } from '../../api/client'
 import axios from 'axios'
+import { pollBookingPayosPaymentApi } from '../../api/payment.api'
 import {
   HANDOVER_RESPONSE_LABELS,
   HANDOVER_STATE_LABELS,
@@ -148,10 +150,33 @@ export function StaffHandoverPage() {
   const detailQuery = useStaffBookingDetail(bookingId)
   const handoverQuery = useStaffBookingHandover(bookingId)
   const { markBookingPaid, createPayosPayment } = useBookings()
+  const payosPollingQuery = useQuery({
+    queryKey: ['staff', 'booking', 'payos', bookingId],
+    queryFn: () => pollBookingPayosPaymentApi(bookingId!, 'STAFF'),
+    enabled: Boolean(bookingId && detailQuery.data?.payment_status === 'PENDING'),
+    retry: 1,
+    refetchInterval: (query) => (
+      query.state.data?.payment?.status === 'PENDING' ? 3_000 : false
+    ),
+  })
 
   const readyMutation = useReadyBookingHandoverMutation(bookingId ?? '')
   const walkInAcceptMutation = useWalkInAcceptHandoverMutation(bookingId ?? '')
   const releaseMutation = useReleaseBookingHandoverMutation(bookingId ?? '')
+
+  const syncedPaymentStatus = payosPollingQuery.data?.booking?.payment_status
+  const currentPaymentStatus = detailQuery.data?.payment_status
+
+  useEffect(() => {
+    if (
+      !syncedPaymentStatus
+      || syncedPaymentStatus === currentPaymentStatus
+    ) {
+      return
+    }
+
+    void detailQuery.refetch()
+  }, [currentPaymentStatus, detailQuery.refetch, syncedPaymentStatus])
 
   if (detailQuery.isLoading || handoverQuery.isLoading) {
     return <DashboardPageSkeleton />

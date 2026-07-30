@@ -23,9 +23,8 @@ export interface CreatePayosPaymentResult {
 }
 
 export interface PollingPayosPaymentResult {
-  booking_id: string
+  booking?: ApiBooking
   payment: ApiPaymentTransaction | null
-  has_active_payment: boolean
   /** Người khởi tạo payment. BE trả null nếu payment không active. */
   initiator?: ApiPaymentTransaction['initiator']
 }

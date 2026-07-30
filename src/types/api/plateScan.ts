@@ -115,6 +115,9 @@ export type ApiPlateScanCandidateBooking = Record<string, unknown> & {
   normalized_license_plate?: string | null
   start_time?: string | null
   vehicle_type?: PlateScanVehicleType
+  quoted_vehicle_snapshot?: import('./pricing').VehiclePricingSnapshot | null
+  verified_vehicle_snapshot?: import('./pricing').VehiclePricingSnapshot | null
+  pricing_review_status?: 'NOT_REQUIRED' | 'REVIEW_REQUIRED' | 'CUSTOMER_ACCEPTED'
   customer_id?: string | null
   customer?: {
     id?: string
@@ -127,6 +130,10 @@ export type ApiPlateScanCandidateBooking = Record<string, unknown> & {
     model?: string | null
     color?: string | null
     license_plate?: string | null
+    engine_type?: import('./pricing').PricingEngineType | null
+    motorbike_cc_group?: import('./pricing').PricingMotorbikeCcGroup | null
+    car_body_type?: import('./pricing').PricingCarBodyType | null
+    seat_count?: number | null
   } | null
   status?: string
 }

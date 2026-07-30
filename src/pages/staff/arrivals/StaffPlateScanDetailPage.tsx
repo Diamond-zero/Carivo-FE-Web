@@ -62,6 +62,9 @@ import {
 } from '../../../components/staff/plate-scan/PlateScanExpiryCountdown'
 import { PlateScanStatusBadge } from '../../../components/staff/plate-scan/PlateScanStatusBadge'
 import {
+  PlateScanVehicleClassificationReview,
+} from '../../../components/staff/plate-scan/PlateScanVehicleClassificationReview'
+import {
   RejectScanModal,
 } from '../../../components/staff/plate-scan/RejectScanModal'
 import {
@@ -100,6 +103,8 @@ export function StaffPlateScanDetailPage() {
   const [alternateModalOpen, setAlternateModalOpen] = useState(false)
   const [retryFiles, setRetryFiles] = useState<File[]>([])
   const [retryIsUploading, setRetryIsUploading] = useState(false)
+  const [classificationVerifiedBookingId, setClassificationVerifiedBookingId] =
+    useState<string | null>(null)
   const candidates: ApiPlateScanCandidate[] = useMemo(
     () => detailQuery.data?.candidates ?? [],
     [detailQuery.data?.candidates],
@@ -150,6 +155,11 @@ export function StaffPlateScanDetailPage() {
 
   const requiresOverride =
     selectedCandidate !== null && selectedCandidate.match_type !== 'EXACT'
+  const classificationVerified =
+    selectedCandidate !== null &&
+    (selectedCandidate.booking?.pricing_review_status === 'NOT_REQUIRED' ||
+      selectedCandidate.booking?.pricing_review_status === 'CUSTOMER_ACCEPTED' ||
+      classificationVerifiedBookingId === selectedCandidate.booking_id)
 
   // ----- Handlers --------------------------------------------------------
 
@@ -158,11 +168,23 @@ export function StaffPlateScanDetailPage() {
       showToast('Vui lòng chọn 1 booking để xác nhận.', 'error')
       return
     }
+    if (!classificationVerified) {
+      showToast(
+        'Cần xác minh phân loại xe thực tế trước khi check-in.',
+        'error',
+      )
+      return
+    }
     if (requiresOverride) {
       setConfirmModalOpen(true)
       return
     }
     void runExactConfirm()
+  }
+
+  const handleSelectCandidate = (bookingId: string) => {
+    setSelectedCandidateId(bookingId)
+    setClassificationVerifiedBookingId(null)
   }
 
   const runExactConfirm = async () => {
@@ -387,7 +409,7 @@ export function StaffPlateScanDetailPage() {
             <PlateScanCandidateList
               candidates={candidates}
               selectedBookingId={selectedCandidateId}
-              onSelect={setSelectedCandidateId}
+              onSelect={handleSelectCandidate}
               disabled={isMutating || isTerminal}
             />
           </CardContent>
@@ -403,6 +425,23 @@ export function StaffPlateScanDetailPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
+            {selectedCandidate?.booking ? (
+              <PlateScanVehicleClassificationReview
+                key={selectedCandidate.booking_id}
+                booking={selectedCandidate.booking}
+                disabled={isMutating || isTerminal}
+                onVerificationChange={(verified) =>
+                  setClassificationVerifiedBookingId(
+                    verified ? selectedCandidate.booking_id : null,
+                  )
+                }
+              />
+            ) : selectedCandidate ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                Không tải được thông tin booking để xác minh phân loại xe.
+              </div>
+            ) : null}
+
             <div className="flex flex-wrap gap-2">
               <Button
                 onClick={handleOpenConfirm}

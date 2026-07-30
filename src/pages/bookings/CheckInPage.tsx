@@ -6,7 +6,7 @@ import {
   Search,
   SearchX,
 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useSearchParams } from 'react-router-dom'
 import { z } from 'zod'
@@ -102,6 +102,9 @@ export function CheckInPage() {
     refreshBookings,
   } = useBookings()
   const checkInSearch = useCheckInSearch()
+  const searchCheckInBookings = checkInSearch.mutateAsync
+  const linkedBookingId = searchParams.get('bookingId')
+  const loadedBookingIdRef = useRef<string | null>(null)
 
   const [results, setResults] = useState<Booking[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -173,17 +176,23 @@ export function CheckInPage() {
   }, [])
 
   useEffect(() => {
-    const bookingId = searchParams.get('bookingId')
-    if (!bookingId) return
+    if (!linkedBookingId) {
+      loadedBookingIdRef.current = null
+      return
+    }
+    const bookingId = linkedBookingId
+    if (loadedBookingIdRef.current === bookingId) return
+
+    loadedBookingIdRef.current = bookingId
 
     let cancelled = false
 
     async function loadBookingFromLink() {
       try {
-        const cached = getBookingById(bookingId!)
+        const cached = getBookingById(bookingId)
         const booking =
           cached ??
-          (await checkInSearch.mutateAsync(bookingId!)).find(
+          (await searchCheckInBookings(bookingId)).find(
             (item) => item.id === bookingId,
           )
 
@@ -207,6 +216,7 @@ export function CheckInPage() {
         )
         setValue('query', booking.license_plate)
       } catch (error) {
+        loadedBookingIdRef.current = null
         if (!cancelled) {
           setSubmitError(
             getApiErrorMessage(error, 'Không thể tải booking từ liên kết.'),
@@ -220,14 +230,14 @@ export function CheckInPage() {
     return () => {
       cancelled = true
     }
-  }, [searchParams, getBookingById, setValue, checkInSearch, selectBooking])
+  }, [linkedBookingId, getBookingById, setValue, searchCheckInBookings, selectBooking])
 
   const onSearch = async (data: SearchFormValues) => {
     setSubmitError(null)
     setSuccessMessage(null)
 
     try {
-      const found = await checkInSearch.mutateAsync(data.query)
+      const found = await searchCheckInBookings(data.query)
       setResults(found)
       selectBooking(found.length === 1 ? found[0] : null)
       setHasSearched(true)
@@ -306,6 +316,7 @@ export function CheckInPage() {
       setPriceReview(review)
       setClassificationVerified(!review.requires_customer_confirmation)
       if (!review.requires_customer_confirmation) {
+        void refreshBookings().catch(() => undefined)
         showToast('Phân loại xe thực tế khớp với booking.', 'success')
       }
     } catch (error) {
@@ -340,7 +351,7 @@ export function CheckInPage() {
       })
       setPriceReview(result.review)
       setClassificationVerified(true)
-      await refreshBookings()
+      void refreshBookings().catch(() => undefined)
       showToast('Đã ghi nhận khách xác nhận chênh lệch.', 'success')
     } catch (error) {
       setSubmitError(
