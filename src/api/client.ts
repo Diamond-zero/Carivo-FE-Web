@@ -73,6 +73,12 @@ const API_ERROR_MESSAGES: Record<string, string> = {
     'Bạn không thể tự khóa tài khoản đang đăng nhập.',
   CANNOT_DELETE_SELF:
     'Bạn không thể tự xóa tài khoản đang đăng nhập.',
+  GARAGE_MUST_BE_INACTIVE:
+    'Garage đang hoạt động. Hãy ngưng hoạt động garage trước khi xóa.',
+  GARAGE_HAS_DEPENDENCIES:
+    'Không thể xóa garage vì còn dữ liệu vận hành liên quan. Hãy giữ garage ở trạng thái ngưng hoạt động để bảo toàn lịch sử.',
+  GARAGE_DELETE_CONFLICT:
+    'Trạng thái garage vừa thay đổi. Vui lòng tải lại danh sách rồi thử lại.',
   STAFF_PROFILE_NOT_FOUND: 'Không tìm thấy hồ sơ nhân viên.',
   STAFF_PROFILE_USER_EXISTS:
     'Tài khoản này đã có hồ sơ nhân viên. Vui lòng dùng chức năng cập nhật.',

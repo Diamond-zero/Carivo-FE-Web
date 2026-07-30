@@ -49,6 +49,11 @@ export function AdminGarageListPage() {
   const deletingGarage = deleteGarageId
     ? allGarages.find((garage) => garage.id === deleteGarageId)
     : undefined
+  const canDeleteGarage = Boolean(
+    deletingGarage &&
+      !deletingGarage.is_active &&
+      deletingGarage.washBayCount === 0,
+  )
 
   const handleConfirmToggle = () => {
     if (!confirmGarageId || !pendingGarage) return
@@ -220,7 +225,7 @@ export function AdminGarageListPage() {
       <Modal
         open={Boolean(deleteGarageId && deletingGarage)}
         onClose={() => setDeleteGarageId(null)}
-        title="Xóa garage?"
+        title="Xóa vĩnh viễn garage?"
         description={
           deletingGarage
             ? `${deletingGarage.name} (${deletingGarage.garage_code}) — ${deletingGarage.city}.`
@@ -229,20 +234,39 @@ export function AdminGarageListPage() {
       >
         <div className="space-y-3">
           <div className="rounded-xl border border-red-200 bg-red-50/70 px-4 py-3 text-sm text-red-800">
-            Thao tác này không thể hoàn tác. Garage có buồng rửa hoặc lịch sử booking sẽ không thể
-            xóa — hãy ngưng hoạt động trước.
+            {deletingGarage?.is_active
+              ? 'Garage đang hoạt động. Hãy ngưng hoạt động trước khi yêu cầu xóa vĩnh viễn.'
+              : deletingGarage && deletingGarage.washBayCount > 0
+                ? `Garage còn ${deletingGarage.washBayCount} buồng rửa nên không thể xóa vĩnh viễn. Hãy giữ garage ở trạng thái ngưng hoạt động để bảo toàn dữ liệu.`
+                : 'Chỉ garage chưa có nhân sự, cấu hình giá, booking hoặc dữ liệu vận hành mới có thể xóa. Thao tác này không thể hoàn tác.'}
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setDeleteGarageId(null)}>
               Hủy
             </Button>
-            <Button
-              variant="danger"
-              onClick={handleConfirmDelete}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? 'Đang xóa...' : 'Xóa garage'}
-            </Button>
+            {deletingGarage?.is_active ? (
+              <Button
+                variant="danger"
+                onClick={() => {
+                  setDeleteGarageId(null)
+                  setConfirmGarageId(deletingGarage.id)
+                }}
+              >
+                Ngưng hoạt động
+              </Button>
+            ) : (
+              <Button
+                variant="danger"
+                onClick={handleConfirmDelete}
+                disabled={deleteMutation.isPending || !canDeleteGarage}
+              >
+                {deleteMutation.isPending
+                  ? 'Đang xóa...'
+                  : canDeleteGarage
+                    ? 'Xóa vĩnh viễn'
+                    : 'Không thể xóa'}
+              </Button>
+            )}
           </div>
         </div>
       </Modal>
