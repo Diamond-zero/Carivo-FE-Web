@@ -21,11 +21,6 @@ function toDateOnly(value: string) {
   return value.includes('T') ? value.split('T')[0] : value
 }
 
-function toLocalDateTime(value: string) {
-  if (!value.includes('T')) return value
-  return value.slice(0, 19)
-}
-
 export function mapApiBooking(booking: ApiBooking): Booking {
   const licensePlate =
     booking.license_plate ??
@@ -48,8 +43,8 @@ export function mapApiBooking(booking: ApiBooking): Booking {
     license_plate: licensePlate,
     vehicle_type: booking.vehicle_type,
     booking_date: toDateOnly(booking.booking_date),
-    start_time: toLocalDateTime(booking.start_time),
-    end_time: toLocalDateTime(booking.end_time),
+    start_time: booking.start_time,
+    end_time: booking.end_time,
     original_price: booking.original_price,
     discount_amount: booking.discount_amount,
     final_price: booking.final_price,
@@ -145,8 +140,8 @@ export function mapApiServiceStep(step: ApiBookingServiceStep): BookingServiceSt
     confirmed_by_staff_id: step.confirmed_by_staff_id,
     status: step.status as StepStatus,
     instructions: step.instructions ?? [],
-    started_at: step.started_at ? toLocalDateTime(step.started_at) : null,
-    completed_at: step.completed_at ? toLocalDateTime(step.completed_at) : null,
+    started_at: step.started_at,
+    completed_at: step.completed_at,
   }
 }
 
