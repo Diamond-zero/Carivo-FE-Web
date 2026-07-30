@@ -121,7 +121,7 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
                 <NavLink
                   key={child.path}
                   to={child.path}
-                  end
+                  end={child.path !== '/admin/bookings'}
                   onClick={onClose}
                   className={({ isActive }) => subNavLinkClass(isActive)}
                 >
