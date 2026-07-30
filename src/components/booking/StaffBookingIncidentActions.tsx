@@ -9,6 +9,8 @@ import { useToast } from '../../contexts/ToastContext'
 import { INCIDENT_TYPE_LABELS } from '../../api/incident.api'
 import type { ApiBookingItem, ApiWashBay } from '../../types/api/staff'
 import type { Booking } from '../../types/booking'
+import { useBookingIncidentHistory } from '../../hooks/api/staff/useStaffBookingIncidents'
+import { CopyValueButton } from '../ui/CopyValueButton'
 
 interface StaffBookingIncidentActionsProps {
   booking: Booking
@@ -40,14 +42,25 @@ export function StaffBookingIncidentActions({
   const [reportOpen, setReportOpen] = useState(false)
   const [resolveOpen, setResolveOpen] = useState(false)
   const [voucherOpen, setVoucherOpen] = useState(false)
+  const incidentHistoryQuery = useBookingIncidentHistory(booking.id)
 
   const activeIncident = booking.active_incident ?? null
+  const latestResolvedIncident =
+    incidentHistoryQuery.data?.find(
+      (incident) => incident.status === 'RESOLVED',
+    ) ?? null
+  const latestCompensationVoucher =
+    latestResolvedIncident?.compensation_vouchers?.[0] ?? null
 
   const reportableStatuses = ['CHECKED_IN', 'IN_PROGRESS', 'AWAITING_CUSTOMER_DECISION']
-  const canReport = reportableStatuses.includes(booking.status) && !activeIncident
+  const canReport =
+    reportableStatuses.includes(booking.status) &&
+    !activeIncident &&
+    booking.operation_status !== 'AWAITING_CUSTOMER_DECISION'
 
   const canIssueVoucher =
-    activeIncident?.status === 'RESOLVED' && booking.status === 'COMPLETED'
+    Boolean(latestResolvedIncident) &&
+    (latestResolvedIncident?.compensation_voucher_ids?.length ?? 0) === 0
 
   const incidentTypeLabel =
     INCIDENT_TYPE_LABELS[
@@ -95,6 +108,59 @@ export function StaffBookingIncidentActions({
         </div>
       ) : null}
 
+      {!activeIncident && latestResolvedIncident ? (
+        <div className="flex flex-wrap items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-semibold text-emerald-900">
+                Sự cố gần nhất đã được xử lý
+              </p>
+              <Badge variant="success">
+                {INCIDENT_TYPE_LABELS[
+                  latestResolvedIncident.incident_type as keyof typeof INCIDENT_TYPE_LABELS
+                ] ?? latestResolvedIncident.incident_type}
+              </Badge>
+            </div>
+            {latestResolvedIncident.resolved_at ? (
+              <p className="mt-1 text-sm text-emerald-800">
+                Hoàn tất lúc{' '}
+                {new Date(latestResolvedIncident.resolved_at).toLocaleString(
+                  'vi-VN',
+                )}
+              </p>
+            ) : null}
+            {canIssueVoucher ? (
+              <div className="mt-3">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setVoucherOpen(true)}
+                >
+                  <Gift className="h-4 w-4" />
+                  Phát voucher bồi thường
+                </Button>
+              </div>
+            ) : (
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-emerald-800">
+                <span>
+                  Voucher bồi thường:
+                  {latestCompensationVoucher?.code
+                    ? ` ${latestCompensationVoucher.code}`
+                    : ' đã được phát hành'}
+                </span>
+                {latestCompensationVoucher?.code ? (
+                  <CopyValueButton
+                    value={latestCompensationVoucher.code}
+                    label="mã voucher"
+                    showLabel
+                  />
+                ) : null}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
+
       {canReport ? (
         <div className="flex justify-end">
           <Button variant="secondary" size="sm" onClick={() => setReportOpen(true)}>
@@ -116,6 +182,7 @@ export function StaffBookingIncidentActions({
             'Đã báo cáo sự cố. Hệ thống đang chờ khách hàng phản hồi.',
             'success',
           )
+          void incidentHistoryQuery.refetch()
           onChanged()
         }}
       />
@@ -128,17 +195,23 @@ export function StaffBookingIncidentActions({
           onClose={() => setResolveOpen(false)}
           onResolved={() => {
             setResolveOpen(false)
+            void incidentHistoryQuery.refetch()
             onChanged()
           }}
         />
       ) : null}
 
-      {activeIncident ? (
+      {latestResolvedIncident ? (
         <CompensationVoucherModal
           open={voucherOpen}
           bookingId={booking.id}
-          incidentId={activeIncident.id}
+          incidentId={latestResolvedIncident.id}
           servicePackages={servicePackages}
+          recipientHint={
+            booking.is_walk_in
+              ? `Voucher sẽ gắn với số điện thoại ${booking.guest_phone ?? 'khách vãng lai'} và tự chuyển vào tài khoản khi số điện thoại được xác minh.`
+              : undefined
+          }
           onClose={() => setVoucherOpen(false)}
           onIssued={(_voucherId, requiresApproval) => {
             setVoucherOpen(false)
@@ -148,6 +221,7 @@ export function StaffBookingIncidentActions({
                 : 'Đã phát voucher bồi thường cho khách.',
               'success',
             )
+            void incidentHistoryQuery.refetch()
             onChanged()
           }}
         />

@@ -26,6 +26,7 @@ interface CompensationVoucherModalProps {
   onIssued: (voucherId: string, requiresApproval: boolean) => void
   /** Giá trị mặc định ban đầu (từ cấu hình). BE mặc định tối đa 100000 VND/staff. */
   staffLimitHint?: number
+  recipientHint?: string
 }
 
 export function CompensationVoucherModal({
@@ -36,6 +37,7 @@ export function CompensationVoucherModal({
   onClose,
   onIssued,
   staffLimitHint,
+  recipientHint,
 }: CompensationVoucherModalProps) {
   const { showToast } = useToast()
   const [voucherType, setVoucherType] =
@@ -141,7 +143,10 @@ export function CompensationVoucherModal({
       open={open}
       onClose={onClose}
       title="Phát hành voucher bồi thường"
-      description="Voucher chỉ dùng cho khách hàng của booking này và khả dụng sau khi admin duyệt (nếu vượt hạn mức)."
+      description={
+        recipientHint ??
+        'Voucher chỉ dùng cho khách hàng của booking này và khả dụng sau khi admin duyệt (nếu vượt hạn mức).'
+      }
     >
       <div className="space-y-4">
         <div>

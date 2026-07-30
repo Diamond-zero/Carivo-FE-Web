@@ -1,5 +1,5 @@
 import { AlertTriangle } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Modal } from '../ui/Modal'
 import { Label } from '../ui/Label'
 import { Button } from '../ui/Button'
@@ -9,6 +9,8 @@ import { INCIDENT_TYPE_LABELS } from '../../api/incident.api'
 import type { ApiBookingItem, ApiWashBay } from '../../types/api/staff'
 import type { ReportBookingIncidentType } from '../../api/staffTasks.api'
 import { useReportBookingIncident } from '../../hooks/api/staff/useStaffTasks'
+import { useMyCapabilities } from '../../hooks/api/staff/useStaffCapabilities'
+import { STAFF_CAPABILITIES } from '../../constants/staffCapabilities'
 
 interface ReportIncidentStaffModalProps {
   open: boolean
@@ -49,6 +51,7 @@ export function ReportIncidentStaffModal({
 }: ReportIncidentStaffModalProps) {
   const { showToast } = useToast()
   const reportIncident = useReportBookingIncident()
+  const capabilities = useMyCapabilities()
 
   const [incidentType, setIncidentType] =
     useState<ReportBookingIncidentType>('WASH_BAY_FAILURE')
@@ -56,11 +59,31 @@ export function ReportIncidentStaffModal({
     defaultItemKey ?? '',
   )
   const [affectedWashBayId, setAffectedWashBayId] = useState<string>('')
+  const [affectedStaffProfileId, setAffectedStaffProfileId] =
+    useState<string>('')
   const [description, setDescription] = useState('')
 
   const requiresDescription = incidentType === 'OTHER_GARAGE_INCIDENT'
   const requiresWashBay = incidentType === 'WASH_BAY_FAILURE'
+  const requiresStaff = incidentType === 'STAFF_UNAVAILABLE'
   const requiresItem = incidentType !== 'OTHER_GARAGE_INCIDENT'
+  const availableIncidentTypes = useMemo(
+    () =>
+      (Object.keys(INCIDENT_TYPE_LABELS) as ReportBookingIncidentType[]).filter(
+        (type) =>
+          capabilities.includes(
+            {
+              WASH_BAY_FAILURE:
+                STAFF_CAPABILITIES.INCIDENT_REPORT_WASH_BAY_FAILURE,
+              STAFF_UNAVAILABLE:
+                STAFF_CAPABILITIES.INCIDENT_REPORT_STAFF_UNAVAILABLE,
+              OTHER_GARAGE_INCIDENT:
+                STAFF_CAPABILITIES.INCIDENT_REPORT_OTHER_GARAGE,
+            }[type],
+          ),
+      ),
+    [capabilities],
+  )
 
   const itemOptions = useMemo(
     () =>
@@ -70,11 +93,47 @@ export function ReportIncidentStaffModal({
       })),
     [bookingItems],
   )
+  const staffOptions = useMemo(() => {
+    const selectedItem = bookingItems.find(
+      (item) => item.item_key === affectedItemKey,
+    )
+    const options = new Map<
+      string,
+      { id: string; label: string; phone?: string | null }
+    >()
+
+    for (const assignment of [
+      ...(selectedItem?.assigned_execution_staff ?? []),
+      ...(selectedItem?.assigned_care_staff ?? []),
+    ]) {
+      if (assignment.released_at) continue
+      const id = assignment.staff_profile?.id ?? assignment.staff_profile_id
+      if (!id || options.has(id)) continue
+      options.set(id, {
+        id,
+        label:
+          assignment.staff_profile?.user?.full_name ??
+          assignment.user?.full_name ??
+          assignment.staff_profile?.staff_code ??
+          id,
+        phone:
+          assignment.staff_profile?.user?.phone ?? assignment.user?.phone,
+      })
+    }
+
+    return [...options.values()]
+  }, [affectedItemKey, bookingItems])
+
+  useEffect(() => {
+    if (!open || availableIncidentTypes.includes(incidentType)) return
+    setIncidentType(availableIncidentTypes[0] ?? 'OTHER_GARAGE_INCIDENT')
+  }, [availableIncidentTypes, incidentType, open])
 
   const reset = () => {
     setIncidentType('WASH_BAY_FAILURE')
     setAffectedItemKey(defaultItemKey ?? '')
     setAffectedWashBayId('')
+    setAffectedStaffProfileId('')
     setDescription('')
   }
 
@@ -85,6 +144,10 @@ export function ReportIncidentStaffModal({
   }
 
   const handleSubmit = async () => {
+    if (!availableIncidentTypes.includes(incidentType)) {
+      showToast('Tài khoản không có quyền báo loại sự cố này.', 'error')
+      return
+    }
     if (requiresDescription && !description.trim()) {
       showToast('Vui lòng nhập mô tả cho sự cố.', 'error')
       return
@@ -97,6 +160,10 @@ export function ReportIncidentStaffModal({
       showToast('Vui lòng chọn hạng mục dịch vụ bị ảnh hưởng.', 'error')
       return
     }
+    if (requiresStaff && !affectedStaffProfileId) {
+      showToast('Vui lòng chọn đúng nhân viên gặp sự cố.', 'error')
+      return
+    }
 
     try {
       const result = await reportIncident.mutateAsync({
@@ -106,14 +173,14 @@ export function ReportIncidentStaffModal({
           description: description.trim() || undefined,
           affected_booking_item_key: affectedItemKey || undefined,
           affected_wash_bay_id: affectedWashBayId || undefined,
+          affected_staff_profile_id: affectedStaffProfileId || undefined,
         },
       })
       showToast(
         'Đã báo cáo sự cố. Hệ thống đang chờ khách hàng phản hồi.',
         'success',
       )
-      // BE trả workflow với blocked_by_incident = true → `incidents[0]` tồn tại.
-      onReported?.(String(result.booking_id ?? bookingId))
+      onReported?.(result.incident.id)
       reset()
       onClose()
     } catch (error) {
@@ -149,12 +216,13 @@ export function ReportIncidentStaffModal({
           <Select
             id="staff-incident-type"
             value={incidentType}
-            onChange={(event) =>
+            onChange={(event) => {
               setIncidentType(event.target.value as ReportBookingIncidentType)
-            }
+              setAffectedStaffProfileId('')
+            }}
             disabled={reportIncident.isPending}
           >
-            {(Object.keys(INCIDENT_TYPE_LABELS) as ReportBookingIncidentType[]).map(
+            {availableIncidentTypes.map(
               (type) => (
                 <option key={type} value={type}>
                   {INCIDENT_TYPE_LABELS[type]}
@@ -172,7 +240,10 @@ export function ReportIncidentStaffModal({
             <Select
               id="staff-incident-item"
               value={affectedItemKey}
-              onChange={(event) => setAffectedItemKey(event.target.value)}
+              onChange={(event) => {
+                setAffectedItemKey(event.target.value)
+                setAffectedStaffProfileId('')
+              }}
               disabled={reportIncident.isPending}
             >
               <option value="">— Chọn hạng mục —</option>
@@ -182,6 +253,35 @@ export function ReportIncidentStaffModal({
                 </option>
               ))}
             </Select>
+          </div>
+        ) : null}
+
+        {requiresStaff ? (
+          <div>
+            <Label htmlFor="staff-incident-staff" required>
+              Nhân viên gặp sự cố
+            </Label>
+            <Select
+              id="staff-incident-staff"
+              value={affectedStaffProfileId}
+              onChange={(event) =>
+                setAffectedStaffProfileId(event.target.value)
+              }
+              disabled={reportIncident.isPending}
+            >
+              <option value="">— Chọn nhân viên đang thực hiện —</option>
+              {staffOptions.map((staff) => (
+                <option key={staff.id} value={staff.id}>
+                  {staff.label}
+                  {staff.phone ? ` — ${staff.phone}` : ''}
+                </option>
+              ))}
+            </Select>
+            {affectedItemKey && staffOptions.length === 0 ? (
+              <p className="mt-1.5 text-sm text-amber-700">
+                Hạng mục này chưa có nhân viên đang được phân công.
+              </p>
+            ) : null}
           </div>
         ) : null}
 
@@ -235,7 +335,10 @@ export function ReportIncidentStaffModal({
           <Button
             variant="danger"
             onClick={handleSubmit}
-            disabled={reportIncident.isPending}
+            disabled={
+              reportIncident.isPending ||
+              !availableIncidentTypes.includes(incidentType)
+            }
           >
             {reportIncident.isPending ? 'Đang báo cáo…' : 'Báo cáo sự cố'}
           </Button>

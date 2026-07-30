@@ -23,6 +23,7 @@
 import { apiClient } from './client'
 import type { ApiResponse } from '../types/api'
 import type { ApiWorkspaceWorkflow } from '../types/api/workspace'
+import type { ApiBooking, ApiBookingIncident } from '../types/api/staff'
 
 const STAFF_TASK_PREFIX = '/staff/tasks'
 
@@ -101,7 +102,9 @@ export async function reportBookingIncidentApi(
   bookingId: string,
   payload: ReportBookingIncidentPayload,
 ) {
-  const { data } = await apiClient.post<ApiResponse<ApiWorkspaceWorkflow>>(
+  const { data } = await apiClient.post<
+    ApiResponse<{ booking: ApiBooking; incident: ApiBookingIncident }>
+  >(
     `${STAFF_TASK_PREFIX}/${bookingId}/incidents`,
     payload,
   )

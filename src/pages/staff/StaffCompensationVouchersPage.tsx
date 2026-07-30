@@ -4,6 +4,7 @@ import { getApiErrorMessage } from '../../api/client'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
+import { CopyValueButton } from '../../components/ui/CopyValueButton'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Label } from '../../components/ui/Label'
@@ -185,8 +186,14 @@ export function StaffCompensationVouchersPage() {
                   <tbody className="divide-y divide-slate-100">
                     {vouchers.map((voucher) => (
                       <tr key={voucher.id} className="hover:bg-slate-50/50">
-                        <td className="px-6 py-4 font-mono text-slate-900">
-                          {voucher.code}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-1 font-mono text-slate-900">
+                            {voucher.code}
+                            <CopyValueButton
+                              value={voucher.code}
+                              label="mã voucher"
+                            />
+                          </div>
                         </td>
                         <td className="px-6 py-4 text-slate-700">
                           {CUSTOMER_VOUCHER_TYPE_LABELS[voucher.voucher_type] ??

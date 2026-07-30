@@ -33,6 +33,7 @@ export interface BookingListParams {
   is_walk_in?: boolean
   from?: string
   to?: string
+  sort_by?: 'START_TIME_DESC' | 'START_TIME_ASC'
   page?: number
   limit?: number
 }

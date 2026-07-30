@@ -277,13 +277,27 @@ export interface ApiBookingIncident {
   description?: string | null
   affected_booking_item_key?: string | null
   affected_wash_bay_id?: string | null
-  affected_care_staff_id?: string | null
+  affected_staff_profile_id?: string | null
+  released_booking_item_keys?: string[]
   status: 'OPEN' | 'AWAITING_CUSTOMER_DECISION' | 'RESOLVED' | string
-  resolution?: string | null
-  customer_decision?: string | null
+  decision?: ApiIncidentDecision | null
+  decision_source?: 'CUSTOMER' | 'STAFF_RECORDED' | null
+  contact_channel?: 'APP' | ApiIncidentContactChannel | null
+  customer_note?: string | null
   new_start_time?: string | null
-  created_by_id?: string | null
+  continuation_policy?: 'RESUME_REMAINING' | 'RESTART_CURRENT_ITEM' | null
+  reported_by_id?: string | null
   resolved_at?: string | null
+  compensation_voucher_ids?: string[]
+  compensation_vouchers?: Array<{
+    id: string
+    code: string
+    status: string
+    expires_at?: string | null
+    customer_id?: string | null
+    guest_phone?: string | null
+    normalized_guest_phone?: string | null
+  }>
   created_at?: string
   updated_at?: string
 }
@@ -312,6 +326,8 @@ export interface ApiCustomerVoucher {
   source_booking_incident_id?: string | null
   source_booking_id?: string | null
   customer_id?: string | null
+  guest_phone?: string | null
+  normalized_guest_phone?: string | null
   garage_id?: string | null
   customer?: {
     id: string
@@ -572,6 +588,7 @@ export interface WalkInBookingApiPayload {
   guest_email?: string
   add_on_service_ids?: string[]
   promotion_code?: string
+  voucher_code?: string
   note?: string
 }
 
@@ -772,22 +789,22 @@ export interface ApiReportBookingIncidentPayload {
   description?: string
   affected_booking_item_key?: string
   affected_wash_bay_id?: string
-  affected_care_staff_id?: string
+  affected_staff_profile_id?: string
 }
 
 export interface ApiBookingIncidentActive {
   incident: ApiBookingIncident
-  /** Tùy chọn: danh sách outcome khả dĩ mà BE cung cấp sẵn. */
-  resolution_options?: Array<{
-    decision: ApiIncidentDecision
-    label: string
-    requires_new_start_time?: boolean
-  }>
+  resolution_options: ApiIncidentResolutionOptions
 }
 
 export interface ApiIncidentResolutionOptions {
   booking_id: string
   incident_id: string
+  incident_type: ApiBookingIncidentType
+  operation_status: string
+  can_reassign_and_continue: boolean
+  available_actions: ApiIncidentDecision[]
+  search_start_time: string
   /** Slot gợi ý cho RESCHEDULE_NEAREST/RESCHEDULE_CUSTOM. */
   suggested_slots?: Array<ApiLateArrivalSuggestedSlot>
   /** Buồng rửa/staff đề xuất cho REASSIGN_AND_CONTINUE. */
@@ -801,8 +818,7 @@ export interface ApiRecordCustomerDecisionPayload {
   decision: ApiIncidentDecision
   /** Bắt buộc khi decision = RESCHEDULE_CUSTOM. */
   new_start_time?: string
-  /** "RESUME_REMAINING" | "RESTART" — chính sách tiếp tục đếm. */
-  continuation_policy?: 'RESUME_REMAINING' | 'RESTART'
+  continuation_policy?: 'RESUME_REMAINING' | 'RESTART_CURRENT_ITEM'
   customer_note?: string
   /** Bắt buộc khi staff ghi nhận thay: 'PHONE' | 'IN_PERSON'. */
   contact_channel?: ApiIncidentContactChannel

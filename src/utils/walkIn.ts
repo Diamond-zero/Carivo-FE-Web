@@ -139,7 +139,17 @@ export function buildWalkInBookingPayload(
     payload.promotion_code = promotionCode
   }
 
-  const note = data.note?.trim()
+  const voucherCode = data.voucher_code?.trim()
+
+  if (voucherCode) {
+
+    payload.voucher_code = voucherCode
+
+  }
+
+
+
+  const note = data.note?.trim()
   if (note) {
     payload.note = note
   }

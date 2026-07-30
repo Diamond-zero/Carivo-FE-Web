@@ -19,7 +19,6 @@ import type {
   AnalyticsPromotionOverview,
   AnalyticsTrendPoint,
 } from '../../types/adminAnalytics'
-import type { LoyaltyTier } from '../../types/loyalty'
 import type { VehicleType } from '../../types/washBay'
 
 /* ---------- Helpers ---------- */
@@ -92,13 +91,6 @@ function readObjectId(value: unknown): string {
   return ''
 }
 
-const DEFAULT_TIER_DISTRIBUTION: Record<LoyaltyTier, number> = {
-  BRONZE: 0,
-  SILVER: 0,
-  GOLD: 0,
-  PLATINUM: 0,
-}
-
 function periodLabel(period: string, groupBy: string): string {
   if (!period) return ''
   // Backend returns DAY: 'YYYY-MM-DD'; WEEK: 'YYYY-Www'; MONTH: 'YYYY-MM'
@@ -141,6 +133,7 @@ export function mapAnalyticsOverview(
 ): AnalyticsRevenueOverview {
   const metrics = readRecord(data, 'metrics')
   const period = readRecord(data, 'period')
+  const tierDistribution = readRecord(data, 'tier_distribution')
 
   const totalBookings = readNumber(metrics, 'total_bookings')
   const completedBookings = readNumber(metrics, 'completed_bookings')
@@ -173,7 +166,12 @@ export function mapAnalyticsOverview(
     period_from: readString(period, 'from'),
     period_to: readString(period, 'to'),
     group_by: (readString(period, 'group_by') as 'DAY' | 'WEEK' | 'MONTH') || 'DAY',
-    tier_distribution: { ...DEFAULT_TIER_DISTRIBUTION },
+    tier_distribution: {
+      BRONZE: readNumber(tierDistribution, 'BRONZE'),
+      SILVER: readNumber(tierDistribution, 'SILVER'),
+      GOLD: readNumber(tierDistribution, 'GOLD'),
+      PLATINUM: readNumber(tierDistribution, 'PLATINUM'),
+    },
   }
 }
 

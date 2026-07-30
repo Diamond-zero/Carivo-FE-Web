@@ -30,6 +30,7 @@ export const walkInSchema = z.object({
   seat_count: z.number().int().min(2).max(16).nullable().optional(),
   service_package_id: z.string().min(1, 'Vui lòng chọn gói dịch vụ'),
   promotion_code: z.string().optional(),
+  voucher_code: z.string().optional(),
   note: z.string().optional(),
 }).superRefine((data, context) => {
   if (data.vehicle_type === 'CAR') {

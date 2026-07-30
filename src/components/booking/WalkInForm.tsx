@@ -83,6 +83,7 @@ export function WalkInForm({
       seat_count: null,
       service_package_id: '',
       promotion_code: '',
+      voucher_code: '',
       note: '',
     },
   })
@@ -323,6 +324,7 @@ export function WalkInForm({
       serve_now: timeSlot === 'now',
       start_time,
       promotion_code: data.promotion_code?.trim() || undefined,
+      voucher_code: data.voucher_code?.trim() || undefined,
       add_on_service_ids:
         validSelectedAddOnIds.length > 0
           ? validSelectedAddOnIds
@@ -592,6 +594,19 @@ export function WalkInForm({
           error={errors.promotion_code?.message}
           {...register('promotion_code')}
         />
+      </div>
+
+      <div>
+        <Label htmlFor="voucher_code">Mã voucher riêng</Label>
+        <Input
+          id="voucher_code"
+          placeholder="Nhập mã bồi thường gắn với số điện thoại"
+          error={errors.voucher_code?.message}
+          {...register('voucher_code')}
+        />
+        <p className="mt-1.5 text-sm text-slate-500">
+          Voucher khách vãng lai chỉ dùng được với đúng số điện thoại đã nhận.
+        </p>
       </div>
 
       <div>

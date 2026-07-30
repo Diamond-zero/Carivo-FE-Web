@@ -116,13 +116,18 @@ export function useAdminBookingStats() {
   })
 }
 
-export function useAdminRecentBookings(limit = 5) {
+export function useAdminUpcomingBookings(limit = 5) {
   const { isAuthenticated } = useAdminAuth()
+  const from = useMemo(() => toApiDateTimeString(new Date()), [])
 
   return useQuery({
-    queryKey: adminQueryKeys.bookings({ recent: true, limit }),
+    queryKey: adminQueryKeys.bookings({ upcoming: true, limit, from }),
     queryFn: async () => {
-      const result = await getStaffBookingsApi({ limit })
+      const result = await getStaffBookingsApi({
+        limit,
+        from,
+        sort_by: 'START_TIME_ASC',
+      })
       return result.bookings.map(mapApiBooking)
     },
     enabled: isAuthenticated,

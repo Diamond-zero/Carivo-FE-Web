@@ -48,6 +48,13 @@ export async function getActiveBookingIncidentApi(bookingId: string) {
   return data.data
 }
 
+export async function getBookingIncidentHistoryApi(bookingId: string) {
+  const { data } = await apiClient.get<ApiResponse<ApiBookingIncident[]>>(
+    `/admin/bookings/${bookingId}/incidents`,
+  )
+  return data.data
+}
+
 export async function getIncidentResolutionOptionsApi(
   bookingId: string,
   incidentId: string,

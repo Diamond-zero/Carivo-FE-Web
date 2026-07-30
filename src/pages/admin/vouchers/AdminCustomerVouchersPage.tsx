@@ -282,12 +282,14 @@ export function AdminCustomerVouchersPage() {
                         >
                           {voucher.customer?.full_name ?? voucher.customer_id}
                         </Link>
+                      ) : voucher.guest_phone ? (
+                        <span>Khách vãng lai</span>
                       ) : (
                         '—'
                       )}
-                      {voucher.customer?.phone ? (
+                      {voucher.customer?.phone || voucher.guest_phone ? (
                         <p className="mt-1 text-xs text-slate-500">
-                          {voucher.customer.phone}
+                          {voucher.customer?.phone ?? voucher.guest_phone}
                         </p>
                       ) : null}
                     </td>

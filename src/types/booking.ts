@@ -107,5 +107,6 @@ export interface WalkInBookingForm {
   suggestion_days?: number
   add_on_service_ids?: string[]
   promotion_code?: string
+  voucher_code?: string
   note?: string
 }
