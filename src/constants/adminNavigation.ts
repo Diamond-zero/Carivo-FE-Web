@@ -110,7 +110,6 @@ export const adminNavItems: AdminNavItem[] = [
     section: 'management',
     children: [
       { label: 'Quy tắc hạng', path: '/admin/loyalty/tier-rules' },
-      { label: 'Tổng quan điểm', path: '/admin/loyalty/overview' },
     ],
   },
   {
