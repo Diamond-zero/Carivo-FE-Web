@@ -42,10 +42,10 @@ export async function logoutApi() {
   await apiClient.post('/auth/logout')
 }
 
-export async function requestPhoneVerificationApi(
+export async function requestPhoneVerificationApi(  // 
   payload: RequestPhoneVerificationPayload,
 ) {
-  const { data } = await apiClient.post<ApiResponse<PhoneVerificationChallenge>>(
+  const { data } = await apiClient.post<ApiResponse<PhoneVerificationChallenge>>(   // Gọi method POST thông qua apiClient
     '/auth/phone-verifications/request',
     payload,
   )

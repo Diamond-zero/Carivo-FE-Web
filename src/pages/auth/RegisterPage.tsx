@@ -51,7 +51,7 @@ export function RegisterPage() {
     },
   })
 
-  const handleSendOtp = async () => {
+  const handleSendOtp = async () => {    // Xử Lý gửi mã OTP
     setSubmitError(null)
     setSuccessMessage(null)
 
@@ -61,12 +61,12 @@ export function RegisterPage() {
     setIsSendingOtp(true)
 
     try {
-      const challenge = await requestPhoneVerificationApi({
+      const challenge = await requestPhoneVerificationApi({  // Phần này nhận API liên kết với file auth.api.ts
         phone: getValues('phone'),
         purpose: 'REGISTER',
       })
 
-      setChallengeId(challenge.challenge_id)
+      setChallengeId(challenge.challenge_id) // ngay dòng này thì lưu giá trị sau khi gửi OTP thành công
       setDebugOtp(challenge.debug_otp ?? null)
       setOtpSent(true)
       setSuccessMessage('Mã OTP đã được gửi. Vui lòng kiểm tra tin nhắn hoặc mã demo bên dưới.')
@@ -77,7 +77,7 @@ export function RegisterPage() {
     }
   }
 
-  const onSubmit = async (data: RegisterWithOtpFormValues) => {
+  const onSubmit = async (data: RegisterWithOtpFormValues) => {   // Xử lý nút tạo tài khoản - verify OTP + Đăng ký
     setSubmitError(null)
     setSuccessMessage(null)
 
@@ -92,7 +92,7 @@ export function RegisterPage() {
     }
 
     try {
-      const verification = await verifyPhoneOtpApi({
+      const verification = await verifyPhoneOtpApi({      //phần này thực hiện xác minh OTP trong file auth.api.ts dòng 55-61
         challenge_id: challengeId,
         otp: data.otp,
       })
@@ -105,7 +105,7 @@ export function RegisterPage() {
         phone_verification_token: verification.verification_token,
       })
 
-      setSuccessMessage(
+      setSuccessMessage(         // khi đăng ký thành công -> dẫn đến trang login, vào thẳng trang home customer
         'Đăng ký thành công. Tài khoản CUSTOMER đã được tạo — Admin sẽ gán quyền Staff khi phê duyệt.',
       )
 
