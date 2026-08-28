@@ -124,10 +124,13 @@ export function generateForecastData(
   const combinedStats: TrendStatItem[] = trendStats.map((item, index) => {
     const isLastItem = index === trendStats.length - 1
     return {
-      ...item,
-      // For smooth chart continuity, the last real item connects to the forecast line
+      period: item.period,
+      label: item.label,
+      bookings: item.bookings,
+      revenue: item.revenue,
+      // For smooth chart continuity, only set anchor on last item
       forecastBookings: isLastItem ? item.bookings : undefined,
-      forecastRevenue: isLastItem ? item.revenue : undefined,
+      forecastRevenue: undefined,
       isForecast: false,
     }
   })
@@ -148,8 +151,14 @@ export function generateForecastData(
   // Determine number of forecast steps based on horizon
   let steps = 1
   if (horizon === 'YEAR_2027') {
-    // If period is monthly (YYYY-MM)
-    if (/^\d{4}-\d{2}$/.test(lastPeriod)) {
+    // If period is weekly (YYYY-Wxx)
+    if (/^\d{4}-W\d{2}$/.test(lastPeriod)) {
+      const [yStr, wStr] = lastPeriod.split('-W')
+      const y = parseInt(yStr, 10)
+      const w = parseInt(wStr, 10)
+      const remainingWeeks = (2027 - y) * 52 + (52 - w)
+      steps = Math.max(1, Math.min(16, remainingWeeks))
+    } else if (/^\d{4}-\d{2}$/.test(lastPeriod)) {
       const [yStr, mStr] = lastPeriod.split('-')
       const y = parseInt(yStr, 10)
       const m = parseInt(mStr, 10)
@@ -160,9 +169,14 @@ export function generateForecastData(
       const y = parseInt(lastPeriod, 10)
       steps = Math.max(1, 2027 - y)
     } else if (/^\d{4}-\d{2}-\d{2}$/.test(lastPeriod)) {
-      steps = 7 // 7 days ahead
+      steps = 14 // 14 days ahead
     }
   }
+
+  const avgBooking = bookingValues.reduce((a, b) => a + b, 0) / n
+  const avgRevenue = revenueValues.reduce((a, b) => a + b, 0) / n
+  const minBookingBaseline = Math.max(1, Math.round(avgBooking * 0.35))
+  const minRevenueBaseline = Math.max(500000, Math.round(avgRevenue * 0.35))
 
   const forecastPoints: TrendStatItem[] = []
 
@@ -171,8 +185,9 @@ export function generateForecastData(
     const rawBooking = bSlope * targetIndex + bIntercept
     const rawRevenue = rSlope * targetIndex + rIntercept
 
-    const estimatedBookings = Math.max(0, Math.round(rawBooking))
-    const estimatedRevenue = Math.max(0, Math.round(rawRevenue))
+    // Use baseline so operational forecast never collapses to negative or zero
+    const estimatedBookings = Math.max(minBookingBaseline, Math.round(rawBooking))
+    const estimatedRevenue = Math.max(minRevenueBaseline, Math.round(rawRevenue))
 
     const nextInfo = generateNextPeriod(lastPeriod)
     lastPeriod = nextInfo.period
@@ -180,8 +195,8 @@ export function generateForecastData(
     const newItem: TrendStatItem = {
       period: nextInfo.period,
       label: nextInfo.label,
-      bookings: 0,
-      revenue: 0,
+      bookings: undefined as unknown as number,
+      revenue: estimatedRevenue,
       forecastBookings: estimatedBookings,
       forecastRevenue: estimatedRevenue,
       isForecast: true,
@@ -196,21 +211,22 @@ export function generateForecastData(
 
   if (horizon === 'YEAR_2027') {
     const items2027 = forecastPoints.filter((item) => item.period.startsWith('2027'))
-    if (items2027.length > 0) {
-      const total2027Bookings = items2027.reduce((sum, i) => sum + (i.forecastBookings || 0), 0)
-      const total2027Revenue = items2027.reduce((sum, i) => sum + (i.forecastRevenue || 0), 0)
+    const targetItems = items2027.length > 0 ? items2027 : forecastPoints
+    if (targetItems.length > 0) {
+      const totalBookings = targetItems.reduce((sum, i) => sum + (i.forecastBookings || 0), 0)
+      const totalRevenue = targetItems.reduce((sum, i) => sum + (i.forecastRevenue || 0), 0)
 
       const historyBookings = bookingValues.reduce((a, b) => a + b, 0) || 1
       const historyRevenue = revenueValues.reduce((a, b) => a + b, 0) || 1
 
-      const bGrowth = Math.round(((total2027Bookings - historyBookings) / historyBookings) * 100)
-      const rGrowth = Math.round(((total2027Revenue - historyRevenue) / historyRevenue) * 100)
+      const bGrowth = Math.round(((totalBookings - historyBookings) / historyBookings) * 100)
+      const rGrowth = Math.round(((totalRevenue - historyRevenue) / historyRevenue) * 100)
 
       summary = {
         horizon: 'YEAR_2027',
-        periodLabel: 'Cả năm 2027',
-        estimatedBookings: total2027Bookings,
-        estimatedRevenue: total2027Revenue,
+        periodLabel: items2027.length > 0 ? 'Cả năm 2027' : `Giai đoạn hướng tới 2027 (${targetItems.length} tuần)`,
+        estimatedBookings: totalBookings,
+        estimatedRevenue: totalRevenue,
         bookingGrowthRate: bGrowth,
         revenueGrowthRate: rGrowth,
       }
