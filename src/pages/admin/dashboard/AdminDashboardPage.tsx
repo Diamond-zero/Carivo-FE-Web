@@ -1,20 +1,24 @@
-import { eachDayOfInterval, format, subDays } from 'date-fns'
+import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   CalendarCheck,
   CircleAlert,
   CircleDollarSign,
+  Download,
   Percent,
+  Sparkles,
+  TrendingUp,
   Users,
 } from 'lucide-react'
 import {
+  Bar,
   CartesianGrid,
   Cell,
+  ComposedChart,
   Legend,
   Line,
-  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -24,6 +28,7 @@ import {
 } from 'recharts'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import { BookingStatusBadge } from '../../../components/booking/BookingStatusBadge'
+import { AdminAnalyticsFiltersPanel } from '../../../components/admin/analytics/AdminAnalyticsFiltersPanel'
 import {
   Card,
   CardContent,
@@ -45,10 +50,17 @@ import {
 } from '../../../hooks/api/admin/useAdminAnalytics'
 import { useAdminUpcomingBookings } from '../../../hooks/api/admin/useAdminBookings'
 import { useAdminGarages } from '../../../hooks/api/admin/useAdminGarages'
+import { useAnalyticsFilters } from '../../../hooks/useAnalyticsFilters'
 import { LOYALTY_TIER_LABELS } from '../../../constants/loyaltyTier'
 import { formatCurrency } from '../../../lib/utils'
 import type { LoyaltyTier } from '../../../types/loyalty'
 import { getAdminBookingCustomerName } from '../../../utils/adminBooking'
+import { analyticsFiltersToParams } from '../../../utils/adminAnalyticsFilters'
+import { exportDashboardReportToCsv } from '../../../utils/exportAnalytics'
+import {
+  generateForecastData,
+  type ForecastHorizon,
+} from '../../../utils/analyticsForecasting'
 
 const TIER_ORDER: LoyaltyTier[] = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM']
 
@@ -57,25 +69,6 @@ const TIER_COLORS: Record<LoyaltyTier, string> = {
   SILVER: '#94a3b8',
   GOLD: '#eab308',
   PLATINUM: '#8b5cf6',
-}
-
-function createDashboardPeriod() {
-  const today = new Date()
-  const start = subDays(today, 6)
-  const days = eachDayOfInterval({ start, end: today })
-  const fromDate = format(start, 'yyyy-MM-dd')
-  const toDate = format(today, 'yyyy-MM-dd')
-
-  return {
-    days,
-    fromDate,
-    toDate,
-    query: {
-      from: `${fromDate}T00:00:00.000+07:00`,
-      to: `${toDate}T23:59:59.999+07:00`,
-      group_by: 'DAY' as const,
-    },
-  }
 }
 
 function formatRevenueAxis(value: number) {
@@ -90,12 +83,39 @@ function formatRevenueAxis(value: number) {
   return value.toLocaleString('vi-VN')
 }
 
+function formatPeriodLabel(period: string) {
+  // YYYY-MM-DD (e.g. 2026-08-28) -> 28/08
+  if (/^\d{4}-\d{2}-\d{2}$/.test(period)) {
+    const [, month, day] = period.split('-')
+    return `${day}/${month}`
+  }
+  // YYYY-MM (e.g. 2026-08) -> T08/2026
+  if (/^\d{4}-\d{2}$/.test(period)) {
+    const [year, month] = period.split('-')
+    return `T${month}/${year}`
+  }
+  // YYYY-Wxx (e.g. 2026-W34) -> Tuần 34
+  if (/^\d{4}-W\d{2}$/.test(period)) {
+    const [, week] = period.split('-W')
+    return `Tuần ${week}`
+  }
+  // YYYY (e.g. 2026) -> Năm 2026
+  if (/^\d{4}$/.test(period)) {
+    return `Năm ${period}`
+  }
+  return period
+}
+
 export function AdminDashboardPage() {
   const { showToast } = useToast()
-  const dashboardPeriod = useMemo(() => createDashboardPeriod(), [])
-  const overviewQuery = useAdminAnalyticsOverview()
-  const bookingTrendQuery = useAdminAnalyticsBookings(dashboardPeriod.query)
-  const revenueTrendQuery = useAdminAnalyticsRevenue(dashboardPeriod.query)
+  const { filters, setFilters, reset } = useAnalyticsFilters()
+  const [isForecastEnabled, setIsForecastEnabled] = useState(false)
+  const [forecastHorizon, setForecastHorizon] = useState<ForecastHorizon>('YEAR_2027')
+
+  const params = useMemo(() => analyticsFiltersToParams(filters), [filters])
+  const overviewQuery = useAdminAnalyticsOverview(params)
+  const bookingTrendQuery = useAdminAnalyticsBookings(params)
+  const revenueTrendQuery = useAdminAnalyticsRevenue(params)
   const upcomingBookingsQuery = useAdminUpcomingBookings(5)
   const garagesQuery = useAdminGarages()
   const { allGarages } = garagesQuery
@@ -111,34 +131,61 @@ export function AdminDashboardPage() {
     garagesQuery.isLoading ||
     upcomingBookingsQuery.isLoading
   const overview = overviewQuery.data?.overview
-  const dailyStats = useMemo(() => {
-    const bookingsByDay = new Map(
+
+  const trendStats = useMemo(() => {
+    const bookingsByPeriod = new Map(
       (bookingTrendQuery.data?.trend ?? []).map((row) => [
         row.period,
         row.count,
       ]),
     )
-    const revenueByDay = new Map(
+    const revenueByPeriod = new Map(
       (revenueTrendQuery.data?.trend ?? []).map((row) => [
         row.period,
         row.revenue,
       ]),
     )
 
-    return dashboardPeriod.days.map((day) => {
-      const period = format(day, 'yyyy-MM-dd')
-      return {
-        date: period,
-        label: format(day, 'dd/MM'),
-        bookings: bookingsByDay.get(period) ?? 0,
-        revenue: revenueByDay.get(period) ?? 0,
-      }
-    })
-  }, [
-    bookingTrendQuery.data?.trend,
-    dashboardPeriod.days,
-    revenueTrendQuery.data?.trend,
-  ])
+    const allPeriods = Array.from(
+      new Set([
+        ...(bookingTrendQuery.data?.trend ?? []).map((row) => row.period),
+        ...(revenueTrendQuery.data?.trend ?? []).map((row) => row.period),
+      ]),
+    ).sort()
+
+    return allPeriods.map((period) => ({
+      period,
+      label: formatPeriodLabel(period),
+      bookings: bookingsByPeriod.get(period) ?? 0,
+      revenue: revenueByPeriod.get(period) ?? 0,
+    }))
+  }, [bookingTrendQuery.data?.trend, revenueTrendQuery.data?.trend])
+
+  const { combinedStats: chartData, summary: forecastSummary } = useMemo(() => {
+    if (!isForecastEnabled) {
+      return { combinedStats: trendStats, summary: null }
+    }
+    return generateForecastData(trendStats, forecastHorizon)
+  }, [isForecastEnabled, trendStats, forecastHorizon])
+
+  const handleExportReport = () => {
+    try {
+      exportDashboardReportToCsv({
+        overview: overview ? {
+          total_bookings: overview.total_bookings,
+          total_revenue: overview.total_revenue,
+          unique_registered_customers: overview.unique_registered_customers,
+          completion_rate: overview.completion_rate,
+        } : undefined,
+        trendStats,
+        filters,
+      })
+      showToast('Đã xuất file báo cáo thành công!', 'success')
+    } catch {
+      showToast('Không thể xuất file báo cáo. Vui lòng thử lại.', 'error')
+    }
+  }
+
   const upcomingBookings = upcomingBookingsQuery.data ?? []
 
   useEffect(() => {
@@ -207,6 +254,13 @@ export function AdminDashboardPage() {
           title="Bảng điều khiển"
           description="Theo dõi booking, doanh thu và phân bố khách hàng loyalty trên toàn hệ thống Carivo."
         />
+        <AdminAnalyticsFiltersPanel
+          filters={filters}
+          onChange={setFilters}
+          onReset={reset}
+          showServicePackage={false}
+          showVehicleType={false}
+        />
         <Card>
           <EmptyState
             icon={CircleAlert}
@@ -240,10 +294,31 @@ export function AdminDashboardPage() {
 
   return (
     <div>
-      <PageHeader
-        eyebrow="Carivo Quản trị"
-        title="Bảng điều khiển"
-        description="Theo dõi booking, doanh thu và phân bố khách hàng loyalty trên toàn hệ thống Carivo."
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <PageHeader
+          eyebrow="Carivo Quản trị"
+          title="Bảng điều khiển"
+          description="Theo dõi booking, doanh thu và phân bố khách hàng loyalty trên toàn hệ thống Carivo."
+        />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportReport}
+            className="gap-1.5 shadow-sm"
+          >
+            <Download className="h-4 w-4 text-emerald-600" />
+            Xuất báo cáo
+          </Button>
+        </div>
+      </div>
+
+      <AdminAnalyticsFiltersPanel
+        filters={filters}
+        onChange={setFilters}
+        onReset={reset}
+        showServicePackage={false}
+        showVehicleType={false}
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -279,58 +354,144 @@ export function AdminDashboardPage() {
 
       <div className="mb-6 grid gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
-          <CardHeader>
-            <CardTitle>Booking và doanh thu 7 ngày gần đây</CardTitle>
-            <CardDescription>
-              Từ {format(dashboardPeriod.days[0], 'dd/MM/yyyy')} đến{' '}
-              {format(dashboardPeriod.days.at(-1)!, 'dd/MM/yyyy')}
-            </CardDescription>
+          <CardHeader className="flex flex-col gap-3 pb-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle>Xu hướng booking và doanh thu</CardTitle>
+              <CardDescription>
+                Theo dõi biến động lượt đặt lịch và doanh thu theo thời gian đã chọn
+              </CardDescription>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {isForecastEnabled ? (
+                <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setForecastHorizon('YEAR_2027')}
+                    className={`rounded-md px-2.5 py-1 font-medium transition-colors ${
+                      forecastHorizon === 'YEAR_2027'
+                        ? 'bg-white text-brand-700 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Đến năm 2027
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForecastHorizon('NEXT_PERIOD')}
+                    className={`rounded-md px-2.5 py-1 font-medium transition-colors ${
+                      forecastHorizon === 'NEXT_PERIOD'
+                        ? 'bg-white text-brand-700 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    1 kỳ tới
+                  </button>
+                </div>
+              ) : null}
+              <Button
+                variant={isForecastEnabled ? 'primary' : 'outline'}
+                size="sm"
+                onClick={() => setIsForecastEnabled(!isForecastEnabled)}
+                className="gap-1.5 text-xs font-medium"
+              >
+                <Sparkles className={`h-3.5 w-3.5 ${isForecastEnabled ? 'text-amber-300' : 'text-amber-500'}`} />
+                {isForecastEnabled ? 'Đang bật dự báo' : 'Dự báo xu hướng'}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
+            {isForecastEnabled && forecastSummary ? (
+              <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-2 text-xs text-amber-900">
+                <TrendingUp className="h-4 w-4 shrink-0 text-amber-600" />
+                <span>
+                  <strong>Dự báo {forecastSummary.periodLabel}:</strong> Ước tính đạt khoảng{' '}
+                  <strong className="text-emerald-700">{forecastSummary.estimatedBookings.toLocaleString('vi-VN')} lượt đặt lịch</strong> (
+                  {forecastSummary.bookingGrowthRate >= 0 ? '+' : ''}
+                  {forecastSummary.bookingGrowthRate}%) và{' '}
+                  <strong className="text-purple-700">{formatCurrency(forecastSummary.estimatedRevenue)}</strong> (
+                  {forecastSummary.revenueGrowthRate >= 0 ? '+' : ''}
+                  {forecastSummary.revenueGrowthRate}% so với kỳ trước).
+                </span>
+              </div>
+            ) : null}
+
             <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={dailyStats}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-                  <YAxis
-                    yAxisId="left"
-                    allowDecimals={false}
-                    tick={{ fontSize: 12 }}
-                  />
-                  <YAxis
-                    yAxisId="right"
-                    orientation="right"
-                    tick={{ fontSize: 12 }}
-                    tickFormatter={(value) => formatRevenueAxis(Number(value))}
-                  />
-                  <Tooltip
-                    formatter={(value, name) =>
-                      name === 'Doanh thu'
-                        ? formatCurrency(Number(value))
-                        : Number(value).toLocaleString('vi-VN')
-                    }
-                  />
-                  <Legend />
-                  <Line
-                    yAxisId="left"
-                    type="monotone"
-                    dataKey="bookings"
-                    stroke="#06b6a4"
-                    strokeWidth={3}
-                    dot={{ r: 4, fill: '#06b6a4' }}
-                    name="Đặt lịch"
-                  />
-                  <Line
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="#8b5cf6"
-                    strokeWidth={2}
-                    dot={{ r: 3, fill: '#8b5cf6' }}
-                    name="Doanh thu"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              {chartData.length === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center text-center">
+                  <CircleDollarSign className="h-8 w-8 text-slate-300" />
+                  <p className="mt-3 text-sm font-medium text-slate-600">
+                    Chưa có dữ liệu xu hướng trong khoảng thời gian này
+                  </p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                    <YAxis
+                      yAxisId="left"
+                      allowDecimals={false}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis
+                      yAxisId="right"
+                      orientation="right"
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) => formatRevenueAxis(Number(value))}
+                    />
+                    <Tooltip
+                      formatter={(value, name) => {
+                        if (name === 'Doanh thu' || name === 'Doanh thu dự báo') {
+                          return formatCurrency(Number(value))
+                        }
+                        return `${Number(value).toLocaleString('vi-VN')} lượt`
+                      }}
+                    />
+                    <Legend />
+                    <Bar
+                      yAxisId="right"
+                      dataKey="revenue"
+                      fill="#8b5cf6"
+                      radius={[4, 4, 0, 0]}
+                      name="Doanh thu"
+                      maxBarSize={48}
+                    />
+                    <Line
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="bookings"
+                      stroke="#06b6a4"
+                      strokeWidth={3}
+                      dot={{ r: 4, fill: '#06b6a4' }}
+                      name="Đặt lịch"
+                    />
+                    {isForecastEnabled ? (
+                      <>
+                        <Line
+                          yAxisId="right"
+                          type="monotone"
+                          dataKey="forecastRevenue"
+                          stroke="#f59e0b"
+                          strokeWidth={2}
+                          strokeDasharray="4 4"
+                          dot={{ r: 4, fill: '#f59e0b' }}
+                          name="Doanh thu dự báo"
+                        />
+                        <Line
+                          yAxisId="left"
+                          type="monotone"
+                          dataKey="forecastBookings"
+                          stroke="#e11d48"
+                          strokeWidth={2}
+                          strokeDasharray="4 4"
+                          dot={{ r: 4, fill: '#e11d48' }}
+                          name="Đặt lịch dự báo"
+                        />
+                      </>
+                    ) : null}
+                  </ComposedChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </CardContent>
         </Card>

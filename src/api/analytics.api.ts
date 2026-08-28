@@ -7,7 +7,7 @@ export interface ApiAnalyticsParams {
   garage_id?: string
   service_package_id?: string
   vehicle_type?: 'MOTORBIKE' | 'CAR'
-  group_by?: 'DAY' | 'WEEK' | 'MONTH'
+  group_by?: 'DAY' | 'WEEK' | 'MONTH' | 'YEAR'
 }
 
 export type StaffAnalyticsParams = Pick<

@@ -1,6 +1,6 @@
 import type { ApiAnalyticsParams } from '../api/analytics.api'
 
-export type AnalyticsGroupBy = 'DAY' | 'WEEK' | 'MONTH'
+export type AnalyticsGroupBy = 'DAY' | 'WEEK' | 'MONTH' | 'YEAR'
 
 export interface AnalyticsFilterValues {
   from: string
@@ -27,6 +27,7 @@ export const ANALYTICS_GROUP_BY_OPTIONS: Array<{
   { value: 'DAY', label: 'Theo ngày' },
   { value: 'WEEK', label: 'Theo tuần' },
   { value: 'MONTH', label: 'Theo tháng' },
+  { value: 'YEAR', label: 'Theo năm' },
 ]
 
 export function analyticsFiltersToParams(
@@ -34,14 +35,24 @@ export function analyticsFiltersToParams(
 ): ApiAnalyticsParams | undefined {
   const params: ApiAnalyticsParams = {}
 
-  if (filters.from) {
-    const fromIso = new Date(filters.from)
+  let fromDate = filters.from
+  let toDate = filters.to
+
+  // Khi chọn "Theo năm" mà chưa chọn khoảng ngày, tự động lấy cả năm hiện tại để xem trọn vẹn 12 tháng
+  if (filters.groupBy === 'YEAR' && !fromDate && !toDate) {
+    const currentYear = new Date().getFullYear()
+    fromDate = `${currentYear}-01-01`
+    toDate = `${currentYear}-12-31`
+  }
+
+  if (fromDate) {
+    const fromIso = new Date(fromDate)
     if (!Number.isNaN(fromIso.getTime())) {
       params.from = fromIso.toISOString()
     }
   }
-  if (filters.to) {
-    const toIso = new Date(filters.to)
+  if (toDate) {
+    const toIso = new Date(toDate)
     if (!Number.isNaN(toIso.getTime())) {
       // Move to end of day so the upper bound is inclusive
       toIso.setHours(23, 59, 59, 999)
@@ -57,7 +68,9 @@ export function analyticsFiltersToParams(
   if (filters.vehicleType !== 'ALL') {
     params.vehicle_type = filters.vehicleType
   }
-  params.group_by = filters.groupBy
+
+  // Chuyển sang 'MONTH' để hiển thị biểu đồ 12 tháng của năm và tương thích 100% với server Render
+  params.group_by = filters.groupBy === 'YEAR' ? 'MONTH' : filters.groupBy
 
   return Object.keys(params).length > 0 ? params : undefined
 }
