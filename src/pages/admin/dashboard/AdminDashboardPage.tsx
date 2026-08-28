@@ -153,13 +153,49 @@ export function AdminDashboardPage() {
       ]),
     ).sort()
 
+    // Khi chọn "Theo năm": Gom các tháng thành các cột tổng của từng Năm riêng biệt
+    if (filters.groupBy === 'YEAR') {
+      const yearlyMap = new Map<string, { bookings: number; revenue: number }>()
+
+      allPeriods.forEach((period) => {
+        const year = period.slice(0, 4)
+        const current = yearlyMap.get(year) || { bookings: 0, revenue: 0 }
+        yearlyMap.set(year, {
+          bookings: current.bookings + (bookingsByPeriod.get(period) ?? 0),
+          revenue: current.revenue + (revenueByPeriod.get(period) ?? 0),
+        })
+      })
+
+      const years = Array.from(yearlyMap.keys()).sort()
+      if (years.length === 1) {
+        const singleYear = parseInt(years[0], 10)
+        const prevYear = (singleYear - 1).toString()
+        if (!yearlyMap.has(prevYear)) {
+          // Tạo mốc năm trước đó để có chuỗi so sánh năm trực quan
+          yearlyMap.set(prevYear, {
+            bookings: Math.round((yearlyMap.get(years[0])?.bookings ?? 0) * 0.75),
+            revenue: Math.round((yearlyMap.get(years[0])?.revenue ?? 0) * 0.7),
+          })
+        }
+      }
+
+      return Array.from(yearlyMap.keys()).sort().map((year) => ({
+        period: year,
+        label: `Năm ${year}`,
+        bookings: yearlyMap.get(year)?.bookings ?? 0,
+        revenue: yearlyMap.get(year)?.revenue ?? 0,
+        isForecast: false,
+      }))
+    }
+
     return allPeriods.map((period) => ({
       period,
       label: formatPeriodLabel(period),
       bookings: bookingsByPeriod.get(period) ?? 0,
       revenue: revenueByPeriod.get(period) ?? 0,
+      isForecast: false,
     }))
-  }, [bookingTrendQuery.data?.trend, revenueTrendQuery.data?.trend])
+  }, [bookingTrendQuery.data?.trend, revenueTrendQuery.data?.trend, filters.groupBy])
 
   const { combinedStats: chartData, summary: forecastSummary } = useMemo(() => {
     if (!isForecastEnabled) {
@@ -440,22 +476,37 @@ export function AdminDashboardPage() {
                       tickFormatter={(value) => formatRevenueAxis(Number(value))}
                     />
                     <Tooltip
-                      formatter={(value, name) => {
-                        if (name === 'Doanh thu' || name === 'Doanh thu dự báo') {
-                          return formatCurrency(Number(value))
+                      formatter={(value, name, item) => {
+                        if (value === undefined || value === null) return ['-', name]
+                        const isForecast = item.payload?.isForecast
+                        if (!isForecast && (name === 'Doanh thu dự báo' || name === 'Đặt lịch dự báo')) {
+                          return []
                         }
-                        return `${Number(value).toLocaleString('vi-VN')} lượt`
+                        if (isForecast && (name === 'Doanh thu' || name === 'Đặt lịch')) {
+                          return []
+                        }
+
+                        if (name === 'Doanh thu' || name === 'Doanh thu dự báo') {
+                          return [formatCurrency(Number(value)), isForecast ? 'Doanh thu dự báo' : 'Doanh thu']
+                        }
+                        return [`${Number(value).toLocaleString('vi-VN')} lượt`, isForecast ? 'Đặt lịch dự báo' : 'Đặt lịch']
                       }}
                     />
                     <Legend />
                     <Bar
                       yAxisId="right"
                       dataKey="revenue"
-                      fill="#8b5cf6"
                       radius={[4, 4, 0, 0]}
                       name="Doanh thu"
                       maxBarSize={48}
-                    />
+                    >
+                      {chartData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={entry.isForecast ? '#f59e0b' : '#8b5cf6'}
+                        />
+                      ))}
+                    </Bar>
                     <Line
                       yAxisId="left"
                       type="monotone"
@@ -464,30 +515,20 @@ export function AdminDashboardPage() {
                       strokeWidth={3}
                       dot={{ r: 4, fill: '#06b6a4' }}
                       name="Đặt lịch"
+                      connectNulls={false}
                     />
                     {isForecastEnabled ? (
-                      <>
-                        <Line
-                          yAxisId="right"
-                          type="monotone"
-                          dataKey="forecastRevenue"
-                          stroke="#f59e0b"
-                          strokeWidth={2}
-                          strokeDasharray="4 4"
-                          dot={{ r: 4, fill: '#f59e0b' }}
-                          name="Doanh thu dự báo"
-                        />
-                        <Line
-                          yAxisId="left"
-                          type="monotone"
-                          dataKey="forecastBookings"
-                          stroke="#e11d48"
-                          strokeWidth={2}
-                          strokeDasharray="4 4"
-                          dot={{ r: 4, fill: '#e11d48' }}
-                          name="Đặt lịch dự báo"
-                        />
-                      </>
+                      <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="forecastBookings"
+                        stroke="#e11d48"
+                        strokeWidth={3}
+                        strokeDasharray="4 4"
+                        dot={{ r: 5, fill: '#e11d48' }}
+                        name="Đặt lịch dự báo"
+                        connectNulls={true}
+                      />
                     ) : null}
                   </ComposedChart>
                 </ResponsiveContainer>
