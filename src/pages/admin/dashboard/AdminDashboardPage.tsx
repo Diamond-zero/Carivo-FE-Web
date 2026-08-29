@@ -172,19 +172,6 @@ export function AdminDashboardPage() {
         })
       })
 
-      const years = Array.from(yearlyMap.keys()).sort()
-      if (years.length === 1) {
-        const singleYear = parseInt(years[0], 10)
-        const prevYear = (singleYear - 1).toString()
-        if (!yearlyMap.has(prevYear)) {
-          // Tạo mốc năm trước đó để có chuỗi so sánh năm trực quan
-          yearlyMap.set(prevYear, {
-            bookings: Math.round((yearlyMap.get(years[0])?.bookings ?? 0) * 0.75),
-            revenue: Math.round((yearlyMap.get(years[0])?.revenue ?? 0) * 0.7),
-          })
-        }
-      }
-
       return Array.from(yearlyMap.keys()).sort().map((year) => ({
         period: year,
         label: `Năm ${year}`,
@@ -407,7 +394,7 @@ export function AdminDashboardPage() {
               </CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {isForecastEnabled ? (
+              {isForecastEnabled && filters.groupBy !== 'YEAR' ? (
                 <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs">
                   <button
                     type="button"
@@ -486,17 +473,28 @@ export function AdminDashboardPage() {
                       formatter={(value, name, item) => {
                         if (value === undefined || value === null) return ['-', name]
                         const isForecast = item.payload?.isForecast
-                        if (!isForecast && (name === 'Doanh thu dự báo' || name === 'Đặt lịch dự báo')) {
-                          return []
-                        }
-                        if (isForecast && (name === 'Doanh thu' || name === 'Đặt lịch')) {
+
+                        // Ẩn dòng 'Đặt lịch dự báo' khi đang xem mốc thực tế
+                        if (!isForecast && name === 'Đặt lịch dự báo') {
                           return []
                         }
 
-                        if (name === 'Doanh thu' || name === 'Doanh thu dự báo') {
-                          return [formatCurrency(Number(value)), isForecast ? 'Doanh thu dự báo' : 'Doanh thu']
+                        // Ẩn dòng 'Đặt lịch' thực tế khi đang xem mốc dự báo
+                        if (isForecast && name === 'Đặt lịch') {
+                          return []
                         }
-                        return [`${Number(value).toLocaleString('vi-VN')} lượt`, isForecast ? 'Đặt lịch dự báo' : 'Đặt lịch']
+
+                        if (name === 'Doanh thu') {
+                          return [
+                            formatCurrency(Number(value)),
+                            isForecast ? 'Doanh thu dự báo' : 'Doanh thu',
+                          ]
+                        }
+
+                        return [
+                          `${Number(value).toLocaleString('vi-VN')} lượt`,
+                          isForecast ? 'Đặt lịch dự báo' : 'Đặt lịch',
+                        ]
                       }}
                     />
                     <Legend />
