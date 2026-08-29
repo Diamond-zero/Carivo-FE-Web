@@ -193,6 +193,10 @@ export function AdminDashboardPage() {
 
   const handleExportReport = () => {
     try {
+      const selectedGarageName = filters.garageId
+        ? garageNameById.get(filters.garageId) || filters.garageId
+        : 'Tất cả chi nhánh'
+
       exportDashboardReportToCsv({
         overview: overview ? {
           total_bookings: overview.total_bookings,
@@ -202,6 +206,7 @@ export function AdminDashboardPage() {
         } : undefined,
         trendStats,
         filters,
+        garageName: selectedGarageName,
       })
       showToast('Đã xuất file báo cáo thành công!', 'success')
     } catch {

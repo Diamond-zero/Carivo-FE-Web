@@ -44,10 +44,12 @@ export function exportDashboardReportToCsv({
   overview,
   trendStats,
   filters,
+  garageName,
 }: {
   overview?: OverviewData
   trendStats: TrendRow[]
   filters: AnalyticsFilterValues
+  garageName?: string
 }) {
   const rows: string[][] = []
 
@@ -55,16 +57,32 @@ export function exportDashboardReportToCsv({
   rows.push(['BÁO CÁO THỐNG KÊ DOANH THU & ĐẶT LỊCH CARIVO'])
   rows.push([`Thời gian xuất báo cáo: ${format(new Date(), 'dd/MM/yyyy HH:mm:ss', { locale: vi })}`])
 
-  let filterDesc = 'Mặc định (7 ngày gần đây)'
+  let filterDesc = 'Mặc định (Toàn bộ thời gian)'
   if (filters.from && filters.to) {
     filterDesc = `Từ ${filters.from} đến ${filters.to}`
   } else if (filters.from) {
     filterDesc = `Từ ngày ${filters.from}`
   } else if (filters.to) {
     filterDesc = `Đến ngày ${filters.to}`
+  } else if (filters.groupBy === 'MONTH') {
+    filterDesc = 'Theo các tháng trong năm'
+  } else if (filters.groupBy === 'YEAR') {
+    filterDesc = 'Theo các năm'
+  } else if (filters.groupBy === 'WEEK') {
+    filterDesc = 'Theo các tuần'
+  } else if (filters.groupBy === 'DAY') {
+    filterDesc = '7 ngày gần đây'
+  }
+
+  const groupByLabels: Record<string, string> = {
+    DAY: 'Theo ngày',
+    WEEK: 'Theo tuần',
+    MONTH: 'Theo tháng',
+    YEAR: 'Theo năm',
   }
   rows.push([`Khoảng thời gian: ${filterDesc}`])
-  rows.push([`Kiểu gom nhóm: ${filters.groupBy}`])
+  rows.push([`Kiểu gom nhóm: ${groupByLabels[filters.groupBy] || filters.groupBy}`])
+  rows.push([`Chi nhánh: ${garageName || 'Tất cả chi nhánh'}`])
   rows.push([]) // empty row separator
 
   // 2. Summary KPIs
