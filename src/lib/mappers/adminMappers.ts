@@ -2,6 +2,7 @@ import type { AdminStaffRecord, AdminTierRule } from '../../types/admin'
 import type { AuditLog } from '../../types/auditLog'
 import type { CustomerLoyalty, LoyaltyPointRecord } from '../../types/loyalty'
 import type { Promotion } from '../../types/promotion'
+import type { VoucherTemplate } from '../../types/voucherTemplate'
 import type { ServicePackage, ServiceStepTemplate } from '../../types/servicePackage'
 import type { Vehicle } from '../../types/vehicle'
 import type { ApiGarage, ApiStaffProfile } from '../../types/api'
@@ -15,6 +16,7 @@ import type {
   ApiSurveyResponse,
   ApiTierRule,
   ApiVehicle,
+  ApiVoucherTemplate,
 } from '../../types/api/admin'
 import type { SurveyResponse } from '../../types/survey'
 import type { ApiServicePackage } from '../../types/api/staff'
@@ -50,6 +52,34 @@ export function mapApiPromotion(promotion: ApiPromotion): Promotion {
     updated_by_id: promotion.updated_by_id ?? null,
     created_at: promotion.created_at,
     updated_at: promotion.updated_at,
+  }
+}
+
+export function mapApiVoucherTemplate(voucherTemplate: ApiVoucherTemplate): VoucherTemplate {
+  return {
+    id: voucherTemplate.id,
+    name: voucherTemplate.name,
+    description: voucherTemplate.description ?? '',
+    voucher_type: voucherTemplate.voucher_type,
+    value: voucherTemplate.value,
+    max_discount_amount: voucherTemplate.max_discount_amount ?? null,
+    min_order_amount: voucherTemplate.min_order_amount,
+    service_package_id: voucherTemplate.service_package_id ?? null,
+    service_package_name: voucherTemplate.service_package?.name ?? null,
+    points_cost: voucherTemplate.points_cost,
+    voucher_validity_days: voucherTemplate.voucher_validity_days,
+    total_quantity: voucherTemplate.total_quantity ?? null,
+    redeemed_count: voucherTemplate.redeemed_count ?? 0,
+    remaining_quantity: voucherTemplate.remaining_quantity ?? null,
+    per_customer_limit: voucherTemplate.per_customer_limit ?? null,
+    applicable_tiers: (voucherTemplate.applicable_tiers ?? []) as VoucherTemplate['applicable_tiers'],
+    start_at: voucherTemplate.start_at,
+    end_at: voucherTemplate.end_at,
+    is_active: voucherTemplate.is_active,
+    created_by_id: voucherTemplate.created_by_id ?? null,
+    updated_by_id: voucherTemplate.updated_by_id ?? null,
+    created_at: voucherTemplate.created_at,
+    updated_at: voucherTemplate.updated_at,
   }
 }
 

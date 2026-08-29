@@ -20,6 +20,8 @@ export const adminQueryKeys = {
   promotions: (params?: unknown) => [...adminQueryKeys.all, 'promotions', params] as const,
   promotionsList: () => [...adminQueryKeys.all, 'promotions-list'] as const,
   promotion: (id: string) => [...adminQueryKeys.all, 'promotion', id] as const,
+  voucherTemplatesList: () => [...adminQueryKeys.all, 'voucher-templates-list'] as const,
+  voucherTemplate: (id: string) => [...adminQueryKeys.all, 'voucher-template', id] as const,
   tierRules: () => [...adminQueryKeys.all, 'tier-rules'] as const,
   analyticsOverview: (params?: unknown) =>
     [...adminQueryKeys.all, 'analytics-overview', params] as const,

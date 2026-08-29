@@ -5,6 +5,7 @@ import {
   Building2,
   CircleDollarSign,
   ClipboardList,
+  Coins,
   FileSearch,
   FolderKanban,
   Gift,
@@ -132,6 +133,12 @@ export const adminNavItems: AdminNavItem[] = [
     section: 'management',
   },
   {
+    label: 'Danh sách voucher đổi điểm',
+    path: '/admin/voucher-templates',
+    icon: Coins,
+    section: 'management',
+  },
+  {
     label: 'Hồ sơ khiếu nại',
     path: '/admin/customer-cases',
     icon: FolderKanban,
@@ -207,6 +214,7 @@ export const ADMIN_NAV_EXPAND_PREFIXES: Array<{
     { prefix: '/admin/staff-type-change-requests', groupLabel: 'Đổi chức năng nhân viên' },
     { prefix: '/admin/staff-type-change-history', groupLabel: 'Đổi chức năng nhân viên' },
     { prefix: '/admin/customer-vouchers', groupLabel: 'Voucher bồi thường' },
+    { prefix: '/admin/voucher-templates', groupLabel: 'Danh sách voucher đổi điểm' },
     { prefix: '/admin/customer-cases', groupLabel: 'Hồ sơ khiếu nại' },
     { prefix: '/admin/reviews', groupLabel: 'Đánh giá khách hàng' },
     { prefix: '/admin/arrivals', groupLabel: 'Vận hành cổng' },

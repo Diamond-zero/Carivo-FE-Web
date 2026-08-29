@@ -101,4 +101,5 @@ export const ADMIN_CUSTOMER_VOUCHER_SOURCE_LABELS: Record<string, string> = {
   INCIDENT: 'Bồi thường sự cố',
   CUSTOMER_CASE: 'Hồ sơ khiếu nại',
   ADMIN_GIFT: 'Admin tặng riêng',
+  POINTS_REDEMPTION: 'Đổi bằng điểm',
 }

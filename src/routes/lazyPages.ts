@@ -185,6 +185,16 @@ export const AdminPromotionFormPage = lazyNamed(
   'AdminPromotionFormPage',
 )
 
+export const AdminVoucherTemplateListPage = lazyNamed(
+  () => import('../pages/admin/voucherTemplates/AdminVoucherTemplateListPage'),
+  'AdminVoucherTemplateListPage',
+)
+
+export const AdminVoucherTemplateFormPage = lazyNamed(
+  () => import('../pages/admin/voucherTemplates/AdminVoucherTemplateFormPage'),
+  'AdminVoucherTemplateFormPage',
+)
+
 export const AdminAnalyticsRevenuePage = lazyNamed(
   () => import('../pages/admin/analytics/AdminAnalyticsRevenuePage'),
   'AdminAnalyticsRevenuePage',

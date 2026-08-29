@@ -42,6 +42,41 @@ export interface ApiPromotion {
   updated_at?: string
 }
 
+export type ApiVoucherType = 'FIXED_AMOUNT' | 'PERCENTAGE' | 'FREE_SERVICE'
+
+export interface ApiVoucherTemplate {
+  id: string
+  name: string
+  description?: string | null
+  voucher_type: ApiVoucherType
+  value: number
+  max_discount_amount?: number | null
+  min_order_amount: number
+  service_package_id?: string | null
+  service_package?: {
+    id: string
+    name: string
+    vehicle_type?: string
+    service_type?: string
+    base_price?: number
+    is_active?: boolean
+  } | null
+  points_cost: number
+  voucher_validity_days: number
+  total_quantity?: number | null
+  redeemed_count: number
+  remaining_quantity?: number | null
+  per_customer_limit?: number | null
+  applicable_tiers?: string[]
+  start_at: string
+  end_at: string
+  is_active: boolean
+  created_by_id?: string | null
+  updated_by_id?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
 export interface ApiTierRule {
   id: string
   tier_name: string

@@ -294,7 +294,9 @@ export function AdminCustomerVouchersPage() {
                       ) : null}
                     </td>
                     <td className="px-6 py-4 text-slate-700">
-                      {voucher.garage?.name ?? voucher.garage_id ?? '—'}
+                      {voucher.source_type === 'POINTS_REDEMPTION'
+                        ? 'Mọi garage'
+                        : (voucher.garage?.name ?? voucher.garage_id ?? '—')}
                     </td>
                     <td className="px-6 py-4 text-slate-700">
                       {ADMIN_CUSTOMER_VOUCHER_TYPE_LABELS[voucher.voucher_type] ??

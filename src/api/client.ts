@@ -110,6 +110,24 @@ const API_ERROR_MESSAGES: Record<string, string> = {
     'Tổng điểm thưởng khảo sát và đánh giá không được vượt quá 100 điểm cho mỗi booking.',
   STAFF_GARAGE_REQUIRED:
     'Tài khoản nhân viên chưa được phân công garage.',
+  VOUCHER_TEMPLATE_NOT_FOUND: 'Không tìm thấy voucher đổi điểm.',
+  VOUCHER_TEMPLATE_HAS_REDEMPTION_HISTORY:
+    'Voucher đã có lượt đổi điểm nên không thể xóa. Hãy tạm dừng thay vì xóa.',
+  VOUCHER_TEMPLATE_DATE_RANGE_INVALID:
+    'Thời gian kết thúc phải sau thời gian bắt đầu.',
+  VOUCHER_TEMPLATE_PERCENTAGE_INVALID: 'Phần trăm giảm không được vượt quá 100%.',
+  VOUCHER_TEMPLATE_SERVICE_PACKAGE_REQUIRED:
+    'Voucher tặng dịch vụ cần chọn gói dịch vụ.',
+  VOUCHER_TEMPLATE_FREE_SERVICE_VALUE_INVALID:
+    'Voucher tặng dịch vụ phải có giá trị giảm bằng 0.',
+  VOUCHER_TEMPLATE_VALUE_INVALID: 'Giá trị voucher phải lớn hơn 0.',
+  INVALID_VOUCHER_TEMPLATE_TIERS:
+    'Một hoặc nhiều hạng loyalty không hợp lệ hoặc đang tạm dừng.',
+  INVALID_VOUCHER_TEMPLATE_SERVICE_PACKAGE:
+    'Gói dịch vụ không hợp lệ hoặc đang tạm dừng.',
+  VOUCHER_TEMPLATE_TOTAL_QUANTITY_TOO_LOW:
+    'Tổng số lượng không được nhỏ hơn số lượt đã đổi.',
+  NO_CHANGE: 'Trạng thái voucher không thay đổi.',
 }
 
 export function getApiErrorCode(error: unknown): string | undefined {

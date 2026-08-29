@@ -33,6 +33,8 @@ import {
   AdminPaymentsListPage,
   AdminPromotionFormPage,
   AdminPromotionListPage,
+  AdminVoucherTemplateFormPage,
+  AdminVoucherTemplateListPage,
   AdminResearchExportPage,
   AdminReviewsPage,
   AdminServicePackageFormPage,
@@ -373,6 +375,30 @@ function App() {
                   element={
                     <LazyPage>
                       <AdminPromotionFormPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/voucher-templates"
+                  element={
+                    <LazyPage>
+                      <AdminVoucherTemplateListPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/voucher-templates/new"
+                  element={
+                    <LazyPage>
+                      <AdminVoucherTemplateFormPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="/admin/voucher-templates/:voucherTemplateId/edit"
+                  element={
+                    <LazyPage>
+                      <AdminVoucherTemplateFormPage />
                     </LazyPage>
                   }
                 />

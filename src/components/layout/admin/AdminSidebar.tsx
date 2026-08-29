@@ -134,19 +134,19 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
       )
     }
 
+    const active = Boolean(item.path && isPathActive(location.pathname, item.path))
+
     return (
       <NavLink
         key={item.path}
         to={item.path!}
         onClick={onClose}
-        className={({ isActive }) =>
-          cn(
-            navLinkClass(isActive),
-            'outline-none focus-visible:ring-2 focus-visible:ring-brand-400/40 focus-visible:ring-inset',
-          )
-        }
+        className={cn(
+          navLinkClass(active),
+          'outline-none focus-visible:ring-2 focus-visible:ring-brand-400/40 focus-visible:ring-inset',
+        )}
       >
-        {({ isActive }) => <NavItemContent item={item} active={isActive} />}
+        <NavItemContent item={item} active={active} />
       </NavLink>
     )
   }
