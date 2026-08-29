@@ -3,7 +3,7 @@ import { Gift } from 'lucide-react'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { DISCOUNT_TYPE_LABELS } from '../../../constants/promotion'
-import { LOYALTY_TIER_LABELS } from '../../../constants/loyaltyTier'
+import { getTierLabel } from '../../../constants/loyaltyTier'
 import { PROMOTION_AUDIENCE_LABELS } from '../../../hooks/api/admin/useAdminPromotions'
 import { formatCurrency } from '../../../lib/utils'
 import type { Promotion } from '../../../types/promotion'
@@ -67,7 +67,7 @@ export function AdminPromotionListTable({
         cell: ({ row }) => (
           <span className="text-sm text-slate-600">
             {row.original.applicable_tiers
-              .map((tier) => LOYALTY_TIER_LABELS[tier])
+              .map((tier) => getTierLabel(tier))
               .join(', ') || '—'}
           </span>
         ),

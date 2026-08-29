@@ -1,11 +1,10 @@
 import { Award, Coins, Gift, TrendingUp } from 'lucide-react'
 import {
   getNextTier,
-  getTierRule,
-  LOYALTY_TIER_CARD_BG,
-  LOYALTY_TIER_LABELS,
+  getTierCardBackground,
+  getTierLabel,
 } from '../../constants/loyaltyTier'
-import type { CustomerLoyalty } from '../../types/loyalty'
+import type { CustomerLoyalty, LoyaltyTierConfig } from '../../types/loyalty'
 import { formatPrice } from '../../utils/format'
 import {
   Card,
@@ -17,16 +16,17 @@ import { TierBadge } from './TierBadge'
 
 interface CustomerLoyaltyCardProps {
   loyalty: CustomerLoyalty
+  tiers: LoyaltyTierConfig[]
 }
 
-export function CustomerLoyaltyCard({ loyalty }: CustomerLoyaltyCardProps) {
-  const tierRule = getTierRule(loyalty.current_tier)
-  const nextTier = getNextTier(loyalty.current_tier)
+export function CustomerLoyaltyCard({ loyalty, tiers }: CustomerLoyaltyCardProps) {
+  const tierRule = tiers.find((tier) => tier.tier_name === loyalty.current_tier)
+  const nextTier = getNextTier(tiers, loyalty.current_tier)
 
   return (
     <Card className="overflow-hidden">
       <div
-        className={`bg-gradient-to-br ${LOYALTY_TIER_CARD_BG[loyalty.current_tier]} px-6 py-5`}
+        className={`bg-gradient-to-br ${getTierCardBackground(loyalty.current_tier)} px-6 py-5`}
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -79,13 +79,17 @@ export function CustomerLoyaltyCard({ loyalty }: CustomerLoyaltyCardProps) {
             <div>
               <p className="text-sm text-slate-500">Quyền lợi hạng hiện tại</p>
               <p className="text-sm text-slate-800">
-                Hệ số tích điểm ×{tierRule.points_multiplier} · Đặt trước tối đa{' '}
-                {tierRule.max_upcoming_bookings} booking · Cửa sổ đặt{' '}
-                {tierRule.booking_window_days} ngày
+                Hệ số tích điểm ×{tierRule.point_multiplier}
+                {tierRule.max_upcoming_bookings != null
+                  ? ` · Đặt trước tối đa ${tierRule.max_upcoming_bookings} booking`
+                  : ''}
+                {tierRule.booking_window_days != null
+                  ? ` · Cửa sổ đặt ${tierRule.booking_window_days} ngày`
+                  : ''}
               </p>
               {nextTier ? (
                 <p className="mt-1 text-xs text-slate-500">
-                  Hạng tiếp theo: {LOYALTY_TIER_LABELS[nextTier]}
+                  Hạng tiếp theo: {getTierLabel(nextTier.tier_name)}
                 </p>
               ) : (
                 <p className="mt-1 text-xs text-slate-500">Đã ở hạng cao nhất</p>

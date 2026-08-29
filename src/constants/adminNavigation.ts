@@ -110,6 +110,7 @@ export const adminNavItems: AdminNavItem[] = [
     section: 'management',
     children: [
       { label: 'Quy tắc hạng', path: '/admin/loyalty/tier-rules' },
+      { label: 'Tổng quan loyalty', path: '/admin/loyalty/overview' },
     ],
   },
   {
@@ -195,19 +196,19 @@ export const ADMIN_NAV_EXPAND_PREFIXES: Array<{
   prefix: string
   groupLabel: string
 }> = [
-  { prefix: '/admin/users', groupLabel: 'Người dùng' },
-  { prefix: '/admin/garages', groupLabel: 'Garage' },
-  { prefix: '/admin/services', groupLabel: 'Gói dịch vụ' },
-  { prefix: '/admin/bookings', groupLabel: 'Đặt lịch' },
-  { prefix: '/admin/wash-histories', groupLabel: 'Đặt lịch' },
-  { prefix: '/admin/booking-violations', groupLabel: 'Đặt lịch' },
-  { prefix: '/admin/loyalty', groupLabel: 'Loyalty' },
-  { prefix: '/admin/analytics', groupLabel: 'Phân tích' },
-  { prefix: '/admin/staff-type-change-requests', groupLabel: 'Đổi chức năng nhân viên' },
-  { prefix: '/admin/staff-type-change-history', groupLabel: 'Đổi chức năng nhân viên' },
-  { prefix: '/admin/customer-vouchers', groupLabel: 'Voucher bồi thường' },
-  { prefix: '/admin/customer-cases', groupLabel: 'Hồ sơ khiếu nại' },
-  { prefix: '/admin/reviews', groupLabel: 'Đánh giá khách hàng' },
-  { prefix: '/admin/arrivals', groupLabel: 'Vận hành cổng' },
-  { prefix: '/admin/payments', groupLabel: 'Thanh toán' },
-]
+    { prefix: '/admin/users', groupLabel: 'Người dùng' },
+    { prefix: '/admin/garages', groupLabel: 'Garage' },
+    { prefix: '/admin/services', groupLabel: 'Gói dịch vụ' },
+    { prefix: '/admin/bookings', groupLabel: 'Đặt lịch' },
+    { prefix: '/admin/wash-histories', groupLabel: 'Đặt lịch' },
+    { prefix: '/admin/booking-violations', groupLabel: 'Đặt lịch' },
+    { prefix: '/admin/loyalty', groupLabel: 'Loyalty' },
+    { prefix: '/admin/analytics', groupLabel: 'Phân tích' },
+    { prefix: '/admin/staff-type-change-requests', groupLabel: 'Đổi chức năng nhân viên' },
+    { prefix: '/admin/staff-type-change-history', groupLabel: 'Đổi chức năng nhân viên' },
+    { prefix: '/admin/customer-vouchers', groupLabel: 'Voucher bồi thường' },
+    { prefix: '/admin/customer-cases', groupLabel: 'Hồ sơ khiếu nại' },
+    { prefix: '/admin/reviews', groupLabel: 'Đánh giá khách hàng' },
+    { prefix: '/admin/arrivals', groupLabel: 'Vận hành cổng' },
+    { prefix: '/admin/payments', groupLabel: 'Thanh toán' },
+  ]

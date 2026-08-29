@@ -2,8 +2,6 @@ import type { AdminTierRule } from '../../types/admin'
 import type { LoyaltyTier } from '../../types/loyalty'
 import { mockAdminTierRules } from './tierRules'
 
-const tierOrder: LoyaltyTier[] = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM']
-
 function cloneRules(items: AdminTierRule[]): AdminTierRule[] {
   return items.map((rule) => ({ ...rule }))
 }
@@ -12,9 +10,7 @@ let tierRules = cloneRules(mockAdminTierRules)
 
 export function getAdminTierRulesFromStore(): AdminTierRule[] {
   return cloneRules(
-    [...tierRules].sort(
-      (a, b) => tierOrder.indexOf(a.tier) - tierOrder.indexOf(b.tier),
-    ),
+    [...tierRules].sort((a, b) => a.priority_level - b.priority_level),
   )
 }
 
@@ -35,9 +31,7 @@ function validateTierThresholds(
   updated: AdminTierRule,
 ): string | null {
   const merged = rules.map((rule) => (rule.id === updated.id ? updated : rule))
-  const sorted = [...merged].sort(
-    (a, b) => tierOrder.indexOf(a.tier) - tierOrder.indexOf(b.tier),
-  )
+  const sorted = [...merged].sort((a, b) => a.priority_level - b.priority_level)
 
   for (let index = 1; index < sorted.length; index += 1) {
     const lower = sorted[index - 1]

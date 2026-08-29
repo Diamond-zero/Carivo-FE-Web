@@ -83,12 +83,6 @@ export const processSteps = [
   'Theo dõi tiến độ từng bước chăm sóc xe',
 ]
 
-export const loyaltyTiers = [
-  { tier: 'Bronze', bookingWindow: '7 ngày', multiplier: 'x1.1' },
-  { tier: 'Silver', bookingWindow: '10 ngày', multiplier: 'x1.2' },
-  { tier: 'Gold', bookingWindow: '12 ngày', multiplier: 'x1.35' },
-  { tier: 'Platinum', bookingWindow: '14 ngày', multiplier: 'x1.5' },
-]
 
 export const branches = [
   'Carivo Tân Phú - 87 Bờ Bao Tân Thắng',

@@ -44,7 +44,7 @@ export interface ApiPromotion {
 
 export interface ApiTierRule {
   id: string
-  tier_name: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM'
+  tier_name: string
   booking_window_days: number
   max_upcoming_bookings: number
   point_multiplier: number
@@ -90,7 +90,7 @@ export interface ApiLoyaltyCustomer {
     role: string
     is_active: boolean
   } | null
-  current_tier: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM'
+  current_tier: string
   total_points: number
   available_points: number
   redeemed_points: number

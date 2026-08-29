@@ -1,8 +1,25 @@
-export type LoyaltyTier = 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM'
+export type LoyaltyTierName = string
+export type LoyaltyTier = LoyaltyTierName
+
+/** Loyalty tier configuration returned by the backend. */
+export interface LoyaltyTierConfig {
+  tier_name: LoyaltyTierName
+  priority_level: number
+  min_total_points: number
+  point_multiplier: number
+  is_active: boolean
+  id?: string
+  booking_window_days?: number
+  max_upcoming_bookings?: number
+  min_total_spent?: number
+  min_total_visits?: number
+  created_at?: string
+  updated_at?: string
+}
 
 export interface CustomerLoyalty {
   customer_id: string
-  current_tier: LoyaltyTier
+  current_tier: LoyaltyTierName
   total_points: number
   available_points: number
   redeemed_points: number
@@ -13,7 +30,7 @@ export interface CustomerLoyalty {
 }
 
 export interface TierRule {
-  tier: LoyaltyTier
+  tier: LoyaltyTierName
   booking_window_days: number
   max_upcoming_bookings: number
   points_multiplier: number
@@ -23,8 +40,8 @@ export interface TierRule {
 export interface TierUpgradeRecord {
   id: string
   customer_id: string
-  from_tier: LoyaltyTier | null
-  to_tier: LoyaltyTier
+  from_tier: LoyaltyTierName | null
+  to_tier: LoyaltyTierName
   upgraded_at: string
   reason: string
 }

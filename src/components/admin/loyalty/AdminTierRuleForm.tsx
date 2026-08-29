@@ -28,11 +28,13 @@ export function AdminTierRuleForm({
   } = useForm<AdminTierRuleFormValues>({
     resolver: zodResolver(adminTierRuleFormSchema),
     defaultValues: {
+      tier_name: rule.tier as AdminTierRuleFormValues['tier_name'],
+      min_total_points: rule.min_total_points,
       min_total_spent: rule.min_total_spent,
       min_total_visits: rule.min_total_visits,
       booking_window_days: rule.booking_window_days,
       max_upcoming_bookings: rule.max_upcoming_bookings,
-      points_multiplier: rule.points_multiplier,
+      point_multiplier: rule.points_multiplier,
       priority_level: rule.priority_level,
       is_active: rule.is_active,
     },
@@ -41,6 +43,29 @@ export function AdminTierRuleForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <Label htmlFor={`${rule.id}-tier-name`}>Tên tier</Label>
+          <Input
+            id={`${rule.id}-tier-name`}
+            type="text"
+            placeholder="Ví dụ: Hạng sắt, Kim cương"
+            error={errors.tier_name?.message}
+            {...register('tier_name')}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor={`${rule.id}-points`}>Tổng điểm tối thiểu</Label>
+          <Input
+            id={`${rule.id}-points`}
+            type="number"
+            min={0}
+            step={1}
+            error={errors.min_total_points?.message}
+            {...register('min_total_points', { valueAsNumber: true })}
+          />
+        </div>
+
         <div>
           <Label htmlFor={`${rule.id}-spent`}>Tổng chi tiêu tối thiểu (VND)</Label>
           <Input
@@ -94,11 +119,10 @@ export function AdminTierRuleForm({
           <Input
             id={`${rule.id}-multiplier`}
             type="number"
-            min={1}
-            max={3}
+            min={0}
             step={0.05}
-            error={errors.points_multiplier?.message}
-            {...register('points_multiplier', { valueAsNumber: true })}
+            error={errors.point_multiplier?.message}
+            {...register('point_multiplier', { valueAsNumber: true })}
           />
         </div>
 
@@ -108,7 +132,6 @@ export function AdminTierRuleForm({
             id={`${rule.id}-priority`}
             type="number"
             min={1}
-            max={10}
             error={errors.priority_level?.message}
             {...register('priority_level', { valueAsNumber: true })}
           />

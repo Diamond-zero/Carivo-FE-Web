@@ -1,4 +1,5 @@
 import type { ApiResponse } from '../types/api'
+import type { LoyaltyTierConfig } from '../types/loyalty'
 import type {
   ApiLoyaltyCustomer,
   ApiLoyaltyCustomerDetailResponse,
@@ -10,7 +11,7 @@ import type { ApiListResponse } from '../types/api/admin'
 import { apiClient } from './client'
 
 export interface TierRuleCreatePayload {
-  tier_name: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM'
+  tier_name: string
   booking_window_days: number
   max_upcoming_bookings: number
   point_multiplier: number
@@ -22,6 +23,7 @@ export interface TierRuleCreatePayload {
 }
 
 export interface TierRuleUpdatePayload {
+  tier_name?: string
   booking_window_days?: number
   max_upcoming_bookings?: number
   point_multiplier?: number
@@ -90,7 +92,7 @@ export interface LoyaltyCustomerListParams {
   page?: number
   limit?: number
   search?: string
-  tier?: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM'
+  tier?: string
 }
 
 export async function getAdminLoyaltyCustomersApi(
@@ -223,9 +225,14 @@ export async function previewRedeemApi(payload: RedeemPreviewPayload) {
   return data.data
 }
 
-export async function getActiveTierRulesApi() {
-  const { data } = await apiClient.get<ApiResponse<ApiTierRule[]>>(
+export async function getActiveTierRulesApi(): Promise<LoyaltyTierConfig[]> {
+  const { data } = await apiClient.get<ApiResponse<LoyaltyTierConfig[]>>(
     '/loyalty/tier-rules',
   )
   return data.data
+}
+
+/** Fetches the active tier definitions used by customer-facing UI. */
+export async function getLoyaltyTiersApi(): Promise<LoyaltyTierConfig[]> {
+  return getActiveTierRulesApi()
 }

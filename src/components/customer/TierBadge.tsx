@@ -1,12 +1,9 @@
-import {
-  LOYALTY_TIER_COLORS,
-  LOYALTY_TIER_LABELS,
-} from '../../constants/loyaltyTier'
-import type { LoyaltyTier } from '../../types/loyalty'
+import { getTierColor, getTierLabel } from '../../constants/loyaltyTier'
+import type { LoyaltyTierName } from '../../types/loyalty'
 import { cn } from '../../lib/utils'
 
 interface TierBadgeProps {
-  tier: LoyaltyTier
+  tier: LoyaltyTierName
   className?: string
 }
 
@@ -15,11 +12,11 @@ export function TierBadge({ tier, className }: TierBadgeProps) {
     <span
       className={cn(
         'inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium',
-        LOYALTY_TIER_COLORS[tier],
+        getTierColor(tier),
         className,
       )}
     >
-      {LOYALTY_TIER_LABELS[tier]}
+      {getTierLabel(tier)}
     </span>
   )
 }

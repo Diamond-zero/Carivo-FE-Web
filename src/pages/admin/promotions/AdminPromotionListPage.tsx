@@ -14,7 +14,7 @@ import { Select } from '../../../components/ui/Select'
 import { DashboardPageSkeleton } from '../../../components/ui/Skeleton'
 import { StatCard } from '../../../components/ui/StatCard'
 import { DISCOUNT_TYPE_LABELS, DISCOUNT_TYPES } from '../../../constants/promotion'
-import { LOYALTY_TIER_LABELS } from '../../../constants/loyaltyTier'
+import { getTierLabel } from '../../../constants/loyaltyTier'
 import { useToast } from '../../../contexts/ToastContext'
 import {
   ADMIN_PROMOTION_PAGE_SIZE,
@@ -26,6 +26,7 @@ import {
   type AdminPromotionStatusFilter,
 } from '../../../hooks/api/admin/useAdminPromotions'
 import type { DiscountType, LoyaltyTier, PromotionAudience } from '../../../types/promotion'
+import { useLoyaltyTiers } from '../../../hooks/api/useLoyaltyTiers'
 
 type ModalState =
   | { kind: 'toggle'; promotionId: string }
@@ -40,6 +41,7 @@ export function AdminPromotionListPage() {
   const [statusFilter, setStatusFilter] = useState<AdminPromotionStatusFilter>('ALL')
   const [audienceFilter, setAudienceFilter] = useState<PromotionAudience | 'ALL'>('ALL')
   const [tierFilter, setTierFilter] = useState<LoyaltyTier | 'ALL'>('ALL')
+  const loyaltyTiersQuery = useLoyaltyTiers()
   const [page, setPage] = useState(1)
   const [modal, setModal] = useState<ModalState>(null)
 
@@ -263,13 +265,11 @@ export function AdminPromotionListPage() {
               }
             >
               <option value="ALL">Tất cả</option>
-              {(['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'] as LoyaltyTier[]).map(
-                (tier) => (
-                  <option key={tier} value={tier}>
-                    {LOYALTY_TIER_LABELS[tier]}
-                  </option>
-                ),
-              )}
+              {(loyaltyTiersQuery.data ?? []).map((tier) => (
+                <option key={tier.tier_name} value={tier.tier_name}>
+                  {getTierLabel(tier.tier_name)}
+                </option>
+              ))}
             </Select>
           </div>
         </div>

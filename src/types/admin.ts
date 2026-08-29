@@ -5,6 +5,7 @@ import type { User } from './user'
 
 export interface AdminTierRule extends TierRule {
   id: string
+  min_total_points: number
   min_total_spent: number
   min_total_visits: number
   is_active: boolean

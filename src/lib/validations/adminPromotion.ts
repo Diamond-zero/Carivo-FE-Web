@@ -1,11 +1,9 @@
 import { z } from 'zod'
 import type { DiscountType, PromotionAudience } from '../../types/promotion'
-import type { LoyaltyTier } from '../../types/loyalty'
 import type { VehicleType } from '../../types/washBay'
 import { toApiDateTimeString } from '../../utils/walkIn'
 
 const discountTypes = ['PERCENTAGE', 'FIXED_AMOUNT'] as const satisfies readonly DiscountType[]
-const loyaltyTiers = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'] as const satisfies readonly LoyaltyTier[]
 const vehicleTypes = ['MOTORBIKE', 'CAR'] as const satisfies readonly VehicleType[]
 const audiences = ['ALL', 'CUSTOMER', 'WALK_IN'] as const satisfies readonly PromotionAudience[]
 
@@ -57,7 +55,7 @@ export const adminPromotionFormSchema = z
       .nullable()
       .optional(),
     applicable_tiers: z
-      .array(z.enum(loyaltyTiers))
+      .array(z.string().min(1, 'Hạng loyalty không hợp lệ'))
       .min(1, 'Chọn ít nhất 1 hạng áp dụng'),
     applicable_vehicle_types: z.array(z.enum(vehicleTypes)),
     applicable_service_package_ids: z.array(z.string()),

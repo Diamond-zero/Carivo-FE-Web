@@ -166,12 +166,12 @@ export function mapAnalyticsOverview(
     period_from: readString(period, 'from'),
     period_to: readString(period, 'to'),
     group_by: (readString(period, 'group_by') as 'DAY' | 'WEEK' | 'MONTH') || 'DAY',
-    tier_distribution: {
-      BRONZE: readNumber(tierDistribution, 'BRONZE'),
-      SILVER: readNumber(tierDistribution, 'SILVER'),
-      GOLD: readNumber(tierDistribution, 'GOLD'),
-      PLATINUM: readNumber(tierDistribution, 'PLATINUM'),
-    },
+    tier_distribution: Object.fromEntries(
+      Object.entries(tierDistribution).map(([tier, value]) => [
+        tier,
+        readNumber({ value }, 'value'),
+      ]),
+    ),
   }
 }
 
