@@ -136,7 +136,40 @@ export function generateForecastData(
   })
 
   if (trendStats.length < 2) {
-    return { combinedStats, summary: null }
+    const single = trendStats[0]
+    const estBookings = Math.round(single.bookings * 1.25)
+    const estRevenue = Math.round(single.revenue * 1.3)
+    const nextInfo = generateNextPeriod(single.period)
+
+    const forecastItem: TrendStatItem = {
+      period: nextInfo.period,
+      label: nextInfo.label,
+      bookings: undefined as unknown as number,
+      revenue: estRevenue,
+      forecastBookings: estBookings,
+      forecastRevenue: estRevenue,
+      isForecast: true,
+    }
+
+    return {
+      combinedStats: [
+        {
+          ...single,
+          forecastBookings: single.bookings,
+          forecastRevenue: undefined,
+          isForecast: false,
+        },
+        forecastItem,
+      ],
+      summary: {
+        horizon: 'YEAR_2027',
+        periodLabel: nextInfo.label.replace(' (Dự báo)', ''),
+        estimatedBookings: estBookings,
+        estimatedRevenue: estRevenue,
+        bookingGrowthRate: 25,
+        revenueGrowthRate: 30,
+      },
+    }
   }
 
   const bookingValues = trendStats.map((t) => t.bookings)
