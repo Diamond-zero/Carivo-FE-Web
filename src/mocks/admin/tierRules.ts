@@ -4,6 +4,7 @@ export const mockAdminTierRules: AdminTierRule[] = [
   {
     id: 'tier-rule-bronze',
     tier: 'BRONZE',
+    min_total_points: 0,
     min_total_spent: 0,
     min_total_visits: 0,
     booking_window_days: 7,
@@ -15,6 +16,7 @@ export const mockAdminTierRules: AdminTierRule[] = [
   {
     id: 'tier-rule-silver',
     tier: 'SILVER',
+    min_total_points: 500,
     min_total_spent: 500000,
     min_total_visits: 5,
     booking_window_days: 10,
@@ -26,6 +28,7 @@ export const mockAdminTierRules: AdminTierRule[] = [
   {
     id: 'tier-rule-gold',
     tier: 'GOLD',
+    min_total_points: 2000,
     min_total_spent: 2000000,
     min_total_visits: 15,
     booking_window_days: 12,
@@ -37,6 +40,7 @@ export const mockAdminTierRules: AdminTierRule[] = [
   {
     id: 'tier-rule-platinum',
     tier: 'PLATINUM',
+    min_total_points: 8000,
     min_total_spent: 8000000,
     min_total_visits: 35,
     booking_window_days: 14,

@@ -51,9 +51,9 @@ import {
 import { useAdminUpcomingBookings } from '../../../hooks/api/admin/useAdminBookings'
 import { useAdminGarages } from '../../../hooks/api/admin/useAdminGarages'
 import { useAnalyticsFilters } from '../../../hooks/useAnalyticsFilters'
-import { LOYALTY_TIER_LABELS } from '../../../constants/loyaltyTier'
+import { getTierLabel } from '../../../constants/loyaltyTier'
+import { useLoyaltyTiers } from '../../../hooks/api/useLoyaltyTiers'
 import { formatCurrency } from '../../../lib/utils'
-import type { LoyaltyTier } from '../../../types/loyalty'
 import { getAdminBookingCustomerName } from '../../../utils/adminBooking'
 import { analyticsFiltersToParams } from '../../../utils/adminAnalyticsFilters'
 import { exportDashboardReportToCsv } from '../../../utils/exportAnalytics'
@@ -62,13 +62,17 @@ import {
   type ForecastHorizon,
 } from '../../../utils/analyticsForecasting'
 
-const TIER_ORDER: LoyaltyTier[] = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM']
+const TIER_CHART_COLORS = [
+  '#64748b',
+  '#0ea5e9',
+  '#8b5cf6',
+  '#f59e0b',
+  '#10b981',
+  '#ef4444',
+]
 
-const TIER_COLORS: Record<LoyaltyTier, string> = {
-  BRONZE: '#CD7F32',
-  SILVER: '#94a3b8',
-  GOLD: '#eab308',
-  PLATINUM: '#8b5cf6',
+function getTierChartColor(index: number) {
+  return TIER_CHART_COLORS[index % TIER_CHART_COLORS.length]
 }
 
 function formatRevenueAxis(value: number) {
@@ -118,6 +122,7 @@ export function AdminDashboardPage() {
   const revenueTrendQuery = useAdminAnalyticsRevenue(params)
   const upcomingBookingsQuery = useAdminUpcomingBookings(5)
   const garagesQuery = useAdminGarages()
+  const loyaltyTiersQuery = useLoyaltyTiers()
   const { allGarages } = garagesQuery
   const garageNameById = useMemo(
     () => new Map(allGarages.map((garage) => [garage.id, garage.name])),
@@ -129,7 +134,8 @@ export function AdminDashboardPage() {
     bookingTrendQuery.isLoading ||
     revenueTrendQuery.isLoading ||
     garagesQuery.isLoading ||
-    upcomingBookingsQuery.isLoading
+    upcomingBookingsQuery.isLoading ||
+    loyaltyTiersQuery.isLoading
   const overview = overviewQuery.data?.overview
 
   const trendStats = useMemo(() => {
@@ -308,11 +314,14 @@ export function AdminDashboardPage() {
     )
   }
 
-  const tierChartData = TIER_ORDER.map((tier) => ({
-    tier,
-    name: LOYALTY_TIER_LABELS[tier],
-    value: overview.tier_distribution[tier] ?? 0,
-  }))
+  const tierChartData = (loyaltyTiersQuery.data ?? [])
+    .slice()
+    .sort((a, b) => a.priority_level - b.priority_level)
+    .map((tier) => ({
+      tier: tier.tier_name,
+      name: getTierLabel(tier.tier_name),
+      value: overview.tier_distribution[tier.tier_name] ?? 0,
+    }))
   const tierCustomerTotal = tierChartData.reduce(
     (total, item) => total + item.value,
     0,
@@ -395,22 +404,20 @@ export function AdminDashboardPage() {
                   <button
                     type="button"
                     onClick={() => setForecastHorizon('YEAR_2027')}
-                    className={`rounded-md px-2.5 py-1 font-medium transition-colors ${
-                      forecastHorizon === 'YEAR_2027'
-                        ? 'bg-white text-brand-700 shadow-sm'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                    className={`rounded-md px-2.5 py-1 font-medium transition-colors ${forecastHorizon === 'YEAR_2027'
+                      ? 'bg-white text-brand-700 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                      }`}
                   >
                     Đến năm 2027
                   </button>
                   <button
                     type="button"
                     onClick={() => setForecastHorizon('NEXT_PERIOD')}
-                    className={`rounded-md px-2.5 py-1 font-medium transition-colors ${
-                      forecastHorizon === 'NEXT_PERIOD'
-                        ? 'bg-white text-brand-700 shadow-sm'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                    className={`rounded-md px-2.5 py-1 font-medium transition-colors ${forecastHorizon === 'NEXT_PERIOD'
+                      ? 'bg-white text-brand-700 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                      }`}
                   >
                     1 kỳ tới
                   </button>
@@ -573,7 +580,10 @@ export function AdminDashboardPage() {
                       paddingAngle={3}
                     >
                       {tierChartData.map((item) => (
-                        <Cell key={item.tier} fill={TIER_COLORS[item.tier]} />
+                        <Cell
+                          key={item.tier}
+                          fill={getTierChartColor(tierChartData.indexOf(item))}
+                        />
                       ))}
                     </Pie>
                     <Tooltip

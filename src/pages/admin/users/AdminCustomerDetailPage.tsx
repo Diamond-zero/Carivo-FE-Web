@@ -47,6 +47,7 @@ import {
   useUpdateAdminCustomerStatus,
 } from '../../../hooks/api/admin/useAdminCustomers'
 import { useAdminGarages } from '../../../hooks/api/admin/useAdminGarages'
+import { useLoyaltyTiers } from '../../../hooks/api/useLoyaltyTiers'
 import { cn } from '../../../lib/utils'
 
 const ROLE_OPTIONS: Array<{ value: 'CUSTOMER' | 'STAFF' | 'ADMIN'; label: string }> = [
@@ -85,6 +86,7 @@ export function AdminCustomerDetailPage() {
   const updateRoleMutation = useUpdateAdminCustomerRole()
   const deleteUserMutation = useDeleteAdminCustomer()
   const { allGarages } = useAdminGarages()
+  const loyaltyTiersQuery = useLoyaltyTiers()
   const garageNameById = useMemo(() => {
     const map: Record<string, string> = {}
     for (const garage of allGarages) {
@@ -368,7 +370,23 @@ export function AdminCustomerDetailPage() {
 
             <div className="lg:col-span-2">
               {loyalty ? (
-                <CustomerLoyaltyCard loyalty={loyalty} />
+                loyaltyTiersQuery.isLoading ? (
+                  <Card><CardContent className="p-6 text-sm text-slate-500">Đang tải cấu hình hạng loyalty...</CardContent></Card>
+                ) : loyaltyTiersQuery.isError ? (
+                  <EmptyState
+                    icon={Trophy}
+                    title="Không thể tải cấu hình hạng loyalty"
+                    description={getApiErrorMessage(loyaltyTiersQuery.error, 'Vui lòng thử lại sau.')}
+                  />
+                ) : loyaltyTiersQuery.data?.length === 0 ? (
+                  <EmptyState
+                    icon={Trophy}
+                    title="Chưa có cấu hình hạng loyalty"
+                    description="Cấu hình hạng loyalty chưa được thiết lập."
+                  />
+                ) : (
+                  <CustomerLoyaltyCard loyalty={loyalty} tiers={loyaltyTiersQuery.data ?? []} />
+                )
               ) : (
                 <Card>
                   <CardHeader>
@@ -432,146 +450,146 @@ export function AdminCustomerDetailPage() {
             </Card>
           </div>
 
-      <AdminGiftVoucherModal
-        open={giftVoucherOpen}
-        customerId={user.id}
-        customerName={user.full_name}
-        onClose={() => setGiftVoucherOpen(false)}
-      />
+          <AdminGiftVoucherModal
+            open={giftVoucherOpen}
+            customerId={user.id}
+            customerName={user.full_name}
+            onClose={() => setGiftVoucherOpen(false)}
+          />
 
-      <Modal
-        open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        title={isActive ? 'Khóa tài khoản khách hàng?' : 'Mở khóa tài khoản khách hàng?'}
-        description={
-          isActive
-            ? `Khách ${user.full_name} sẽ không thể đăng nhập hoặc đặt lịch cho đến khi được mở khóa.`
-            : `Khách ${user.full_name} sẽ được phép sử dụng lại tài khoản.`
-        }
-      >
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={() => setConfirmOpen(false)}>
-            Hủy
-          </Button>
-          <Button
-            variant={isActive ? 'danger' : 'primary'}
-            onClick={handleToggleStatus}
-            disabled={updateStatusMutation.isPending}
+          <Modal
+            open={confirmOpen}
+            onClose={() => setConfirmOpen(false)}
+            title={isActive ? 'Khóa tài khoản khách hàng?' : 'Mở khóa tài khoản khách hàng?'}
+            description={
+              isActive
+                ? `Khách ${user.full_name} sẽ không thể đăng nhập hoặc đặt lịch cho đến khi được mở khóa.`
+                : `Khách ${user.full_name} sẽ được phép sử dụng lại tài khoản.`
+            }
           >
-            {isActive ? 'Xác nhận khóa' : 'Xác nhận mở khóa'}
-          </Button>
-        </div>
-      </Modal>
-
-      <Modal
-        open={editOpen}
-        onClose={() => setEditOpen(false)}
-        title="Sửa hồ sơ khách hàng"
-        description={`Cập nhật thông tin của ${user.full_name}.`}
-      >
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="edit-full_name">Họ và tên</Label>
-            <Input
-              id="edit-full_name"
-              value={editFullName}
-              onChange={(event) => setEditFullName(event.target.value)}
-            />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="edit-email">Email</Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={editEmail}
-                onChange={(event) => setEditEmail(event.target.value)}
-              />
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setConfirmOpen(false)}>
+                Hủy
+              </Button>
+              <Button
+                variant={isActive ? 'danger' : 'primary'}
+                onClick={handleToggleStatus}
+                disabled={updateStatusMutation.isPending}
+              >
+                {isActive ? 'Xác nhận khóa' : 'Xác nhận mở khóa'}
+              </Button>
             </div>
-            <div>
-              <Label htmlFor="edit-phone">Số điện thoại</Label>
-              <Input
-                id="edit-phone"
-                value={editPhone}
-                onChange={(event) => setEditPhone(event.target.value)}
-              />
+          </Modal>
+
+          <Modal
+            open={editOpen}
+            onClose={() => setEditOpen(false)}
+            title="Sửa hồ sơ khách hàng"
+            description={`Cập nhật thông tin của ${user.full_name}.`}
+          >
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-full_name">Họ và tên</Label>
+                <Input
+                  id="edit-full_name"
+                  value={editFullName}
+                  onChange={(event) => setEditFullName(event.target.value)}
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="edit-email">Email</Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    value={editEmail}
+                    onChange={(event) => setEditEmail(event.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-phone">Số điện thoại</Label>
+                  <Input
+                    id="edit-phone"
+                    value={editPhone}
+                    onChange={(event) => setEditPhone(event.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+                <Button variant="secondary" onClick={() => setEditOpen(false)}>
+                  Hủy
+                </Button>
+                <Button
+                  onClick={handleSaveEdit}
+                  disabled={updateUserMutation.isPending}
+                >
+                  {updateUserMutation.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
+                </Button>
+              </div>
             </div>
-          </div>
-          <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-            <Button variant="secondary" onClick={() => setEditOpen(false)}>
-              Hủy
-            </Button>
-            <Button
-              onClick={handleSaveEdit}
-              disabled={updateUserMutation.isPending}
-            >
-              {updateUserMutation.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+          </Modal>
 
-      <Modal
-        open={roleOpen}
-        onClose={() => setRoleOpen(false)}
-        title="Đổi vai trò"
-        description={`Thay đổi vai trò cho ${user.full_name}.`}
-      >
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="edit-role">Vai trò</Label>
-            <Select
-              id="edit-role"
-              value={editRole}
-              onChange={(event) =>
-                setEditRole(event.target.value as 'CUSTOMER' | 'STAFF' | 'ADMIN')
-              }
-            >
-              {ROLE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-            <Button variant="secondary" onClick={() => setRoleOpen(false)}>
-              Hủy
-            </Button>
-            <Button
-              onClick={handleSaveRole}
-              disabled={updateRoleMutation.isPending}
-            >
-              {updateRoleMutation.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+          <Modal
+            open={roleOpen}
+            onClose={() => setRoleOpen(false)}
+            title="Đổi vai trò"
+            description={`Thay đổi vai trò cho ${user.full_name}.`}
+          >
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-role">Vai trò</Label>
+                <Select
+                  id="edit-role"
+                  value={editRole}
+                  onChange={(event) =>
+                    setEditRole(event.target.value as 'CUSTOMER' | 'STAFF' | 'ADMIN')
+                  }
+                >
+                  {ROLE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+                <Button variant="secondary" onClick={() => setRoleOpen(false)}>
+                  Hủy
+                </Button>
+                <Button
+                  onClick={handleSaveRole}
+                  disabled={updateRoleMutation.isPending}
+                >
+                  {updateRoleMutation.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
+                </Button>
+              </div>
+            </div>
+          </Modal>
 
-      <Modal
-        open={deleteOpen}
-        onClose={() => setDeleteOpen(false)}
-        title="Xóa tài khoản khách hàng?"
-        description={`${user.full_name} (${user.phone})`}
-      >
-        <div className="space-y-3">
-          <div className="rounded-xl border border-red-200 bg-red-50/70 px-4 py-3 text-sm text-red-800">
-            Thao tác này không thể hoàn tác. Mọi dữ liệu liên quan đến khách hàng sẽ bị ảnh hưởng.
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setDeleteOpen(false)}>
-              Hủy
-            </Button>
-            <Button
-              variant="danger"
-              onClick={handleDelete}
-              disabled={deleteUserMutation.isPending}
-            >
-              {deleteUserMutation.isPending ? 'Đang xóa...' : 'Xóa tài khoản'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+          <Modal
+            open={deleteOpen}
+            onClose={() => setDeleteOpen(false)}
+            title="Xóa tài khoản khách hàng?"
+            description={`${user.full_name} (${user.phone})`}
+          >
+            <div className="space-y-3">
+              <div className="rounded-xl border border-red-200 bg-red-50/70 px-4 py-3 text-sm text-red-800">
+                Thao tác này không thể hoàn tác. Mọi dữ liệu liên quan đến khách hàng sẽ bị ảnh hưởng.
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="secondary" onClick={() => setDeleteOpen(false)}>
+                  Hủy
+                </Button>
+                <Button
+                  variant="danger"
+                  onClick={handleDelete}
+                  disabled={deleteUserMutation.isPending}
+                >
+                  {deleteUserMutation.isPending ? 'Đang xóa...' : 'Xóa tài khoản'}
+                </Button>
+              </div>
+            </div>
+          </Modal>
         </>
       )}
     </div>

@@ -17,16 +17,19 @@ import {
 } from '../../../api/loyalty.api'
 import { useAdminAuth } from '../../../contexts/AdminAuthContext'
 import { mapApiTierRule } from '../../../lib/mappers/adminMappers'
+import { loyaltyTiersQueryKey } from '../useLoyaltyTiers'
 import type { AdminTierRuleFormValues } from '../../../lib/validations/adminTierRule'
 import { adminQueryKeys } from './queryKeys'
 
 function toTierRuleUpdatePayload(values: AdminTierRuleFormValues): TierRuleUpdatePayload {
   return {
+    tier_name: values.tier_name,
+    min_total_points: values.min_total_points,
     min_total_spent: values.min_total_spent,
     min_total_visits: values.min_total_visits,
     booking_window_days: values.booking_window_days,
     max_upcoming_bookings: values.max_upcoming_bookings,
-    point_multiplier: values.points_multiplier,
+    point_multiplier: values.point_multiplier,
     priority_level: values.priority_level,
     is_active: values.is_active,
   }
@@ -53,6 +56,7 @@ export function useCreateAdminTierRule() {
       mapApiTierRule(await createAdminTierRuleApi(payload)),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.tierRules() })
+      void queryClient.invalidateQueries({ queryKey: loyaltyTiersQueryKey })
     },
   })
 }
@@ -66,6 +70,7 @@ export function useDeleteAdminTierRule() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.tierRules() })
+      void queryClient.invalidateQueries({ queryKey: loyaltyTiersQueryKey })
     },
   })
 }
@@ -86,6 +91,7 @@ export function useUpdateAdminTierRule() {
       ),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.tierRules() })
+      void queryClient.invalidateQueries({ queryKey: loyaltyTiersQueryKey })
     },
   })
 }
@@ -108,6 +114,7 @@ export function useToggleAdminTierRuleStatus() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.tierRules() })
+      void queryClient.invalidateQueries({ queryKey: loyaltyTiersQueryKey })
     },
   })
 }

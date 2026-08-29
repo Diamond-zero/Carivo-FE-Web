@@ -1,4 +1,3 @@
-import type { LoyaltyTier } from './loyalty'
 import type { VehicleType } from './washBay'
 
 export interface AnalyticsPeriod {
@@ -28,7 +27,7 @@ export interface AnalyticsRevenueOverview {
   period_from: string
   period_to: string
   group_by: 'DAY' | 'WEEK' | 'MONTH'
-  tier_distribution: Record<LoyaltyTier, number>
+  tier_distribution: Record<string, number>
 }
 
 export interface AnalyticsBookingOverview {

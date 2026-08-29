@@ -3,7 +3,6 @@ import { Loader2 } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { DISCOUNT_TYPE_LABELS, DISCOUNT_TYPES } from '../../../constants/promotion'
-import { LOYALTY_TIER_LABELS } from '../../../constants/loyaltyTier'
 import { VEHICLE_TYPE_LABELS } from '../../../constants/washBayStatus'
 import { useAdminServicePackages } from '../../../hooks/api/admin/useAdminServicePackages'
 import {
@@ -17,7 +16,7 @@ import {
   toDatetimeLocalValue,
   type AdminPromotionFormValues,
 } from '../../../lib/validations/adminPromotion'
-import type { LoyaltyTier } from '../../../types/loyalty'
+import { useLoyaltyTiers } from '../../../hooks/api/useLoyaltyTiers'
 import type { Promotion } from '../../../types/promotion'
 import type { VehicleType } from '../../../types/washBay'
 import { Button } from '../../ui/Button'
@@ -26,7 +25,6 @@ import { Label } from '../../ui/Label'
 import { Select } from '../../ui/Select'
 import { Textarea } from '../../ui/Textarea'
 
-const loyaltyTiers: LoyaltyTier[] = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM']
 const vehicleTypes: VehicleType[] = ['MOTORBIKE', 'CAR']
 
 interface AdminPromotionFormProps {
@@ -85,7 +83,7 @@ export function AdminPromotionForm({
       audience: initialPromotion?.audience ?? 'ALL',
       phone_required: initialPromotion?.phone_required ?? false,
       per_phone_limit: initialPromotion?.per_phone_limit ?? null,
-      applicable_tiers: initialPromotion?.applicable_tiers ?? ['BRONZE'],
+      applicable_tiers: initialPromotion?.applicable_tiers ?? [],
       applicable_vehicle_types: initialPromotion?.applicable_vehicle_types ?? [],
       applicable_service_package_ids:
         initialPromotion?.applicable_service_package_ids ?? [],
@@ -102,6 +100,8 @@ export function AdminPromotionForm({
   })
 
   const { allPackages } = useAdminServicePackages({})
+  const loyaltyTiersQuery = useLoyaltyTiers()
+  const loyaltyTiers = loyaltyTiersQuery.data ?? []
 
   const discountType = watch('discount_type')
   const selectedTiers = watch('applicable_tiers')
@@ -152,7 +152,7 @@ export function AdminPromotionForm({
     }
   }, [packageOptions, selectedPackageIds, setValue])
 
-  const toggleTier = (tier: LoyaltyTier) => {
+  const toggleTier = (tier: string) => {
     const next = selectedTiers.includes(tier)
       ? selectedTiers.filter((item) => item !== tier)
       : [...selectedTiers, tier]
@@ -397,26 +397,50 @@ export function AdminPromotionForm({
       </div>
 
       <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-4">
-        <p className="mb-3 text-sm font-semibold text-slate-800">Hạng áp dụng</p>
+        <p className="mb-1 text-sm font-semibold text-slate-800">Hạng áp dụng</p>
+        <p className="mb-3 text-xs text-slate-500">
+          Chọn một hoặc nhiều hạng loyalty. Tên hạng được gửi nguyên bản trong{' '}
+          <code>applicable_tiers</code>.
+        </p>
+        {loyaltyTiersQuery.isLoading ? (
+          <p className="mb-2 text-sm text-slate-500">Đang tải hạng loyalty...</p>
+        ) : loyaltyTiersQuery.isError ? (
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-sm text-red-600">Không thể tải hạng loyalty.</p>
+            <button
+              type="button"
+              onClick={() => void loyaltyTiersQuery.refetch()}
+              className="text-sm font-medium text-brand-700 hover:underline"
+            >
+              Thử lại
+            </button>
+          </div>
+        ) : loyaltyTiers.length === 0 ? (
+          <p className="mb-2 text-sm text-slate-500">
+            Chưa có hạng loyalty để áp dụng. Hãy tạo hạng trong phần quản lý loyalty trước.
+          </p>
+        ) : null}
         {errors.applicable_tiers ? (
           <p className="mb-2 text-sm text-red-600">{errors.applicable_tiers.message}</p>
         ) : null}
-        <div className="grid gap-2 sm:grid-cols-2">
-          {loyaltyTiers.map((tier) => (
-            <label
-              key={tier}
-              className="flex cursor-pointer items-center gap-3 rounded-lg border border-white/80 bg-white px-3 py-2"
-            >
-              <input
-                type="checkbox"
-                checked={selectedTiers.includes(tier)}
-                onChange={() => toggleTier(tier)}
-                className="h-4 w-4 rounded border-slate-300 text-brand-600"
-              />
-              <span className="text-sm text-slate-700">{LOYALTY_TIER_LABELS[tier]}</span>
-            </label>
-          ))}
-        </div>
+        {loyaltyTiers.length > 0 ? (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {loyaltyTiers.map((tier) => (
+              <label
+                key={tier.tier_name}
+                className="flex cursor-pointer items-center gap-3 rounded-lg border border-white/80 bg-white px-3 py-2"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedTiers.includes(tier.tier_name)}
+                  onChange={() => toggleTier(tier.tier_name)}
+                  className="h-4 w-4 rounded border-slate-300 text-brand-600"
+                />
+                <span className="text-sm text-slate-700">{tier.tier_name}</span>
+              </label>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-4">

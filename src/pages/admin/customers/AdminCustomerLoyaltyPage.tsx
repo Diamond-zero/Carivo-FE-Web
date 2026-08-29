@@ -17,7 +17,7 @@ import {
 import {
   useAdminCustomerLoyaltyTransactions,
 } from '../../../hooks/api/admin/useAdminCustomerExtras'
-import { LOYALTY_TIER_LABELS } from '../../../constants/loyaltyTier'
+import { getTierLabel } from '../../../constants/loyaltyTier'
 import { formatDate, formatPrice } from '../../../utils/format'
 import {
   LOYALTY_POINT_TRANSACTION_COLORS,
@@ -91,7 +91,7 @@ export function AdminCustomerLoyaltyPage() {
             <StatCard
               label="Hạng hiện tại"
               value={
-                LOYALTY_TIER_LABELS[loyalty.current_tier] ?? loyalty.current_tier
+                getTierLabel(loyalty.current_tier)
               }
               icon={Trophy}
               accent="indigo"
@@ -126,7 +126,7 @@ export function AdminCustomerLoyaltyPage() {
               <p className="mt-2 text-sm text-slate-700">
                 Hạng{' '}
                 <span className="font-semibold">
-                  {LOYALTY_TIER_LABELS[loyalty.current_tier] ?? loyalty.current_tier}
+                  {getTierLabel(loyalty.current_tier)}
                 </span>{' '}
                 đã được áp dụng cho mọi giao dịch tích/đổi điểm của khách.
               </p>

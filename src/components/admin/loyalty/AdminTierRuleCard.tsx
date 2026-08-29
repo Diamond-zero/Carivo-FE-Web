@@ -1,8 +1,8 @@
 import { Crown } from 'lucide-react'
 import { TierBadge } from '../../customer/TierBadge'
 import {
-  LOYALTY_TIER_CARD_BG,
-  LOYALTY_TIER_LABELS,
+  getTierCardBackground,
+  getTierLabel,
 } from '../../../constants/loyaltyTier'
 import type { AdminTierRule } from '../../../types/admin'
 import type { AdminTierRuleFormValues } from '../../../lib/validations/adminTierRule'
@@ -15,6 +15,8 @@ interface AdminTierRuleCardProps {
   rule: AdminTierRule
   onSave: (ruleId: string, values: AdminTierRuleFormValues) => Promise<void>
   onToggleActive: (ruleId: string) => void
+  onEdit?: () => void
+  onDelete?: (ruleId: string) => void
   isSubmitting?: boolean
 }
 
@@ -22,6 +24,8 @@ export function AdminTierRuleCard({
   rule,
   onSave,
   onToggleActive,
+  onEdit,
+  onDelete,
   isSubmitting = false,
 }: AdminTierRuleCardProps) {
   return (
@@ -33,7 +37,7 @@ export function AdminTierRuleCard({
       <div
         className={cn(
           'border-b border-slate-100 bg-gradient-to-r px-5 py-4',
-          LOYALTY_TIER_CARD_BG[rule.tier],
+          getTierCardBackground(rule.tier),
         )}
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -47,7 +51,7 @@ export function AdminTierRuleCard({
                 <span className="font-mono text-xs text-slate-500">{rule.id}</span>
               </div>
               <p className="mt-1 text-sm text-slate-600">
-                Hạng {LOYALTY_TIER_LABELS[rule.tier]}
+                Hạng {getTierLabel(rule.tier)}
               </p>
             </div>
           </div>
@@ -63,6 +67,8 @@ export function AdminTierRuleCard({
             >
               {rule.is_active ? 'Đang áp dụng' : 'Tạm ngưng'}
             </span>
+            {onEdit ? <Button type="button" variant="ghost" size="sm" onClick={onEdit}>Sửa</Button> : null}
+            {onDelete ? <Button type="button" variant="ghost" size="sm" onClick={() => onDelete(rule.id)}>Xóa</Button> : null}
             <Button
               type="button"
               variant="ghost"
@@ -75,6 +81,10 @@ export function AdminTierRuleCard({
         </div>
 
         <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+          <div>
+            <dt className="text-slate-500">Điểm tối thiểu</dt>
+            <dd className="font-medium text-slate-900">{rule.min_total_points}</dd>
+          </div>
           <div>
             <dt className="text-slate-500">Chi tiêu tối thiểu</dt>
             <dd className="font-medium text-slate-900">
@@ -98,7 +108,7 @@ export function AdminTierRuleCard({
 
       <div className="p-5">
         <AdminTierRuleForm
-          key={`${rule.id}-${rule.min_total_spent}-${rule.is_active}`}
+          key={`${rule.id}-${rule.min_total_points}-${rule.min_total_spent}-${rule.is_active}`}
           rule={rule}
           onSubmit={(values) => onSave(rule.id, values)}
           isSubmitting={isSubmitting}
